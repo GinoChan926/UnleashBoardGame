@@ -4,9 +4,11 @@ Testing version ,How to run the game:
 --Please install the GitHub boardgame document and install node.js in backend
 --after finish set-up, open anew terminal
 
-type the following command in terminal(I only works it in Window, didn't try to run in Linux or Mac pls type other commend)
+type the following command in terminal(I only works it in Window,
+didn't try to run in Linux or Mac pls type other commend)
 
 cd ..\project\backend
+
 node server.js
 
 then your termina should shows 
