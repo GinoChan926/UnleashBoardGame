@@ -1,0 +1,14 @@
+In chance_cards:
+1.I didn t add the 輔警 in pard_time job card in chance_cards.js , as its function require 警察卡(in server.js and game.js)(4/6/2026) 
+2.I didn't add the function(功能:你打開玩家數目的機會卡,你先取1張,其他人輪流取1張) of C05 人工智能無人便利店 in chance_cards.js . 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+3.I didn't add the function (功能:抽3錦囊卡取1張。) of C07 無人機快遞 in chance_cards.js. It need 锦囊卡系统 to fix it(in server.js and game.js)(7/6/2026)
+4.I didn 't add the function(功能:抽3錦囊卡取1張。)  of C09 洗車店 in chance_cards.js. It need 锦囊卡系统 to fix it(in server.js and game.js)(7/6/2026)
+5.I didn 't add the function(功能: 其他人到達出糧格子時,他要給你$2000。) of C13 港式茶餐廳 in chance_card.js. 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+6. I didn't add the function(功能:你自己抵擋一次逆境卡) of C16 家族辦公室 in chance_card.js. It need 逆境卡系统to fix it(in server.js and game.js)(7/6/2026)
+
+UI/UX:
+1.I didn t add the animation of dice or money in index.html, it will look better(5/6/2026)
+
+
