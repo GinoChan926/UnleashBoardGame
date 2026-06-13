@@ -1,0 +1,28 @@
+In chance_cards.js(Please review all cards function):
+1.I didn t add the 輔警 in pard_time job card in chance_cards.js , as its function require 警察卡(in server.js and game.js)(4/6/2026) 
+2.I didn't add the function(功能:你打開玩家數目的機會卡,你先取1張,其他人輪流取1張) of C05 人工智能無人便利店 in chance_cards.js . 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+3.I didn't add the function (功能:抽3錦囊卡取1張。) of C07 無人機快遞 in chance_cards.js. It need 锦囊卡系统 to fix it(in server.js and game.js)(7/6/2026)
+4.I didn 't add the function(功能:抽3錦囊卡取1張。)  of C09 洗車店 in chance_cards.js. It need 锦囊卡系统 to fix it(in server.js and game.js)(7/6/2026)
+5.I didn 't add the function(功能: 其他人到達出糧格子時,他要給你$2000。) of C13 港式茶餐廳 in chance_card.js. 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+6. I didn't add the function(功能:你自己抵擋一次逆境卡) of C16 家族辦公室 in chance_card.js. It need 逆境卡系统to fix it(in server.js and game.js)(7/6/2026)
+7. I didn't add the function(功能:你獲得6個健康,你將他平均分配給其他玩家,你抽2張卡。) of C17 大學飯堂 in chance_card.js. 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+8. I didn't add the function(環境保護: 企業減少廢物產生,並促進循環經濟的實踐。功能:在銀行取5個精力向其他玩家開價售賣,如果沒人買你可以買) of C20 可持續發展碳中和釀酒廠 in chance_card.js.
+ It need backend support to fix it(in server.js and game.js)(7/6/2026)
+9.I didn't add the function(企業透過教育和知識共享,分享創業知識和傷健共容。功能:在銀行取5個精力向其他玩家開價售賣,如果沒人買你可以買) of C21 可持續發展傷健咖啡店 in chance_card.js. 
+It need backend support to fix it(in server.js and game.js)(7/6/2026)
+10. I didn't add the function(功能:轉讓物業給其他玩家) to all 住宅卡(H01-H05) (7/6/2026)
+11. I didn't add function of P05 (在爭執時報警,立即將另一位玩家前/後移動3格,那位玩家需立即執行該格(經過月入不會有收入)。) and function of P06(舉報違法,你選擇一個玩家-$5000)
+It need backend support to fix it(in server.js and game.js)(8/6/2026)
+
+In revelation_cards.js(Please review all cards function):
+1. Some tipsCard in revelation(IN01-IN17) are team contribution and we don t have server yet (cannot run multiplayer function) It need backend support to fix it(in server.js and game.js)(10/6/2026)
+2. I didn't add the function(功能:錦囊卡抽取一張逆境卡) of IN07 錦囊. It need 逆境卡系统to fix it(in server.js and game.js) (10/6/2026)
+
+
+UI/UX:
+1.I didn t add the animation of dice or money in game, if we add it it will look better(5/6/2026)
+
+
