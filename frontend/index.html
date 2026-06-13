@@ -243,7 +243,7 @@
         .cell.type-income { background: linear-gradient(135deg, #ff9800, #ffc107); color: #333; }
         .cell.type-expense { background: linear-gradient(135deg, #dc143c, #ff6b6b); color: white; }
         .cell.type-market { background: linear-gradient(135deg, #00acc1, #26c6da); color: white; }
-        .cell.type-awareness { background: linear-gradient(135deg, #43a047, #81c784); color: white; }
+        .cell.type-awareness {background: linear-gradient(135deg, #ff9800, #e65100);color: white;animation: awarenessGlow 2s infinite;}
         .cell.type-event { background: linear-gradient(135deg, #ffeb3b, #fdd835); color: #333; }
         .cell.type-settlement { background: linear-gradient(135deg, #ffb300, #ff8f00); color: white; }
         .cell.type-grace { background: linear-gradient(135deg, #ffd966, #ffb74d); color: #333; }
@@ -260,11 +260,29 @@
         .cell.type-dream { background: linear-gradient(135deg, #8e24aa, #ce93d8); color: white; animation: dreamGlow 2s infinite; }
         .cell.type-audit { background: linear-gradient(135deg, #e65100, #ff6d00); color: white; }
         .cell.type-flowbankruptcy { background: linear-gradient(135deg, #b71c1c, #f44336); color: white; }
+        .cell.type-lier { background: linear-gradient(135deg, #dc143c, #ff6b6b); color: white; animation: lierGlow 1s infinite;}
+        .cell.type-police { background: linear-gradient(135deg, #2e7d32, #4caf50); color: white; animation: policeGlow 1.5s infinite;}
+        .cell.type-volunteer {background: linear-gradient(135deg, #4caf50, #2e7d32);color: white;animation: volunteerGlow 2s infinite;}
+        .cell.type-hardship {background: linear-gradient(135deg, #dc143c, #8b0000);color: white;animation: hardshipGlow 1.5s infinite;}
+        .cell.type-business_failure {background: linear-gradient(135deg, #ff6b6b, #c0392b);color: white;}
+        .cell.type-unemployment {background: linear-gradient(135deg, #7f8c8d, #2c3e50);color: white;}
+        .cell.type-reverse_entry {background: linear-gradient(135deg, #7b1fa2, #4a148c);color: white;animation: reverseGlow 1.5s infinite;}
+        .cell.type-reverse_exit {background: linear-gradient(135deg, #2e7d32, #1b5e20);color: white;animation: reverseGlow 1.5s infinite;}
+
+@keyframes reverseGlow {
+    0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #7b1fa2; }
+    50% { filter: brightness(1.2); box-shadow: 0 0 15px #9c27b0; }
+}
 
         @keyframes starGlow { 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.2); box-shadow: 0 0 10px #ff9800; } }
         @keyframes cloverGlow { 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.2); box-shadow: 0 0 10px #4caf50; } }
         @keyframes glowSoft { 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.2); box-shadow: 0 0 10px #ff80ab; } }
         @keyframes dreamGlow { 0%,100%{ box-shadow: 0 0 0 0 rgba(206,147,216,0.8);} 50%{ box-shadow: 0 0 0 4px rgba(206,147,216,0.5);} }
+        @keyframes lierGlow {0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #dc143c; }50% { filter: brightness(1.2); box-shadow: 0 0 15px #ff0000; }}
+        @keyframes policeGlow {0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #4caf50; }50% { filter: brightness(1.15); box-shadow: 0 0 12px #4caf50; }}
+        @keyframes volunteerGlow {0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #4caf50; }50% { filter: brightness(1.15); box-shadow: 0 0 15px #4caf50; }}
+        @keyframes awarenessGlow {0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #ff9800; }50% { filter: brightness(1.15); box-shadow: 0 0 15px #ff9800; }}
+        @keyframes hardshipGlow {0%, 100% { filter: brightness(1); box-shadow: 0 0 5px #dc143c; }50% { filter: brightness(1.2); box-shadow: 0 0 15px #dc143c; }}
 
         .cell.highlight {
             box-shadow: 0 0 0 3px #ffff88, 0 0 0 6px #ff9800, 0 4px 12px black;
@@ -442,6 +460,24 @@
             flex: 1;
             margin: 0;
         }
+        /* 骗子卡模态框动画 */
+        #lierCardModal .modal-content {
+            animation: slideIn 0.3s ease;
+        }
+
+        #lierCardModal .modal-content {
+            border: 2px solid #ff6b6b;
+            box-shadow: 0 0 20px rgba(255,107,107,0.3);
+        }
+
+        #lierCardImg {
+            transition: transform 0.3s ease;
+        }
+
+        #lierCardImg:hover {
+            transform: scale(1.02);
+        }
+
     </style>
 </head>
 <body>

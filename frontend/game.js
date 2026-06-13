@@ -25,20 +25,43 @@ class GameClient {
         this.gameOver = false;
         
         this.streamlineTiles = [
-            { name: "起點", type: "start" }, { name: "機會卡", type: "opportunity" }, { name: "升職加薪", type: "income" },
-            { name: "機會卡", type: "opportunity" }, { name: "結算日", type: "settlement" }, { name: "機會卡", type: "opportunity" },
-            { name: "孩子出生", type: "event" }, { name: "機會卡", type: "opportunity" }, { name: "副業發展", type: "income" },
-            { name: "幸運星", type: "lucky_star" }, { name: "結算日", type: "settlement" }, { name: "機會卡", type: "opportunity" },
-            { name: "恩典時刻", type: "grace" }, { name: "慈善捐款", type: "event" }, { name: "保險規劃", type: "event" },
-            { name: "機會卡", type: "opportunity" }, { name: "教育投資", type: "event" }, { name: "四葉草", type: "four_leaf_clover" },
-            { name: "市場轉機", type: "market" }, { name: "機會卡", type: "opportunity" }, { name: "創業啟動", type: "income" },
-            { name: "機會卡", type: "opportunity" }, { name: "職業轉換", type: "event" }, { name: "機會卡", type: "opportunity" }
+            { name: "義工卡", type: "volunteer" },
+            { name: "騙子卡", type: "lier" },
+            { name: "察覺卡", type: "awareness" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "結算日", type: "settlement" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "逆流層入口", type: "reverse_entry" },   
+            { name: "機會卡", type: "opportunity" },
+            { name: "幸運星", type: "lucky_star" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "察覺卡", type: "awareness" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "結算日", type: "settlement" },
+            { name: "警察卡", type: "police" }, 
+            { name: "察覺卡", type: "awareness" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "四葉草", type: "four_leaf_clover" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "逆流層出口", type: "reverse_exit" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "結算日", type: "settlement" },
+            { name: "機會卡", type: "opportunity" },
+            { name: "察覺卡", type: "awareness" },
+            { name: "機會卡", type: "opportunity" }
+    
         ];
         
         this.reverseTiles = [
-            { name: "奇蹟", type: "miracle" }, { name: "逆境自強", type: "hardship" }, { name: "覺察卡", type: "awareness" },
-            { name: "失業危機", type: "unemployment" }, { name: "逆境自強", type: "hardship" }, { name: "破產重組", type: "bankruptcy" },
-            { name: "浴火重生", type: "recovery" }, { name: "逆境自強", type: "hardship" }, { name: "覺察卡", type: "awareness" }
+            { name: "覺察卡", type: "awareness" },
+            { name: "逆境自強卡", type: "hardship" },
+            { name: "覺察卡", type: "awareness" },
+            { name: "生意失敗", type: "business_failure" },
+            { name: "奇蹟", type: "miracle" },
+            { name: "失業", type: "unemployment" },
+            { name: "覺察卡", type: "awareness" },
+            { name: "逆境自強卡", type: "hardship" },
+            { name: "覺察卡", type: "awareness" }
         ];
         
         this.flowTiles = [
@@ -60,6 +83,7 @@ class GameClient {
         this.setupCardTypeModal();
         this.setupPurchaseConfirmModal();
         this.setupEffectConfirmModal();
+        this.setupVolunteerCardModal();
         this.setupNotificationContainer();
         this.bindGlobalEvents();
         
@@ -123,7 +147,49 @@ class GameClient {
     if (typeof str !== 'string') str = String(str);
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
-    
+     // ==================== 物業模态框 ====================
+    showPropertySellChoices(message) {
+        const { playersToAsk, cardId, cardName, marketPrice } = message;
+        
+        // 检查当前玩家是否有相关物業
+        const currentPlayerProperty = playersToAsk ? playersToAsk.find(p => p.playerName === this.gameState?.playerName) : null;
+        if (!currentPlayerProperty) {
+            this.addLog(`🏠 ${cardName}：你沒有持有香港中西區住宅物業，無需操作`, 'info');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: {},
+                    cardId: cardId
+                }));
+            }
+            return;
+        }
+        
+        const property = currentPlayerProperty.property;
+        const profit = property.profit;
+        
+        const userChoice = confirm(
+            `🏠 ${cardName}\n\n` +
+            `市場正在求購香港中西區住宅物業！\n\n` +
+            `市場價格：$${marketPrice.toLocaleString()} 元\n` +
+            `你的物業：${property.name}\n` +
+            `按揭貸款：$${property.mortgageAmount.toLocaleString()} 元\n` +
+            `你可獲得：$${profit.toLocaleString()} 元\n\n` +
+            `按下「確定」出售物業，按下「取消」保留。\n\n` +
+            `出售後你將獲得：\n` +
+            `   • 現金 $${profit.toLocaleString()} 元\n` +
+            `   • 幸運值 +1`
+        );
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'market_news_response',
+                playerChoices: { [this.gameState.playerName]: userChoice },
+                cardId: cardId
+            }));
+        }
+    }
+
     // ==================== 职业选择模态框 ====================
     
     setupProfessionModal() {
@@ -391,7 +457,6 @@ class GameClient {
     }
     
     // ==================== 卡片类型选择模态框 ====================
-    
     setupCardTypeModal() {
         let modal = document.getElementById('cardTypeModal');
         if (!modal) {
@@ -759,11 +824,1328 @@ class GameClient {
             case 'food_delivery_menu': this.handleFoodDeliveryMenu(message); break;
             case 'notification': this.addLog(message.message || '', 'success'); this.showNotification(message.message || '', 'info'); break;
             case 'error': this.addLog(`❌ ${message.message}`, 'error'); this.showNotification(message.message, 'error'); break;
+            case 'lier_card_auto_execute':this.handleLierCardAutoExecute(message);break;
+            case 'lier_card_draw':this.handleLierCardDraw(message);break;
+            case 'lier_card_result':this.handleLierCardResult(message);break;
+            case 'police_card_execute':this.handlePoliceCardExecute(message);break;
+            case 'lier_card_shield_used':this.handleLierCardShieldUsed(message);break;
+            case 'lier_card_volunteer_used':this.handleLierCardVolunteerUsed(message);break;
+            case 'volunteer_card_execute':this.handleVolunteerCardExecute(message);break;
+            case 'volunteer_card_draw':this.handleVolunteerCardDraw(message);break;
+            case 'volunteer_card_choice':this.handleVolunteerCardChoice(message);break;
+            case 'emotional_support_available':this.showEmotionalSupportDialog(message);break;
+            case 'revelation_type_selection':this.showRevelationTypeSelection(message);break;
+            case 'revelation_card_draw':this.showRevelationCard(message);break;
+            case 'revelation_card_purchased':this.showRevelationCardEffect(message);break;
+            case 'market_news_choices':this.showMarketNewsChoices(message);break;
+            case 'market_news_property_choices':this.showMarketNewsPropertyChoices(message);break;
+            case 'team_tip_choices':this.showTeamTipChoices(message);break;
+            case 'market_news_result':this.handleMarketNewsResult(message);break;
+            case 'crypto_sell_choices':this.showCryptoSellChoices(message);break;
+            case 'stock_sell_choices':this.showStockSellChoices(message);break;
+            case 'property_sell_choices':this.showPropertySellChoices(message);break;
+            case 'slow_life_choices':this.showSlowLifeChoices(message);break;
+            case 'hardship_card_execute':this.handleHardshipCardExecute(message);break;
             default: this.addLog(`⚠️ 未知消息类型: ${message.type}`, 'warning');
         }
     }
+
+    // ==================== 逆境自强卡处理 ====================
+
+    handleHardshipCardExecute(message) {
+        console.log('逆境自强卡执行:', message.card);
+        
+        const card = message.card;
+        const effectMessage = message.effectMessage;
+        
+        // 创建或获取模态框
+        let modal = document.getElementById('hardshipCardModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'hardshipCardModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #4a1a1a, #3a0a0a); border-radius: 24px; text-align: center;">
+                    <div class="modal-title" style="color: #ff6b6b; font-size: 24px; text-align: center;">🎭 逆境自強卡</div>
+                    <div id="hardshipCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="hardshipCardImg" src="" alt="逆境自强卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #ff6b6b;">
+                    </div>
+                    <div class="modal-body" id="hardshipCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="background: rgba(255,107,107,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                        <span style="color: #ff6b6b; font-size: 14px;" id="hardshipCardEffect"></span>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
+                        <button class="btn-primary" id="closeHardshipCardBtn" style="background: #ff6b6b; padding: 10px 30px; border-radius: 30px; cursor: pointer;">確認</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        const cardImg = document.getElementById('hardshipCardImg');
+        const cardBody = document.getElementById('hardshipCardBody');
+        const effectSpan = document.getElementById('hardshipCardEffect');
+        
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23dc143c"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🎭</text></svg>';
+            };
+        }
+        
+        if (cardBody) {
+            cardBody.innerHTML = `
+                <strong style="font-size: 20px; color: #ff6b6b;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+            `;
+        }
+        
+        if (effectSpan) {
+            effectSpan.innerHTML = `📌 效果：${this.escapeHtml(effectMessage)}`;
+        }
+        
+        modal.classList.add('show');
+        
+        const closeBtn = document.getElementById('closeHardshipCardBtn');
+        const closeModal = () => {
+            modal.classList.remove('show');
+            if (closeBtn) closeBtn.removeEventListener('click', closeModal);
+        };
+        if (closeBtn) {
+            closeBtn.onclick = closeModal;
+        }
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                modal.onclick = null;
+            }
+        };
+        
+        this.addLog(`🎭 ${effectMessage}`, 'error');
+        this.showNotification(effectMessage, 'error');
+        
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+
+    // ==================== 察覺卡处理 ====================
+
+  showRevelationTypeSelection(message) {
+    const { cardTypes, canAfford } = message;
     
-    // ==================== 股票菜单处理 ====================
+    let modal = document.getElementById('revelationTypeModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'revelationTypeModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 560px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 28px; padding: 20px; border: 2px solid #ff9800;">
+                <div class="modal-title" style="text-align: center; color: #ff9800; font-size: 22px; margin-bottom: 16px;">🧘 察觉卡</div>
+                <div class="modal-body" style="text-align: center;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 8px;" id="revelationTypeButtons"></div>
+                </div>
+                <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 12px; margin: 12px 8px; text-align: center;">
+                    <span style="color: #ff9800; font-size: 13px;">💰 执行察觉卡需要花费 500 元</span>
+                </div>
+                <div class="modal-buttons" style="justify-content: center; margin: 10px 0 5px 0;">
+                    <button class="btn-secondary" id="cancelRevelationTypeBtn" style="background: #9e9e9e; padding: 10px 32px; border-radius: 30px; cursor: pointer;">取消</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const buttonsContainer = document.getElementById('revelationTypeButtons');
+    if (!buttonsContainer) return;
+    buttonsContainer.innerHTML = '';
+    
+    // 定义图片路径
+    const typeImages = {
+        'market_news': '../cards/revelation/market/M00.png',
+        'tip': '../cards/revelation/tip/IN00.png'
+    };
+    
+    // 定义类型配置
+    const typeConfig = {
+        'market_news': { name: '市场消息卡', icon: '📊', color: '#2196f3', description: '影响市场价格，持有相关资产的玩家可选择出售' },
+        'tip': { name: '锦囊卡', icon: '🎁', color: '#9c27b0', description: '获得特殊技能或团队福利' }
+    };
+    
+    cardTypes.forEach(type => {
+        const btnContainer = document.createElement('div');
+        btnContainer.style.cssText = `
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            text-align: center; 
+            border-radius: 16px; 
+            overflow: hidden; 
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+        `;
+        
+        // 创建图片元素
+        const img = document.createElement('img');
+        img.src = typeImages[type.id];
+        img.alt = typeConfig[type.id]?.name || type.name;
+        img.style.cssText = `
+            width: 100%;
+            max-width: 180px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+            padding: 16px;
+            background: rgba(30, 25, 20, 0.6);
+            border-radius: 12px;
+            box-sizing: border-box;
+        `;
+        
+        // 图片加载失败时的备用显示
+        img.onerror = () => {
+            img.style.display = 'none';
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.style.cssText = `
+                width: 100%;
+                max-width: 180px;
+                margin: 0 auto;
+                aspect-ratio: 1 / 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 48px;
+                background: ${typeConfig[type.id]?.color || '#ff9800'};
+                border-radius: 12px;
+            `;
+            fallbackDiv.innerHTML = typeConfig[type.id]?.icon || '🎴';
+            btnContainer.insertBefore(fallbackDiv, img);
+        };
+        
+        // 创建标签
+        const label = document.createElement('div');
+        label.style.cssText = `
+            padding: 10px 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffd966;
+            background: rgba(0,0,0,0.75);
+            text-align: center;
+        `;
+        label.innerHTML = `${typeConfig[type.id]?.icon || ''} ${typeConfig[type.id]?.name || type.name}`;
+        
+        btnContainer.appendChild(img);
+        btnContainer.appendChild(label);
+        
+        // 悬停效果
+        btnContainer.onmouseenter = () => {
+            btnContainer.style.transform = 'scale(1.03)';
+        };
+        btnContainer.onmouseleave = () => {
+            btnContainer.style.transform = 'scale(1)';
+        };
+        
+        // 点击选择
+        if (!canAfford) {
+            btnContainer.style.opacity = '0.55';
+            btnContainer.style.cursor = 'not-allowed';
+            btnContainer.title = '现金不足500元，无法执行察觉卡';
+        } else {
+            btnContainer.onclick = () => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'revelation_type_choice',
+                        cardType: type.id
+                    }));
+                }
+                modal.classList.remove('show');
+            };
+        }
+        
+        buttonsContainer.appendChild(btnContainer);
+    });
+    
+    const cancelBtn = document.getElementById('cancelRevelationTypeBtn');
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            modal.classList.remove('show');
+        };
+    }
+    
+    modal.classList.add('show');
+    }
+
+    showRevelationCard(message) {
+            const { card, canAfford } = message;
+            
+            let modal = document.getElementById('revelationPurchaseModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'revelationPurchaseModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 24px; text-align: center; border: 2px solid #ff9800;">
+                        <div class="modal-title" style="color: #ff9800; font-size: 24px;">${card.cardTypeIcon || '🧘'} ${card.cardTypeName || '察觉卡'}</div>
+                        <div style="text-align: center; margin: 15px 0;">
+                            <img id="revelationPurchaseImg" src="" alt="察觉卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
+                        </div>
+                        <div class="modal-body" id="revelationPurchaseBody" style="font-size: 14px; line-height: 1.5; color: #ffefc0;"></div>
+                        <div style="background: #fff3e0; padding: 12px; border-radius: 12px; margin: 15px 0;">
+                            <span style="font-size: 18px; font-weight: bold; color: #e65100;">💰 购买费用: 500 元</span>
+                        </div>
+                        <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
+                            <button class="btn-secondary" id="cancelRevelationPurchaseBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 放弃购买</button>
+                            <button class="btn-primary" id="confirmRevelationPurchaseBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 支付500购买</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            const cardImg = document.getElementById('revelationPurchaseImg');
+            const modalBody = document.getElementById('revelationPurchaseBody');
+            
+            if (cardImg && card.image) {
+                let imageUrl = card.image;
+                if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                    imageUrl = '/' + imageUrl;
+                }
+                cardImg.src = imageUrl || '';
+                cardImg.onerror = () => { 
+                    cardImg.style.display = 'none';
+                    cardImg.alt = '图片加载失败';
+                };
+            }
+            
+            if (modalBody) {
+                modalBody.innerHTML = `
+                    <h3 style="color: #ff9800; margin-bottom: 10px;">${this.escapeHtml(card.name)}</h3>
+                    <p>${this.escapeHtml(card.description)}</p>
+                    ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 团队锦囊 - 所有玩家可参与</p>' : ''}
+                `;
+            }
+            
+            const confirmBtn = document.getElementById('confirmRevelationPurchaseBtn');
+            const cancelBtn = document.getElementById('cancelRevelationPurchaseBtn');
+            
+            if (confirmBtn) {
+                confirmBtn.onclick = () => {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        this.ws.send(JSON.stringify({ type: 'purchase_revelation_card' }));
+                    }
+                    modal.classList.remove('show');
+                };
+                confirmBtn.disabled = !canAfford;
+                confirmBtn.style.opacity = canAfford ? '1' : '0.5';
+                confirmBtn.style.cursor = canAfford ? 'pointer' : 'not-allowed';
+            }
+            
+            if (cancelBtn) {
+                cancelBtn.onclick = () => {
+                    modal.classList.remove('show');
+                    this.addLog('已放弃购买察觉卡', 'warning');
+                };
+            }
+            
+            modal.classList.add('show');
+        }
+
+    showRevelationCardEffect(message) {
+        const { card } = message;
+        
+        let modal = document.getElementById('revelationEffectModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'revelationEffectModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 550px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 24px; text-align: center; border: 2px solid #ff9800;">
+                    <div class="modal-title" style="color: #ff9800; font-size: 24px;">${card.cardTypeIcon || '🧘'} ${card.cardTypeName || '察觉卡'}</div>
+                    <div style="text-align: center; margin: 15px 0;">
+                        <img id="revelationEffectImg" src="" alt="察觉卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
+                    </div>
+                    <div class="modal-body" id="revelationEffectBody" style="font-size: 14px; line-height: 1.5; color: #ffefc0;"></div>
+                    <div style="background: #fff3e0; padding: 12px; border-radius: 12px; margin: 15px 0;">
+                        <span style="font-size: 16px; font-weight: bold; color: #e65100;">⚠️ 执行后无法撤销！</span>
+                    </div>
+                    <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
+                        <button class="btn-secondary" id="declineRevelationBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 不执行</button>
+                        <button class="btn-primary" id="confirmRevelationBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">✅ 确认执行</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        const cardImg = document.getElementById('revelationEffectImg');
+        const modalBody = document.getElementById('revelationEffectBody');
+        
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.style.display = 'none';
+            };
+        }
+        
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <h3 style="color: #ff9800; margin-bottom: 10px;">${this.escapeHtml(card.name)}</h3>
+                <p>${this.escapeHtml(card.description)}</p>
+                ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 团队锦囊 - 所有玩家可参与</p>' : ''}
+            `;
+        }
+        
+        const confirmBtn = document.getElementById('confirmRevelationBtn');
+        const declineBtn = document.getElementById('declineRevelationBtn');
+        
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({ type: 'execute_revelation_card', execute: true }));
+                }
+                modal.classList.remove('show');
+            };
+        }
+        
+        if (declineBtn) {
+            declineBtn.onclick = () => {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({ type: 'execute_revelation_card', execute: false }));
+                }
+                modal.classList.remove('show');
+            };
+        }
+        
+        modal.classList.add('show');
+        this.waitingForAction = true;
+    }
+
+    showMarketNewsChoices(message) {
+        const { stockPrices, playersToAsk, cardId, cardName } = message;
+        
+        // 检查当前玩家是否有股票
+        const currentPlayerStocks = playersToAsk ? playersToAsk.find(p => p.playerName === this.gameState?.playerName) : null;
+        if (!currentPlayerStocks || currentPlayerStocks.stocks.length === 0) {
+            this.addLog(`📊 ${cardName}：你沒有持有相關股票，無需操作`, 'info');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: {},
+                    cardId: cardId
+                }));
+            }
+            return;
+        }
+        
+        let stockListHtml = '';
+        for (const stock of currentPlayerStocks.stocks) {
+            const priceInfo = stockPrices[stock.stockCode];
+            stockListHtml += `${stock.stockName} (${stock.stockCode}): ${stock.shares}股 @ $${priceInfo.price}/股\n`;
+        }
+        
+        const userChoice = confirm(
+            `📊 ${cardName}\n\n` +
+            `当前股价：\n` +
+            Object.entries(stockPrices).map(([code, info]) => `${info.name} (${code}): $${info.price}/股`).join('\n') +
+            `\n\n你的持股：\n${stockListHtml}\n\n` +
+            `按下「确定」出售所有持股，按下「取消」保留持股。`
+        );
+        
+        const choices = {};
+        if (userChoice) {
+            for (const stock of currentPlayerStocks.stocks) {
+                choices[stock.stockCode] = true;
+            }
+        }
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'market_news_response',
+                playerChoices: { [this.gameState.playerName]: choices },
+                cardId: cardId
+            }));
+        }
+    }
+
+    showMarketNewsPropertyChoices(message) {
+            const { playersToAsk, cardId, cardName } = message;
+            
+            const currentPlayerProperties = playersToAsk ? playersToAsk.find(p => p.playerName === this.gameState?.playerName) : null;
+            if (!currentPlayerProperties || currentPlayerProperties.properties.length === 0) {
+                this.addLog(`🏠 ${cardName}：你沒有持有地產，無需操作`, 'info');
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'market_news_response',
+                        playerChoices: {},
+                        cardId: cardId
+                    }));
+                }
+                return;
+            }
+            
+            let propertyList = '';
+            for (const prop of currentPlayerProperties.properties) {
+                const increasedValue = Math.floor(prop.totalPrice * 0.2);
+                propertyList += `${prop.name}: 原价 ${prop.totalPrice.toLocaleString()} 元，现值 ${(prop.totalPrice + increasedValue).toLocaleString()} 元 (+20%)\n`;
+            }
+            
+            const userChoice = confirm(
+                `🏠 ${cardName}\n\n` +
+                `你的地产：\n${propertyList}\n\n` +
+                `按下「确定」出售所有地产，按下「取消」保留。`
+            );
+            
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: { [this.gameState.playerName]: userChoice },
+                    cardId: cardId
+                }));
+            }
+        }
+
+        showTeamTipChoices(message) {
+            const { investmentCost, energyBonus, luckBonus, playersToAsk, cardId, cardName } = message;
+            
+            const userChoice = confirm(
+                `🎁 ${cardName}\n\n` +
+                `投资金额: $${investmentCost.toLocaleString()} 元\n` +
+                `获得奖励: 精力 +${energyBonus}，幸运值 +${luckBonus}\n\n` +
+                `你是否愿意投资？`
+            );
+            
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: { [this.gameState.playerName]: userChoice },
+                    cardId: cardId
+                }));
+            }
+        }
+
+        handleMarketNewsResult(message) {
+            this.addLog(`📊 ${message.effectMessage}`, 'success');
+            this.showNotification(message.effectMessage, 'info');
+            
+            if (message.gameState) {
+                this.gameState = message.gameState;
+                this.updateUI();
+                this.renderAllTiles();
+                this.updatePlayersList();
+            }
+        }
+
+        showSlowLifeChoices(message) {
+        const { diceResults, playersNeedChoice, cardId, cardName } = message;
+        
+        // 显示所有玩家的骰子结果
+        let resultMessage = `🧘 ${cardName}\n\n骰子結果：\n`;
+        for (const result of diceResults) {
+            resultMessage += `${result.playerName}: 擲出 ${result.diceRoll} 點 → ${result.result}\n`;
+        }
+        
+        // 检查当前玩家是否需要选择
+        const currentPlayerNeedChoice = playersNeedChoice.find(p => p.playerName === this.gameState?.playerName);
+        
+        if (currentPlayerNeedChoice) {
+            const userChoice = confirm(
+                `${resultMessage}\n\n你擲出 ${currentPlayerNeedChoice.diceRoll} 點！\n請選擇獎勵：\n\n按下「確定」獲得 2 精力\n按下「取消」獲得 $2,000 元`
+            );
+            
+            const choice = userChoice ? 'energy' : 'cash';
+            const choiceMessage = userChoice ? '獲得 2 精力' : '獲得 $2,000 元';
+            
+            this.addLog(`🧘 你選擇 ${choiceMessage}`, 'success');
+            
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: { [this.gameState.playerName]: choice },
+                    cardId: cardId
+                }));
+            }
+        } else {
+            // 当前玩家不需要选择，直接显示结果
+            alert(resultMessage);
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: {},
+                    cardId: cardId
+                }));
+            }
+        }
+    }
+
+    // ==================== 义工卡处理 ====================
+
+    // 志愿者帮助处理（骗子卡被义工帮助）
+    handleLierCardVolunteerUsed(message) {
+        console.log('志愿者帮助:', message);
+        
+        this.addLog(`👮 ${message.shieldMessage}`, 'success');
+        this.showNotification(message.shieldMessage, 'success');
+        
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+
+    // ==================== 义工卡模态框设置 ====================
+
+    setupVolunteerCardModal() {
+        // 普通义工卡显示模态框
+        let modal = document.getElementById('volunteerCardModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'volunteerCardModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
+                    <div class="modal-title" style="color: #4caf50; font-size: 24px; text-align: center;">🤝 義工卡</div>
+                    <div id="volunteerCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="volunteerCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                    </div>
+                    <div class="modal-body" id="volunteerCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="background: rgba(76,175,80,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                        <span style="color: #4caf50; font-size: 14px;" id="volunteerCardEffect"></span>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
+                        <button class="btn-primary" id="closeVolunteerCardBtn" style="background: #4caf50; padding: 10px 30px; border-radius: 30px; cursor: pointer;">確認</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // 捐款确认模态框（用于V02帮助伤健人士）
+        let donationModal = document.getElementById('volunteerDonationModal');
+        if (!donationModal) {
+            donationModal = document.createElement('div');
+            donationModal.id = 'volunteerDonationModal';
+            donationModal.className = 'modal';
+            donationModal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
+                    <div class="modal-title" style="color: #4caf50; font-size: 24px;">🤝 幫助傷健人士</div>
+                    <div id="donationCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="donationCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                    </div>
+                    <div class="modal-body" id="donationModalBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="background: rgba(76,175,80,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                        <span style="color: #4caf50; font-size: 14px;">📌 所有其他玩家將自願捐款 $2,000 給現金最少的玩家</span>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; gap: 15px; margin-top: 15px;">
+                        <button class="btn-secondary" id="cancelDonationBtn" style="background: #9e9e9e; padding: 10px 30px; border-radius: 30px; cursor: pointer;">❌ 取消</button>
+                        <button class="btn-primary" id="confirmDonationBtn" style="background: #4caf50; padding: 10px 30px; border-radius: 30px; cursor: pointer;">✅ 執行義工</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(donationModal);
+        }
+        
+        // 选择模态框（用于V05义教儿童）
+        let choiceModal = document.getElementById('volunteerChoiceModal');
+        if (!choiceModal) {
+            choiceModal = document.createElement('div');
+            choiceModal.id = 'volunteerChoiceModal';
+            choiceModal.className = 'modal';
+            choiceModal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
+                    <div class="modal-title" style="color: #4caf50; font-size: 24px;">🤝 義工卡 - 選擇獎勵</div>
+                    <div id="choiceCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="choiceCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                    </div>
+                    <div class="modal-body" id="choiceModalBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;" id="choiceButtons">
+                        <button class="btn-primary" id="choiceCashBtn" style="background: #ff9800; padding: 12px; border-radius: 30px; cursor: pointer;">💰 獲得 $3,000 元</button>
+                        <button class="btn-primary" id="choiceVolunteerBtn" style="background: #4caf50; padding: 12px; border-radius: 30px; cursor: pointer;">⭐ 獲得 1 次義工資格</button>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
+                        <button class="btn-secondary" id="cancelChoiceBtn" style="background: #9e9e9e; padding: 10px 30px; border-radius: 30px; cursor: pointer;">取消</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(choiceModal);
+        }
+    }
+
+    // 处理普通义工卡执行
+    handleVolunteerCardExecute(message) {
+        console.log('义工卡执行:', message.card);
+        
+        this.setupVolunteerCardModal();
+        
+        const card = message.card;
+        const effectMessage = message.effectMessage;
+        
+        const modal = document.getElementById('volunteerCardModal');
+        const cardImg = document.getElementById('volunteerCardImg');
+        const cardBody = document.getElementById('volunteerCardBody');
+        const effectSpan = document.getElementById('volunteerCardEffect');
+        
+        if (!modal) return;
+        
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%234caf50"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🤝</text></svg>';
+            };
+        }
+        
+        if (cardBody) {
+            cardBody.innerHTML = `
+                <strong style="font-size: 20px; color: #4caf50;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+            `;
+        }
+        
+        if (effectSpan) {
+            effectSpan.innerHTML = `📌 ${this.escapeHtml(effectMessage)}`;
+        }
+        
+        modal.classList.add('show');
+        
+        const closeBtn = document.getElementById('closeVolunteerCardBtn');
+        const closeModal = () => {
+            modal.classList.remove('show');
+            if (closeBtn) closeBtn.removeEventListener('click', closeModal);
+        };
+        if (closeBtn) {
+            closeBtn.onclick = closeModal;
+        }
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                modal.onclick = null;
+            }
+        };
+        
+        this.addLog(`🤝 ${effectMessage}`, 'success');
+        this.showNotification(effectMessage, 'success');
+        
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+
+    // 处理需要捐款的义工卡（V02）
+    handleVolunteerCardDraw(message) {
+        console.log('需要捐款的义工卡:', message.card);
+        
+        this.setupVolunteerCardModal();
+        
+        const card = message.card;
+        
+        const modal = document.getElementById('volunteerDonationModal');
+        const cardImg = document.getElementById('donationCardImg');
+        const modalBody = document.getElementById('donationModalBody');
+        const confirmBtn = document.getElementById('confirmDonationBtn');
+        const cancelBtn = document.getElementById('cancelDonationBtn');
+        
+        if (!modal) return;
+        
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%234caf50"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🤝</text></svg>';
+            };
+        }
+        
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <strong style="font-size: 20px; color: #4caf50;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+                <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 12px; margin-top: 12px;">
+                    <span style="color: #ffd966;">💡 執行後，每位有能力的玩家將捐款 $2,000 給現金最少的玩家，你將獲得 1 次義工資格</span>
+                </div>
+            `;
+        }
+        
+        const handleConfirm = () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ type: 'volunteer_card_confirm' }));
+            }
+            modal.classList.remove('show');
+            this.waitingForAction = false;
+        };
+        
+        const handleCancel = () => {
+            modal.classList.remove('show');
+            this.waitingForAction = false;
+            this.addLog('已取消执行义工卡', 'warning');
+        };
+        
+        if (confirmBtn) confirmBtn.onclick = handleConfirm;
+        if (cancelBtn) cancelBtn.onclick = handleCancel;
+        
+        modal.classList.add('show');
+        this.waitingForAction = true;
+    }
+
+    // 处理需要选择的义工卡（V05）
+    handleVolunteerCardChoice(message) {
+        console.log('需要选择的义工卡:', message.card);
+        
+        this.setupVolunteerCardModal();
+        
+        const card = message.card;
+        
+        const modal = document.getElementById('volunteerChoiceModal');
+        const cardImg = document.getElementById('choiceCardImg');
+        const modalBody = document.getElementById('choiceModalBody');
+        const cashBtn = document.getElementById('choiceCashBtn');
+        const volunteerBtn = document.getElementById('choiceVolunteerBtn');
+        const cancelBtn = document.getElementById('cancelChoiceBtn');
+        
+        if (!modal) return;
+        
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%234caf50"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🤝</text></svg>';
+            };
+        }
+        
+        if (modalBody) {
+            modalBody.innerHTML = `
+                <strong style="font-size: 20px; color: #4caf50;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+                <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 12px; margin-top: 12px;">
+                    <span style="color: #ffd966;">📌 請選擇你的獎勵：</span>
+                </div>
+            `;
+        }
+        
+        const handleChoice = (choice) => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'volunteer_card_choice_confirm',
+                    choice: choice
+                }));
+            }
+            modal.classList.remove('show');
+            this.waitingForAction = false;
+        };
+        
+        if (cashBtn) cashBtn.onclick = () => handleChoice('cash');
+        if (volunteerBtn) volunteerBtn.onclick = () => handleChoice('volunteer');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => {
+                modal.classList.remove('show');
+                this.waitingForAction = false;
+                this.addLog('已取消选择', 'warning');
+            };
+        }
+        
+        modal.classList.add('show');
+        this.waitingForAction = true;
+    }
+
+    // ==================== 集体捐款处理函数 ====================
+
+    // 处理集体捐款给玩家（V02, V04）
+    handleCollectDonations(message) {
+        console.log('处理集体捐款:', message);
+        
+        const { donationAmount, targetPlayer, playersToAsk, cardId, cardName } = message;
+        
+        // 显示捐款选择对话框
+        let donationChoices = {};
+        
+        // 遍历每个玩家，询问是否捐款
+        for (let i = 0; i < playersToAsk.length; i++) {
+            const player = playersToAsk[i];
+            
+            // 跳过自己（如果是执行者）
+            if (player.playerName === this.gameState?.playerName) {
+                continue;
+            }
+            
+            const userChoice = confirm(
+                `🤝 ${cardName}\n\n` +
+                `目標玩家：${targetPlayer}\n` +
+                `捐款金額：$${donationAmount.toLocaleString()} 元\n\n` +
+                `玩家：${player.playerName}\n` +
+                `當前現金：$${player.cash.toLocaleString()} 元\n\n` +
+                `你是否願意捐款？\n` +
+                `捐款後你將獲得幸運值 +1 獎勵！`
+            );
+            
+            donationChoices[player.playerName] = userChoice;
+            
+            if (userChoice) {
+                this.addLog(`✅ 你選擇捐款 $${donationAmount.toLocaleString()} 給 ${targetPlayer}`, 'success');
+            } else {
+                this.addLog(`❌ 你選擇不捐款`, 'warning');
+            }
+        }
+        
+        // 发送选择结果到服务器
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'volunteer_donation_response',
+                cardId: cardId,
+                donationResponses: donationChoices
+            }));
+        }
+    }
+
+    // 处理集体捐款给银行（V03）
+    handleCollectDonationsBank(message) {
+        console.log('处理集体捐款给银行:', message);
+        
+        const { donationAmount, playersToAsk, cardId, cardName } = message;
+        
+        let donationChoices = {};
+        
+        for (let i = 0; i < playersToAsk.length; i++) {
+            const player = playersToAsk[i];
+            
+            // 跳过自己（如果是执行者）
+            if (player.playerName === this.gameState?.playerName) {
+                continue;
+            }
+            
+            const userChoice = confirm(
+                `🌍 ${cardName}\n\n` +
+                `捐款金額：$${donationAmount.toLocaleString()} 元\n` +
+                `捐款去向：銀行（拯救饑民）\n\n` +
+                `玩家：${player.playerName}\n` +
+                `當前現金：$${player.cash.toLocaleString()} 元\n\n` +
+                `你是否願意捐款？\n` +
+                `捐款後你將獲得幸運值 +1 獎勵！`
+            );
+            
+            donationChoices[player.playerName] = userChoice;
+            
+            if (userChoice) {
+                this.addLog(`✅ 你選擇捐款 $${donationAmount.toLocaleString()} 給銀行`, 'success');
+            } else {
+                this.addLog(`❌ 你選擇不捐款`, 'warning');
+            }
+        }
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'volunteer_donation_response',
+                cardId: cardId,
+                donationResponses: donationChoices
+            }));
+        }
+    }
+
+    // 处理集体捐赠精力给玩家（V12）
+    handleCollectEnergyDonations(message) {
+        console.log('处理集体捐赠精力:', message);
+        
+        const { donationAmount, targetPlayer, playersToAsk, cardId, cardName } = message;
+        
+        let donationChoices = {};
+        
+        for (let i = 0; i < playersToAsk.length; i++) {
+            const player = playersToAsk[i];
+            
+            // 跳过自己（如果是执行者）
+            if (player.playerName === this.gameState?.playerName) {
+                continue;
+            }
+            
+            const userChoice = confirm(
+                `👴 ${cardName}\n\n` +
+                `目標玩家：${targetPlayer}\n` +
+                `捐贈精力：${donationAmount} 點\n\n` +
+                `玩家：${player.playerName}\n` +
+                `當前精力：${player.energy}/${player.maxEnergy}\n\n` +
+                `你是否願意捐贈精力？\n` +
+                `捐贈後你將獲得幸運值 +1 獎勵！`
+            );
+            
+            donationChoices[player.playerName] = userChoice;
+            
+            if (userChoice) {
+                this.addLog(`✅ 你選擇捐贈 ${donationAmount} 精力給 ${targetPlayer}`, 'success');
+            } else {
+                this.addLog(`❌ 你選擇不捐贈精力`, 'warning');
+            }
+        }
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'volunteer_donation_response',
+                cardId: cardId,
+                donationResponses: donationChoices
+            }));
+        }
+    }
+
+    // 处理集体捐赠精力给银行（V13）
+    handleCollectEnergyDonationsBank(message) {
+        console.log('处理集体捐赠精力给银行:', message);
+        
+        const { donationAmount, playersToAsk, cardId, cardName } = message;
+        
+        let donationChoices = {};
+        
+        for (let i = 0; i < playersToAsk.length; i++) {
+            const player = playersToAsk[i];
+            
+            // 跳过自己（如果是执行者）
+            if (player.playerName === this.gameState?.playerName) {
+                continue;
+            }
+            
+            const userChoice = confirm(
+                `🗑️ ${cardName}\n\n` +
+                `捐贈精力：${donationAmount} 點\n` +
+                `捐贈去向：銀行（環保活動）\n\n` +
+                `玩家：${player.playerName}\n` +
+                `當前精力：${player.energy}/${player.maxEnergy}\n\n` +
+                `你是否願意捐贈精力？\n` +
+                `捐贈後你將獲得幸運值 +1 獎勵！`
+            );
+            
+            donationChoices[player.playerName] = userChoice;
+            
+            if (userChoice) {
+                this.addLog(`✅ 你選擇捐贈 ${donationAmount} 精力給銀行`, 'success');
+            } else {
+                this.addLog(`❌ 你選擇不捐贈精力`, 'warning');
+            }
+        }
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'volunteer_donation_response',
+                cardId: cardId,
+                donationResponses: donationChoices
+            }));
+        }
+    }
+
+    // ==================== 情绪支援处理函数 ====================
+
+    // 显示情绪支援对话框
+    showEmotionalSupportDialog(message) {
+        console.log('情绪支援可用:', message);
+        
+        const { damagedPlayer, damageAmount, damageDescription, cardId } = message;
+        
+        // 显示确认对话框
+        const userChoice = confirm(
+            `💝 情緒支援機會\n\n` +
+            `玩家「${damagedPlayer}」正在受到傷害！\n` +
+            `傷害類型：${damageDescription}\n` +
+            `損失金額：${damageAmount.toLocaleString()} 元\n\n` +
+            `你是否願意使用「情緒支援」卡幫助 TA？\n` +
+            `使用後你將獲得：\n` +
+            `   • 幸運值 +1\n` +
+            `   • 精力 +1\n` +
+            `   • 記錄一次義工行為\n\n` +
+            `按下「確定」使用情緒支援，按下「取消」放棄。`
+        );
+        
+        if (userChoice) {
+            this.addLog(`💝 你使用情緒支援幫助 ${damagedPlayer}`, 'success');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'use_emotional_support',
+                    targetPlayer: damagedPlayer,
+                    cardId: cardId
+                }));
+            }
+        } else {
+            this.addLog(`❌ 你選擇不使用情緒支援`, 'warning');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'skip_emotional_support',
+                    targetPlayer: damagedPlayer,
+                    cardId: cardId
+                }));
+            }
+        }
+    }
+
+    // 情绪支援使用结果
+    handleEmotionalSupportResult(message) {
+        console.log('情绪支援结果:', message);
+        
+        const { success, resultMessage, remainingShield } = message;
+        
+        if (success) {
+            this.addLog(`💝 ${resultMessage}`, 'success');
+            this.showNotification(resultMessage, 'success');
+        } else {
+            this.addLog(`❌ ${resultMessage}`, 'error');
+        }
+        
+        if (remainingShield !== undefined) {
+            this.addLog(`🛡️ 剩餘情緒支援護盾次數: ${remainingShield}`, 'info');
+        }
+        
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+        }
+    }
+
+     // ==================== 警察卡处理 ====================
+    handlePoliceCardExecute(message) {
+        console.log('警察卡执行:', message.card);
+        
+        const card = message.card;
+        const effectMessage = message.effectMessage;
+        
+        // 创建或获取模态框
+        let modal = document.getElementById('policeCardModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'policeCardModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 24px; text-align: center;">
+                    <div class="modal-title" style="color: #4caf50; font-size: 24px; text-align: center;">👮 警察卡</div>
+                    <div id="policeCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="policeCardImg" src="" alt="警察卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                    </div>
+                    <div class="modal-body" id="policeCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="background: rgba(76,175,80,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                        <span style="color: #4caf50; font-size: 14px;" id="policeCardEffect"></span>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
+                        <button class="btn-primary" id="closePoliceCardBtn" style="background: #4caf50; padding: 10px 30px; border-radius: 30px; cursor: pointer;">確認</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // 设置卡片图片
+        const cardImg = document.getElementById('policeCardImg');
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%234caf50"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">👮</text></svg>';
+            };
+        }
+        
+        // 设置卡片内容
+        const cardBody = document.getElementById('policeCardBody');
+        if (cardBody) {
+            cardBody.innerHTML = `
+                <strong style="font-size: 20px; color: #4caf50;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+            `;
+        }
+        
+        // 设置效果说明
+        const effectSpan = document.getElementById('policeCardEffect');
+        if (effectSpan) {
+            effectSpan.innerHTML = `📌 效果：${this.escapeHtml(effectMessage)}`;
+        }
+        
+        // 显示模态框
+        modal.classList.add('show');
+        
+        // 关闭按钮事件
+        const closeBtn = document.getElementById('closePoliceCardBtn');
+        const closeModal = () => {
+            modal.classList.remove('show');
+            closeBtn.removeEventListener('click', closeModal);
+        };
+        closeBtn.addEventListener('click', closeModal);
+        
+        // 点击模态框背景也可以关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                modal.onclick = null;
+            }
+        };
+        
+        // 添加到游戏日志
+        this.addLog(`👮 ${effectMessage}`, 'success');
+        this.showNotification(effectMessage, 'success');
+        
+        // 更新游戏状态
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+
+    handleLierCardShieldUsed(message) {
+        console.log('防骗护盾使用:', message);
+        
+        // 显示护盾使用通知
+        this.addLog(`🛡️ ${message.shieldMessage}`, 'success');
+        this.showNotification(message.shieldMessage, 'success');
+        
+        // 更新游戏状态
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+
+    // ==================== 骗子卡处理 ====================
+    // 处理骗子卡抽取（自动执行，无需确认）
+    handleLierCardDraw(message) {
+        console.log('显示骗子卡:', message.card);
+        
+        const card = message.card;
+        
+        // 显示卡片图片和效果（弹窗提示）
+        alert(`🎭 ${card.name}\n\n${card.description}\n\n效果將自動執行！`);
+        
+        // 自动执行骗子卡
+        this.ws.send(JSON.stringify({
+            type: 'execute_lier_card'
+        }));
+    }
+
+    // 处理骗子卡执行结果
+    handleLierCardResult(message) {
+        this.addLog(`🎭 ${message.effectMessage}`, 'error');
+        this.showNotification(message.effectMessage, 'error');
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+        }
+    }
+
+    // 添加自动执行处理方法
+    // 处理骗子卡自动执行（显示卡片图片）
+    handleLierCardAutoExecute(message) {
+        console.log('骗子卡自动执行:', message.card);
+        
+        const card = message.card;
+        const effectMessage = message.effectMessage;
+        
+        // 创建或获取模态框
+        let modal = document.getElementById('lierCardModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'lierCardModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a1a1a, #1a0a0a); border-radius: 24px; text-align: center;">
+                    <div class="modal-title" style="color: #ff6b6b; font-size: 24px; text-align: center;">🎭 騙子卡</div>
+                    <div id="lierCardImage" style="text-align: center; margin: 15px 0;">
+                        <img id="lierCardImg" src="" alt="骗子卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #ff6b6b;">
+                    </div>
+                    <div class="modal-body" id="lierCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                    <div style="background: rgba(255,107,107,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                        <span style="color: #ff6b6b; font-size: 14px;" id="lierCardEffect"></span>
+                    </div>
+                    <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
+                        <button class="btn-primary" id="closeLierCardBtn" style="background: #ff6b6b; padding: 10px 30px; border-radius: 30px; cursor: pointer;">確認</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // 设置卡片图片
+        const cardImg = document.getElementById('lierCardImg');
+        if (cardImg && card.image) {
+            let imageUrl = card.image;
+            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                imageUrl = '/' + imageUrl;
+            }
+            cardImg.src = imageUrl || '';
+            cardImg.onerror = () => {
+                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23dc143c"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🎭</text></svg>';
+            };
+        }
+        
+        // 设置卡片内容
+        const cardBody = document.getElementById('lierCardBody');
+        if (cardBody) {
+            cardBody.innerHTML = `
+                <strong style="font-size: 20px; color: #ff6b6b;">${this.escapeHtml(card.name)}</strong><br>
+                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+            `;
+        }
+        
+        // 设置效果说明
+        const effectSpan = document.getElementById('lierCardEffect');
+        if (effectSpan) {
+            effectSpan.innerHTML = `📌 效果：${this.escapeHtml(effectMessage)}`;
+        }
+        
+        // 显示模态框
+        modal.classList.add('show');
+        
+        // 关闭按钮事件
+        const closeBtn = document.getElementById('closeLierCardBtn');
+        const closeModal = () => {
+            modal.classList.remove('show');
+            // 移除事件监听器避免重复
+            closeBtn.removeEventListener('click', closeModal);
+        };
+        closeBtn.addEventListener('click', closeModal);
+        
+        // 点击模态框背景也可以关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+                modal.onclick = null;
+            }
+        };
+        
+        // 添加到游戏日志
+        this.addLog(`🎭 ${effectMessage}`, 'error');
+        this.showNotification(effectMessage, 'error');
+        
+        // 更新游戏状态
+        if (message.gameState) {
+            this.gameState = message.gameState;
+            this.updateUI();
+            this.renderAllTiles();
+            this.updatePlayersList();
+        }
+    }
+        
+    // ==================== 股票处理 ====================
     
     // 在 game.js 中，找到 handleStockMenu 函数，修改为：
 
@@ -905,9 +2287,88 @@ class GameClient {
         this.ws.send(JSON.stringify({ type: 'execute_card', execute: false }));
     }
     }
+
+    showStockSellChoices(message) {
+        const { playersToAsk, cardId, cardName, multiplier } = message;
+        
+        // 检查当前玩家是否有股票
+        const currentPlayerStocks = playersToAsk ? playersToAsk.find(p => p.playerName === this.gameState?.playerName) : null;
+        if (!currentPlayerStocks || currentPlayerStocks.stockHoldings.length === 0) {
+            this.addLog(`🌟 ${cardName}：你沒有持有股票，無需操作`, 'info');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: {},
+                    cardId: cardId
+                }));
+            }
+            return;
+        }
+        
+        let stockList = '';
+        for (const stock of currentPlayerStocks.stockHoldings) {
+            stockList += `${stock.name}: ${stock.shares}股，成本 $${stock.originalCost.toLocaleString()}，可賣出 $${stock.sellPrice.toLocaleString()} (獲利 $${stock.profit.toLocaleString()})\n`;
+        }
+        
+        const userChoice = confirm(
+            `🌟 ${cardName}\n\n` +
+            `大奇蹟日！所有股票可以原買入價 ${multiplier} 倍出售！\n\n` +
+            `你的持股：\n${stockList}\n\n` +
+            `按下「確定」以 ${multiplier} 倍價格出售所有股票，按下「取消」保留。\n\n` +
+            `出售後你將獲得：\n` +
+            `   • 幸運值 +3\n` +
+            `   • 精力 +2`
+        );
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'market_news_response',
+                playerChoices: { [this.gameState.playerName]: userChoice },
+                cardId: cardId
+            }));
+        }
+    }
     
     // ==================== 加密货币菜单处理 ====================
     
+    showCryptoSellChoices(message) {
+        const { playersToAsk, cardId, cardName, multiplier } = message;
+        
+        // 检查当前玩家是否有加密货币
+        const currentPlayerCrypto = playersToAsk ? playersToAsk.find(p => p.playerName === this.gameState?.playerName) : null;
+        if (!currentPlayerCrypto || currentPlayerCrypto.cryptoHoldings.length === 0) {
+            this.addLog(`🚀 ${cardName}：你沒有持有 C01 加密貨幣，無需操作`, 'info');
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'market_news_response',
+                    playerChoices: {},
+                    cardId: cardId
+                }));
+            }
+            return;
+        }
+        
+        let cryptoList = '';
+        for (const crypto of currentPlayerCrypto.cryptoHoldings) {
+            cryptoList += `${crypto.name}: ${crypto.units}顆，成本 $${crypto.originalCost.toLocaleString()}，可賣出 $${crypto.sellPrice.toLocaleString()} (獲利 $${crypto.profit.toLocaleString()})\n`;
+        }
+        
+        const userChoice = confirm(
+            `🚀 ${cardName}\n\n` +
+            `加密貨幣價格爆升！可以原價 ${multiplier} 倍出售！\n\n` +
+            `你的持倉：\n${cryptoList}\n\n` +
+            `按下「確定」以 ${multiplier} 倍價格出售所有 C01 加密貨幣，按下「取消」保留。`
+        );
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'market_news_response',
+                playerChoices: { [this.gameState.playerName]: userChoice },
+                cardId: cardId
+            }));
+        }
+    }
+
     handleCryptoMenu(message) {
         console.log('显示加密货币菜单:', message);
         
@@ -1233,9 +2694,24 @@ class GameClient {
         });
     }
     
-    updateUI() {
+   updateUI() {
         if (!this.gameState) return;
-        const totalExp = this.gameState.livingExpense + this.gameState.tax + this.gameState.loanInterest + this.gameState.childExpense;
+        
+        // 计算原始总支出
+        const rawTotalExp = this.gameState.livingExpense + this.gameState.tax + this.gameState.loanInterest + this.gameState.childExpense;
+        
+        // 应用支出减免
+        let totalExp = rawTotalExp;
+        let expenseReductionMessage = '';
+        let expenseReductionPercent = this.gameState.expenseReduction || 0;
+        
+        if (expenseReductionPercent > 0) {
+            const savedAmount = Math.floor(rawTotalExp * expenseReductionPercent / 100);
+            totalExp = rawTotalExp - savedAmount;
+            expenseReductionMessage = ` (已減免 ${expenseReductionPercent}%)`;
+        }
+        
+        // 计算月现金流（使用减免后的支出）
         const monthlyCF = (this.gameState.salary + this.gameState.sideIncome + this.gameState.passiveIncome) - totalExp;
         
         const totalLoanRepay = this.gameState.loanAmount + Math.round(this.gameState.loanAmount * 0.1);
@@ -1243,11 +2719,50 @@ class GameClient {
         const luckyStarCount = this.gameState.luckyStarCount || 0;
         const fourLeafCloverCount = this.gameState.fourLeafClover || 0;
         
-        const elements = ['statCash', 'statSalary', 'statSideIncome', 'statPassiveIncome', 'statMonthlyCF', 'statLiving', 'statTax', 'statLoanInterest', 'statTotalExpense', 'statEnergy', 'statLuck', 'statLuckyStar', 'statLayer', 'statFourLeafClover'];
-        const values = [this.gameState.cash, this.gameState.salary, this.gameState.sideIncome, this.gameState.passiveIncome, monthlyCF, this.gameState.livingExpense, this.gameState.tax, this.gameState.loanInterest, totalExp, `${this.gameState.energy}/${this.gameState.maxEnergy}`, this.gameState.luck.toFixed(1), luckyStarCount, this.gameState.inFlow ? '顺流层' : (this.gameState.inReverse ? '逆流层' : '平流层'), fourLeafCloverCount];
+        // 更新各个统计元素
+        const statCash = this.getElement('statCash');
+        const statSalary = this.getElement('statSalary');
+        const statSideIncome = this.getElement('statSideIncome');
+        const statPassiveIncome = this.getElement('statPassiveIncome');
+        const statMonthlyCF = this.getElement('statMonthlyCF');
+        const statLiving = this.getElement('statLiving');
+        const statTax = this.getElement('statTax');
+        const statLoanInterest = this.getElement('statLoanInterest');
+        const statTotalExpense = this.getElement('statTotalExpense');
+        const statEnergy = this.getElement('statEnergy');
+        const statLuck = this.getElement('statLuck');
+        const statLuckyStar = this.getElement('statLuckyStar');
+        const statLayer = this.getElement('statLayer');
+        const statFourLeafClover = this.getElement('statFourLeafClover');
         
-        elements.forEach((id, idx) => { const el = this.getElement(id); if (el) el.innerText = values[idx]; });
+        if (statCash) statCash.innerText = this.gameState.cash.toLocaleString();
+        if (statSalary) statSalary.innerText = this.gameState.salary.toLocaleString();
+        if (statSideIncome) statSideIncome.innerText = this.gameState.sideIncome.toLocaleString();
+        if (statPassiveIncome) statPassiveIncome.innerText = this.gameState.passiveIncome.toLocaleString();
+        if (statMonthlyCF) statMonthlyCF.innerText = (monthlyCF >= 0 ? '+' : '') + monthlyCF.toLocaleString();
+        if (statLiving) statLiving.innerText = this.gameState.livingExpense.toLocaleString();
+        if (statTax) statTax.innerText = this.gameState.tax.toLocaleString();
+        if (statLoanInterest) statLoanInterest.innerText = this.gameState.loanInterest.toLocaleString();
         
+        // 显示减免后的总支出
+        if (statTotalExpense) {
+            statTotalExpense.innerText = totalExp.toLocaleString() + expenseReductionMessage;
+            if (expenseReductionPercent > 0) {
+                statTotalExpense.style.color = '#4caf50';
+            } else {
+                statTotalExpense.style.color = '#ffefc0';
+            }
+        }
+        
+        if (statEnergy) statEnergy.innerText = `${this.gameState.energy}/${this.gameState.maxEnergy}`;
+        if (statLuck) statLuck.innerText = this.gameState.luck.toFixed(1);
+        if (statLuckyStar) statLuckyStar.innerText = luckyStarCount;
+        if (statFourLeafClover) statFourLeafClover.innerText = fourLeafCloverCount;
+        
+        const layerText = this.gameState.inFlow ? '顺流层' : (this.gameState.inReverse ? '逆流层' : '平流层');
+        if (statLayer) statLayer.innerText = layerText;
+        
+        // 更新本利和显示
         const totalLoanRepayEl = this.getElement('statTotalLoanRepay');
         if (totalLoanRepayEl) {
             totalLoanRepayEl.innerText = totalLoanRepay.toLocaleString();
@@ -1258,6 +2773,7 @@ class GameClient {
             }
         }
         
+        // 更新贷款按钮状态
         const loanBtn = this.getButton('btnLoan');
         if (loanBtn) {
             loanBtn.disabled = this.gameState.loanAmount > 0;
@@ -1268,24 +2784,39 @@ class GameClient {
             }
         }
         
+        // 更新还款按钮状态
         const repayBtn = this.getButton('btnRepayLoan');
         if (repayBtn) {
             repayBtn.disabled = this.gameState.loanAmount === 0;
         }
         
+        // 更新四叶草按钮
         const useCloverBtn = this.getButton('btnUseClover');
         if (useCloverBtn) {
             useCloverBtn.disabled = fourLeafCloverCount === 0;
             useCloverBtn.textContent = fourLeafCloverCount > 0 ? `🍀 四葉草 (x2) x${fourLeafCloverCount}` : '🍀 四葉草 (x2)';
         }
         
+        // 更新幸运星按钮
         const useLuckyStarBtn = this.getButton('btnUseLuckyStar');
         if (useLuckyStarBtn) {
             useLuckyStarBtn.disabled = luckyStarCount === 0;
             useLuckyStarBtn.textContent = luckyStarCount > 0 ? `⭐ 幸運星 (x3) x${luckyStarCount}` : '⭐ 幸運星 (x3)';
         }
         
-        const statMonthlyCFEl = this.getElement('statMonthlyCF'); if (statMonthlyCFEl) statMonthlyCFEl.innerText = (monthlyCF >= 0 ? '+' : '') + monthlyCF.toLocaleString();
+        // 更新控制面板样式
+        const controlPanel = this.getElement('controlPanel');
+        if (controlPanel) {
+            controlPanel.className = 'panel control-panel';
+            if (this.gameState.inFlow) controlPanel.classList.add('flow');
+            if (this.gameState.inReverse) controlPanel.classList.add('reverse');
+        }
+        
+        // 更新中心文字
+        const layerTextElement = this.getElement('layerText');
+        if (layerTextElement) {
+            layerTextElement.innerText = layerText;
+        }
     }
     
     updatePlayersList() {

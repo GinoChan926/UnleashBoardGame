@@ -144,12 +144,17 @@
             font-size: 11px;
             font-weight: bold;
         }
-        
-        .badge-part_time { background: #4caf50; color: white; }
+        .badge-volunteer {background: #4caf72;color: white;}
+        .badge-part_time { background: #ff9191; color: white; }
         .badge-finance { background: #2196f3; color: white; }
         .badge-business { background: #ff9800; color: white; }
         .badge-property { background: #9c27b0; color: white; }
-        
+        .badge-lier { background: #dc143c; color: white; }
+        .badge-police { background: #2196f3; color: white; }
+        .badge-general { background: #666; color: white; }
+        .badge-market_news { background: #2196f3; color: white; }
+        .badge-tip { background: #9c27b0; color: white; }
+     
         .amount-positive { color: #4caf50; }
         .amount-negative { color: #ff6b6b; }
         
@@ -206,6 +211,12 @@
         <button class="filter-btn" data-filter="finance">📈 财务</button>
         <button class="filter-btn" data-filter="business">🚀 创业</button>
         <button class="filter-btn" data-filter="property">🏠 地产</button>
+        <button class="filter-btn" data-filter="lier">🎭 骗子卡</button>
+        <button class="filter-btn" data-filter="police">👮 警察卡</button>
+        <button class="filter-btn" data-filter="volunteer">🤝 义工卡</button>
+        <button class="filter-btn" data-filter="market_news">📊 市场消息</button>
+        <button class="filter-btn" data-filter="hardship">🎭 逆境自强</button>
+        <button class="filter-btn" data-filter="tip">🎁 锦囊卡</button>
         <input type="text" class="search-input" id="searchInput" placeholder="搜尋玩家或卡片...">
         <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
     </div>
@@ -252,62 +263,87 @@
     
     // 渲染表格
     function renderTable(transactions, filter = 'all', search = '') {
-        const tbody = document.getElementById('recordsBody');
-        const filtered = transactions.filter(t => {
-            if (filter !== 'all' && t.cardType !== filter) return false;
-            if (search && !t.playerName.toLowerCase().includes(search.toLowerCase()) && 
-                !t.cardName.toLowerCase().includes(search.toLowerCase())) return false;
-            return true;
-        });
+    const tbody = document.getElementById('recordsBody');
+    const filtered = transactions.filter(t => {
+        if (filter !== 'all' && t.cardType !== filter) return false;
+        if (search && !t.playerName.toLowerCase().includes(search.toLowerCase()) && 
+            !t.cardName.toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+    });
+    
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="no-data">暫無交易記錄</td></tr>';
+        return;
+    }
+    
+    let totalCash = 0;
+    let totalPassive = 0;
+    let totalSide = 0;
+    
+    tbody.innerHTML = filtered.map(t => {
+        const amountClass = (t.amountChange || 0) >= 0 ? 'amount-positive' : 'amount-negative';
+        const amountSymbol = (t.amountChange || 0) >= 0 ? '+' : '';
         
-        if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="no-data">暫無交易記錄</td></tr>';
-            return;
+        totalCash += t.amountChange || 0;
+        totalPassive += t.passiveIncomeChange || 0;
+        totalSide += t.sideIncomeChange || 0;
+        
+        let badgeClass = '';
+        let typeName = '';
+        if (t.cardType === 'part_time') {
+            badgeClass = 'badge-part_time';
+            typeName = '💼 兼职';
+        } else if (t.cardType === 'finance') {
+            badgeClass = 'badge-finance';
+            typeName = '📈 财务';
+        } else if (t.cardType === 'business') {
+            badgeClass = 'badge-business';
+            typeName = '🚀 创业';
+        } else if (t.cardType === 'property') {
+            badgeClass = 'badge-property';
+            typeName = '🏠 地产';
+        } else if (t.cardType === 'lier') {
+            badgeClass = 'badge-lier';
+            typeName = '🎭 骗子卡';
+        } else if (t.cardType === 'police') {
+            badgeClass = 'badge-police';
+            typeName = '👮 警察卡';
+        } else if (t.cardType === 'volunteer') {  
+            badgeClass = 'badge-volunteer';
+            typeName = '🤝 义工卡';
+        } else if (t.cardType === 'market_news') {
+            badgeClass = 'badge-finance';
+            typeName = '📊 市场消息';
+        } else if (t.cardType === 'tip') {
+            badgeClass = 'badge-business';
+            typeName = '🎁 锦囊卡';
+        } else if (t.cardType === 'hardship') {
+            badgeClass = 'badge-lier';
+            typeName = '🎭 逆境自强';
+        } else {
+            badgeClass = 'badge-general';
+            typeName = '🎁 察覺';
         }
         
-        let totalCash = 0;
-        let totalPassive = 0;
-        let totalSide = 0;
-        
-        tbody.innerHTML = filtered.map(t => {
-            const amountClass = (t.amountChange || 0) >= 0 ? 'amount-positive' : 'amount-negative';
-            const amountSymbol = (t.amountChange || 0) >= 0 ? '+' : '';
-            
-            totalCash += t.amountChange || 0;
-            totalPassive += t.passiveIncomeChange || 0;
-            totalSide += t.sideIncomeChange || 0;
-            
-            let badgeClass = '';
-            if (t.cardType === 'part_time') badgeClass = 'badge-part_time';
-            else if (t.cardType === 'finance') badgeClass = 'badge-finance';
-            else if (t.cardType === 'business') badgeClass = 'badge-business';
-            else if (t.cardType === 'property') badgeClass = 'badge-property';
-            
-            let typeName = '';
-            if (t.cardType === 'part_time') typeName = '💼 兼职';
-            else if (t.cardType === 'finance') typeName = '📈 财务';
-            else if (t.cardType === 'business') typeName = '🚀 创业';
-            else if (t.cardType === 'property') typeName = '🏠 地产';
-            
-            return `<tr>
-                <td style="font-size: 11px;">${t.timestamp || '-'}</td>
-                <td><strong>${escapeHtml(t.playerName || '-')}</strong></td>
-                <td><span class="badge ${badgeClass}">${typeName}</span></td>
-                <td>${escapeHtml(t.cardName || '-')}</td>
-                <td>${t.action || '執行'}</td>
-                <td class="${amountClass}">${amountSymbol}${(t.amountChange || 0).toLocaleString()} 元</td>
-                <td class="${(t.passiveIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.passiveIncomeChange || 0) >= 0 ? '+' : ''}${(t.passiveIncomeChange || 0).toLocaleString()}</td>
-                <td class="${(t.sideIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.sideIncomeChange || 0) >= 0 ? '+' : ''}${(t.sideIncomeChange || 0).toLocaleString()}</td>
-                <td style="max-width: 250px; word-break: break-word;">${escapeHtml(t.details || '-')}</td>
-            </tr>`;
-        }).join('');
-        
-        document.getElementById('totalCount').innerText = filtered.length;
-        document.getElementById('totalCashChange').innerHTML = totalCash >= 0 ? `+${totalCash.toLocaleString()}` : totalCash.toLocaleString();
-        document.getElementById('totalCashChange').style.color = totalCash >= 0 ? '#4caf50' : '#ff6b6b';
-        document.getElementById('totalPassiveChange').innerHTML = totalPassive >= 0 ? `+${totalPassive.toLocaleString()}` : totalPassive.toLocaleString();
-        document.getElementById('totalSideChange').innerHTML = totalSide >= 0 ? `+${totalSide.toLocaleString()}` : totalSide.toLocaleString();
-    }
+        return `<tr>
+            <td style="font-size: 11px;">${t.timestamp || '-'}</td>
+            <td><strong>${escapeHtml(t.playerName || '-')}</strong></td>
+            <td><span class="badge ${badgeClass}">${typeName}</span></td>
+            <td>${escapeHtml(t.cardName || '-')}</td>
+            <td>${t.action || '執行'}</td>
+            <td class="${amountClass}">${amountSymbol}${(t.amountChange || 0).toLocaleString()} 元</td>
+            <td class="${(t.passiveIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.passiveIncomeChange || 0) >= 0 ? '+' : ''}${(t.passiveIncomeChange || 0).toLocaleString()}</td>
+            <td class="${(t.sideIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.sideIncomeChange || 0) >= 0 ? '+' : ''}${(t.sideIncomeChange || 0).toLocaleString()}</td>
+            <td style="max-width: 250px; word-break: break-word;">${escapeHtml(t.details || '-')}</td>
+        </tr>`;
+    }).join('');
+    
+    document.getElementById('totalCount').innerText = filtered.length;
+    document.getElementById('totalCashChange').innerHTML = totalCash >= 0 ? `+${totalCash.toLocaleString()}` : totalCash.toLocaleString();
+    document.getElementById('totalCashChange').style.color = totalCash >= 0 ? '#4caf50' : '#ff6b6b';
+    document.getElementById('totalPassiveChange').innerHTML = totalPassive >= 0 ? `+${totalPassive.toLocaleString()}` : totalPassive.toLocaleString();
+    document.getElementById('totalSideChange').innerHTML = totalSide >= 0 ? `+${totalSide.toLocaleString()}` : totalSide.toLocaleString();
+}
     
     function escapeHtml(str) {
         if (!str) return '';

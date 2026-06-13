@@ -12,6 +12,33 @@ const PROFESSIONS = {
     entrepreneur: { name: "🚀 创业者", salary: 10000, sideIncome: 2000, cash: 12000, energy: 4, maxEnergy: 100, livingExpense: 7000, tax: 1300, luck: 5.8 }
 };
 
+// ==================== 辅助函数：计算月现金流（应用支出减免） ====================
+function calculateMonthlyCashFlow(state) {
+    const totalIncome = (state.salary || 0) + (state.sideIncome || 0) + (state.passiveIncome || 0);
+    let totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+    
+    if (state.expenseReduction && state.expenseReduction > 0) {
+        totalExpense = totalExpense - Math.floor(totalExpense * state.expenseReduction / 100);
+    }
+    
+    return totalIncome - totalExpense;
+}
+
+// 计算减免后的支出
+function calculateReducedExpense(state) {
+    let totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+    let savedAmount = 0;
+    let reductionPercent = 0;
+    
+    if (state.expenseReduction && state.expenseReduction > 0) {
+        savedAmount = Math.floor(totalExpense * state.expenseReduction / 100);
+        reductionPercent = state.expenseReduction;
+        totalExpense = totalExpense - savedAmount;
+    }
+    
+    return { totalExpense, savedAmount, reductionPercent };
+}
+
 // ==================== 交易记录存储 ====================
 let transactions = [];
 
@@ -19,14 +46,31 @@ let transactions = [];
 function addTransactionRecord(playerName, card, action, amountChange, details, stateBefore, stateAfter) {
     console.log(`🔍 addTransactionRecord 被调用: ${playerName} ${action} ${card.name}`);
     
-    // 获取卡片类型
-    let cardType = card.cardType;
-    if (!cardType) {
-        if (card.id && card.id.startsWith('C')) cardType = 'business';
-        else if (card.id && card.id.startsWith('Z')) cardType = 'part_time';
-        else if (card.id && card.id.startsWith('F')) cardType = 'finance';
-        else if (card.id && card.id.startsWith('pro')) cardType = 'property';
-        else cardType = 'general';
+    // 使用 getCardTypeFromCard 函数获取卡片类型（支持所有卡片类型）
+    let cardType = getCardTypeFromCard(card);
+    
+    // 如果没有获取到类型，使用备用逻辑
+    if (!cardType || cardType === 'general') {
+        if (card.id && card.id.startsWith('SC')) {
+            cardType = 'lier';
+        } else if (card.id && (card.id.startsWith('P0') || card.id === 'P01' || card.id === 'P02' || 
+                               card.id === 'P03' || card.id === 'P04' || card.id === 'P05' || card.id === 'P06')) {
+            cardType = 'police';
+        } else if (card.id && card.id.startsWith('C')) {
+            cardType = 'business';
+        } else if (card.id && card.id.startsWith('Z')) {
+            cardType = 'part_time';
+        } else if (card.id && card.id.startsWith('F')) {
+            cardType = 'finance';
+        } else if (card.id && card.id.startsWith('pro')) {
+            cardType = 'property';
+        } else if (card.type === 'lier' || card.category === '骗子卡') {
+            cardType = 'lier';
+        } else if (card.type === 'police' || card.category === '警察卡') {
+            cardType = 'police';
+        } else {
+            cardType = 'general';
+        }
     }
     
     const record = {
@@ -64,38 +108,85 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
     
     return record;
 }
-// 根据卡片获取类型
+
 // 根据卡片获取类型
 function getCardTypeFromCard(card) {
-    if (card.id && card.id.startsWith('P')) return 'part_time';
+    if (card.id && card.id.startsWith('Z')) return 'part_time';
     if (card.id && card.id.startsWith('F')) return 'finance';
     if (card.id && card.id.startsWith('C')) return 'business';
     if (card.id && card.id.startsWith('H')) return 'property';
+    if (card.id && card.id.startsWith('SC')) return 'lier';
+    if (card.id && card.id.startsWith('P')) return 'police';
+    if (card.id && card.id.startsWith('M')) return 'market_news';
+    if (card.id && card.id.startsWith('IN')) return 'tip';
+
     if (card.type === 'part_time') return 'part_time';
     if (card.type === 'finance') return 'finance';
     if (card.type === 'business') return 'business';
     if (card.type === 'property') return 'property';
+    if (card.type === 'police') return 'police';
+    if (card.type === 'lier') return 'lier';
+    if (card.type === 'market_news') return 'market_news';
+    if (card.type === 'tip') return 'tip';
+
     if (card.cardType === 'part_time') return 'part_time';
     if (card.cardType === 'finance') return 'finance';
     if (card.cardType === 'business') return 'business';
     if (card.cardType === 'property') return 'property';
+    if (card.cardType === 'police') return 'police';
+    if (card.cardType === 'lier') return 'lier';
+    if (card.cardType === 'volunteer') return 'volunteer';
+
     if (card.category === '财务') return 'finance';
     if (card.category === '兼职') return 'part_time';
     if (card.category === '创业') return 'business';
     if (card.category === '地产') return 'property';
-    if (card.name && (card.name.includes('股票') || card.name.includes('基金') || card.name.includes('加密') || 
-        card.name.includes('P2P') || (card.id && card.id.startsWith('F')))) {
-        return 'finance';
+    if (card.category === '骗子卡') return 'lier';
+    if (card.category === '警察卡') return 'police';
+    if (card.category === '市场消息卡') return 'market_news';
+    if (card.category === '锦囊卡') return 'tip';
+
+     // 根据卡片名称关键字判断
+    if (card.name) {
+        if (card.name.includes('股票') || card.name.includes('基金') || card.name.includes('加密') || card.name.includes('P2P')) {
+            return 'finance';
+        }
+        // 创业卡片名称关键字
+        if (card.name.includes('店') || card.name.includes('企業') || card.name.includes('中心') ||
+            card.name.includes('機構') || card.name.includes('辦公室') || card.name.includes('程式') ||
+            card.name.includes('廠') || card.name.includes('咖啡') || card.name.includes('Airbnb') ||
+            card.name.includes('洗車') || card.name.includes('健身') || card.name.includes('培訓') ||
+            card.name.includes('飲品') || card.name.includes('麵包') || card.name.includes('飯堂') ||
+            card.name.includes('派對') || card.name.includes('外賣') || card.name.includes('無人機') ||
+            card.name.includes('補習') || card.name.includes('酒') || card.name.includes('健康')) {
+            return 'business';
+        }
+        // 骗子卡名称关键字
+        if (card.name.includes('騙') || card.name.includes('詐') || card.name.includes('假') ||
+            card.name.includes('虛擬貨幣騙') || card.name.includes('網購') || card.name.includes('商業詐騙')) {
+            return 'lier';
+        }
+        // 警察卡名称关键字
+        if (card.name.includes('警方') || card.name.includes('防騙') || card.name.includes('宣傳') ||
+            card.name.includes('舉報') || card.name.includes('熱線') || card.name.includes('警訊') ||
+            card.name.includes('提防騙子') || card.name.includes('通行證') || card.name.includes('講座')) {
+            return 'police';
+        }
     }
-    // 新增：創業卡片名稱關鍵字識別
-    if (card.name && (card.name.includes('店') || card.name.includes('企業') || card.name.includes('中心') ||
-        card.name.includes('機構') || card.name.includes('辦公室') || card.name.includes('程式') ||
-        card.name.includes('廠') || card.name.includes('咖啡') || card.name.includes('Airbnb') ||
-        card.name.includes('洗車') || card.name.includes('健身') || card.name.includes('培訓') ||
-        card.name.includes('飲品') || card.name.includes('麵包') || card.name.includes('飯堂'))) {
-        return 'business';
-    }
+    
     return 'general';
+}
+
+// 加载逆境自强卡数据
+let hardshipCards = [];
+
+try {
+    const hardshipData = require('./hardship_cards.js');
+    hardshipCards = hardshipData.hardshipCards || [];
+    console.log(`📚 加载逆境自强卡: ${hardshipCards.length}张`);
+} catch (e) {
+    console.log('⚠️ 无法加载 hardship_cards.js，使用默认卡片');
+    hardshipCards = [];
 }
 
 // 保存交易记录到文件（定期）
@@ -128,6 +219,8 @@ function loadTransactionsFromFile() {
     }
 }
 
+
+
 // 加载机会卡数据
 let partTimeCards = [], financeCards = [], businessCards = [], propertyCards = [];
 
@@ -154,6 +247,27 @@ const CARD_TYPES = {
     PROPERTY: { id: 'property', name: '地产类', icon: '🏠', color: '#9c27b0', cards: propertyCards }
 };
 
+// 在加载骗子卡数据
+let lierCards = [];
+
+try {
+    const lierData = require('./lier_cards.js');
+    lierCards = lierData.lierCards || [];
+    console.log(`📚 加载骗子卡: ${lierCards.length}张`);
+} catch (e) {
+    console.log('⚠️ 无法加载 lier_cards.js，使用默认卡片');
+    lierCards = [];
+}
+
+// 添加骗子卡类型定义
+const LIER_TYPES = {
+    id: 'lier',
+    name: '騙子卡',
+    icon: '🎭',
+    color: '#dc143c',
+    cards: lierCards
+};
+
 // 项目路径
 const projectRoot = path.resolve(__dirname, '..');
 const frontendPath = path.join(projectRoot, 'frontend');
@@ -174,41 +288,41 @@ function decodeUrl(str) {
 
 // 平流层棋盘数据
 const streamlineTiles = [
-    { name: "起點", type: "start" },
-    { name: "機會卡", type: "opportunity" },
-    { name: "升職加薪", type: "income" },
+    { name: "義工卡", type: "volunteer" },
+    { name: "騙子卡", type: "lier" },
+    { name: "察覺卡", type: "awareness" },
     { name: "機會卡", type: "opportunity" },
     { name: "結算日", type: "settlement" },
     { name: "機會卡", type: "opportunity" },
-    { name: "孩子出生", type: "event" },
+    { name: "逆流層入口", type: "reverse_entry" },  
     { name: "機會卡", type: "opportunity" },
-    { name: "副業發展", type: "income" },
     { name: "幸運星", type: "lucky_star" },
+    { name: "機會卡", type: "opportunity" },
+    { name: "察覺卡", type: "awareness" },
+    { name: "機會卡", type: "opportunity" },
     { name: "結算日", type: "settlement" },
+    { name: "警察卡", type: "police" }, 
+    { name: "察覺卡", type: "awareness" },
     { name: "機會卡", type: "opportunity" },
-    { name: "恩典時刻", type: "grace" },
-    { name: "慈善捐款", type: "event" },
-    { name: "保險規劃", type: "event" },
-    { name: "機會卡", type: "opportunity" },
-    { name: "教育投資", type: "event" },
     { name: "四葉草", type: "four_leaf_clover" },
-    { name: "市場轉機", type: "market" },
+    { name: "機會卡", type: "opportunity" },
+    { name: "逆流層出口", type: "reverse_exit" },
     { name: "機會卡", type: "opportunity" },
     { name: "結算日", type: "settlement" },
     { name: "機會卡", type: "opportunity" },
-    { name: "職業轉換", type: "event" },
+    { name: "察覺卡", type: "awareness" },
     { name: "機會卡", type: "opportunity" }
 ];
 
 const reverseTiles = [
-    { name: "奇蹟", type: "miracle" },
-    { name: "逆境自強", type: "hardship" },
     { name: "覺察卡", type: "awareness" },
-    { name: "失業危機", type: "unemployment" },
-    { name: "逆境自強", type: "hardship" },
-    { name: "破產重組", type: "bankruptcy" },
-    { name: "浴火重生", type: "recovery" },
-    { name: "逆境自強", type: "hardship" },
+    { name: "逆境自強卡", type: "hardship" },
+    { name: "覺察卡", type: "awareness" },
+    { name: "生意失敗", type: "business_failure" },
+    { name: "奇蹟", type: "miracle" },
+    { name: "失業", type: "unemployment" },
+    { name: "覺察卡", type: "awareness" },
+    { name: "逆境自強卡", type: "hardship" },
     { name: "覺察卡", type: "awareness" }
 ];
 
@@ -276,6 +390,26 @@ const server = http.createServer((req, res) => {
         transactions = [];
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: '交易记录已清空' }));
+        return;
+    }
+    
+    // 获取志愿者统计
+    if (req.url === '/api/volunteer/stats' && req.method === 'GET') {
+        const volunteerStats = [];
+        rooms.forEach((room, roomId) => {
+            room.players.forEach((player, ws) => {
+                if (player.gameState.volunteerCount > 0) {
+                    volunteerStats.push({
+                        playerName: player.playerName,
+                        volunteerCount: player.gameState.volunteerCount,
+                        volunteerShieldUsed: (player.gameState.volunteerShieldInitial || 0) - (player.gameState.volunteerShield || 0)
+                    });
+                }
+            });
+        });
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(volunteerStats));
         return;
     }
     
@@ -523,6 +657,91 @@ function getOrCreateRoom(roomId) {
     return rooms.get(roomId);
 }
 
+// ==================== 逆境自强卡处理 ====================
+
+// 抽取逆境自强卡
+function drawHardshipCard(ws, state, roomId, player) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    if (hardshipCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '暫無逆境自強卡資料' }));
+        return;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * hardshipCards.length);
+    const card = hardshipCards[randomIndex];
+    
+    console.log(`🎭 玩家 ${player.playerName} 抽到逆境自强卡: ${card.name}`);
+    
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    // 执行卡片效果
+    const effectResult = card.effect(player.gameState);
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        card,
+        '逆境自強卡',
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 发送卡片信息给前端
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'hardship',
+        cardTypeName: '逆境自強卡',
+        cardTypeIcon: '🎭'
+    };
+    
+    // 发送骰子结果
+    const diceResult = {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: 0,
+        originalSteps: 0,
+        multiplierUsed: false,
+        gameState: player.gameState,
+        tile: { name: "逆境自強卡", type: "hardship" },
+        eventMessage: null,
+        multiplierMessage: ''
+    };
+    ws.send(JSON.stringify(diceResult));
+    broadcastToRoom(roomId, diceResult, ws);
+    
+    // 发送逆境自强卡执行消息
+    ws.send(JSON.stringify({
+        type: 'hardship_card_execute',
+        card: serializableCard,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🎭 ${player.playerName} 抽到逆境自強卡「${card.name}」！${effectResult}`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    console.log(`✅ 玩家 ${player.playerName} 执行了逆境自强卡: ${card.name}`);
+}
+
+
 // ==================== 贷款系统 ====================
 
 function getPlayerLoan(player) {
@@ -561,17 +780,21 @@ function handleLoan(ws, data, roomId) {
     const amount = data.data?.amount || data.amount;
     const maxLoan = Math.round((player.gameState.salary + player.gameState.sideIncome) * 3);
     
+    // 使用动态利率（如果有永久利率设置）
+    const interestRate = player.gameState.permanentLoanRate || 10;
+    
     if (amount > 0 && amount <= maxLoan) {
-        const interest = Math.round(amount * loanRecord.interestRate);
+        const interest = Math.round(amount * interestRate / 100);
         const totalToRepay = amount + interest;
         
         loanRecord.principal = amount;
+        loanRecord.interestRate = interestRate / 100;
         loanRecord.settlementCount = 0;
         loanRecord.lastSettlementMonth = player.gameState.totalSettlementCount || 0;
         
         player.gameState.cash += amount;
         player.gameState.loanAmount = amount;
-        player.gameState.loanInterest = Math.round(amount * 0.01);
+        player.gameState.loanInterest = Math.round(amount * interestRate / 100 / 12); // 月息
         player.gameState.luck = Math.max(0, player.gameState.luck - 1);
         
         const result = {
@@ -581,14 +804,14 @@ function handleLoan(ws, data, roomId) {
             loanAmount: amount,
             interestAmount: interest,
             totalToRepay: totalToRepay,
-            interestRate: loanRecord.interestRate * 100,
+            interestRate: interestRate,
             gameState: player.gameState
         };
         
         ws.send(JSON.stringify(result));
         broadcastToRoom(roomId, result, ws);
         
-        console.log(`🏦 玩家 ${player.playerName} 贷款 ${amount.toLocaleString()} 元，需还本利和 ${totalToRepay.toLocaleString()} 元 (+${loanRecord.interestRate*100}%利息)`);
+        console.log(`🏦 玩家 ${player.playerName} 贷款 ${amount.toLocaleString()} 元，利率 ${interestRate}%，需还本利和 ${totalToRepay.toLocaleString()} 元`);
     } else {
         ws.send(JSON.stringify({ type: 'loan_rejected', reason: '贷款金额无效或超出上限' }));
     }
@@ -653,14 +876,19 @@ function processSettlementRepayment(player, ws, roomId) {
     loanRecord.settlementCount++;
     player.gameState.totalSettlementCount = (player.gameState.totalSettlementCount || 0) + 1;
     
-    const totalToRepay = calculateTotalRepay(loanRecord.principal);
+    const interestRate = loanRecord.interestRate || 0.1;
+    const totalToRepay = loanRecord.principal + Math.round(loanRecord.principal * interestRate);
+    const interest = totalToRepay - loanRecord.principal;
     
-    console.log(`📅 玩家 ${player.playerName} 第 ${loanRecord.settlementCount} 次经过结算日，贷款本金: ${loanRecord.principal.toLocaleString()}`);
+    console.log(`📅 玩家 ${player.playerName} 第 ${loanRecord.settlementCount} 次经过结算日，贷款本金: ${loanRecord.principal.toLocaleString()}, 需还本利和: ${totalToRepay.toLocaleString()}`);
     
+    // 检查是否达到强制扣款次数（12次）
     if (loanRecord.settlementCount >= 12) {
+        console.log(`⚠️ 玩家 ${player.playerName} 已达到12次结算日，执行强制扣款`);
+        
+        // 现金足够，全额扣款
         if (player.gameState.cash >= totalToRepay) {
             player.gameState.cash -= totalToRepay;
-            const interest = totalToRepay - loanRecord.principal;
             
             const result = {
                 type: 'forced_repayment',
@@ -672,20 +900,25 @@ function processSettlementRepayment(player, ws, roomId) {
                 gameState: player.gameState
             };
             
+            // 清空贷款记录
             player.gameState.loanAmount = 0;
             player.gameState.loanInterest = 0;
             loanRecord.principal = 0;
             loanRecord.settlementCount = 0;
             
+            console.log(`✅ 玩家 ${player.playerName} 强制还款成功，扣除 ${totalToRepay.toLocaleString()} 元`);
             return result;
-        } else {
+        } 
+        // 现金不足，部分扣款
+        else {
             const deductedAmount = player.gameState.cash;
             const remainingDebt = totalToRepay - deductedAmount;
             
             player.gameState.cash = 0;
             
+            // 更新贷款记录为剩余欠款
             loanRecord.principal = remainingDebt;
-            loanRecord.settlementCount = 12;
+            loanRecord.settlementCount = 12;  // 重置计数，继续累积
             
             const result = {
                 type: 'forced_repayment_partial',
@@ -701,10 +934,12 @@ function processSettlementRepayment(player, ws, roomId) {
             player.gameState.loanAmount = remainingDebt;
             player.gameState.loanInterest = Math.round(remainingDebt * 0.01);
             
+            console.log(`⚠️ 玩家 ${player.playerName} 部分强制还款，扣除 ${deductedAmount.toLocaleString()} 元，剩余欠款 ${remainingDebt.toLocaleString()} 元`);
             return result;
         }
     }
     
+    // 未达到强制扣款次数，只发送提醒
     return {
         type: 'settlement_reminder',
         playerId: player.playerId,
@@ -712,14 +947,145 @@ function processSettlementRepayment(player, ws, roomId) {
         message: `⚠️ 贷款提醒！你还有贷款本金 ${loanRecord.principal.toLocaleString()} 元未还，需还本利和 ${totalToRepay.toLocaleString()} 元。已过 ${loanRecord.settlementCount}/12 次结算日，${12 - loanRecord.settlementCount} 次后强制扣款！`,
         principal: loanRecord.principal,
         totalToRepay: totalToRepay,
+        interest: interest,
         settlementCount: loanRecord.settlementCount,
         remainingSettlements: 12 - loanRecord.settlementCount,
         gameState: player.gameState
     };
 }
 
-// ==================== 格子事件处理 ====================
 
+// ==================== 健康投資处理 ====================
+
+function processHealthInvestment(state, player, ws, roomId) {
+    if (!state.healthInvestment || !state.healthInvestment.active) return false;
+    
+    const monthlyCost = state.healthInvestment.monthlyCost;
+    const energyBonus = state.healthInvestment.energyBonus;
+    
+    if (state.cash >= monthlyCost) {
+        // 扣除每月費用
+        state.cash -= monthlyCost;
+        
+        // 獲得精力獎勵
+        state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
+        
+        // 记录交易
+        addTransactionRecord(
+            player.playerName,
+            { name: "健康投資月費", type: "tip", id: "IN01" },
+            "健康投資扣款",
+            -monthlyCost,
+            `健康投資月費 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}`,
+            null,
+            state
+        );
+        
+        // 通知玩家
+        if (ws) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `💪 健康投資月費已扣除 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}！`
+            }));
+        }
+        
+        console.log(`💪 玩家 ${player.playerName} 健康投資扣款 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}`);
+        return true;
+    } else {
+        // 現金不足，健康投資暫停
+        state.healthInvestment.active = false;
+        
+        // 记录暂停
+        addTransactionRecord(
+            player.playerName,
+            { name: "健康投資暫停", type: "tip", id: "IN01" },
+            "健康投資暫停",
+            0,
+            `現金不足 $${monthlyCost.toLocaleString()} 元，健康投資已暫停`,
+            null,
+            state
+        );
+        
+        // 通知玩家
+        if (ws) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `⚠️ 現金不足 $${monthlyCost.toLocaleString()} 元，健康投資已暫停！請重新激活。`
+            }));
+        }
+        
+        console.log(`⚠️ 玩家 ${player.playerName} 健康投資因現金不足而暫停`);
+        return false;
+    }
+}
+
+// ==================== 保健品投資处理 ====================
+
+function processHealthSupplementInvestment(state, player, ws, roomId) {
+    if (!state.healthSupplementInvestment || !state.healthSupplementInvestment.active) return false;
+    
+    const monthlyCost = state.healthSupplementInvestment.monthlyCost;
+    const energyBonus = state.healthSupplementInvestment.energyBonus;
+    
+    if (state.cash >= monthlyCost) {
+        // 扣除每月費用
+        state.cash -= monthlyCost;
+        
+        // 獲得精力獎勵
+        state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
+        
+        // 记录交易
+        addTransactionRecord(
+            player.playerName,
+            { name: "保健品投資月費", type: "tip", id: "IN04" },
+            "保健品扣款",
+            -monthlyCost,
+            `保健品投資月費 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}`,
+            null,
+            state
+        );
+        
+        // 通知玩家
+        if (ws) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `💊 保健品投資月費已扣除 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}！`
+            }));
+        }
+        
+        console.log(`💊 玩家 ${player.playerName} 保健品投資扣款 $${monthlyCost.toLocaleString()} 元，精力 +${energyBonus}`);
+        return true;
+    } else {
+        // 現金不足，保健品投資暫停
+        state.healthSupplementInvestment.active = false;
+        
+        // 记录暂停
+        addTransactionRecord(
+            player.playerName,
+            { name: "保健品投資暫停", type: "tip", id: "IN04" },
+            "保健品暫停",
+            0,
+            `現金不足 $${monthlyCost.toLocaleString()} 元，保健品投資已暫停`,
+            null,
+            state
+        );
+        
+        // 通知玩家
+        if (ws) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `⚠️ 現金不足 $${monthlyCost.toLocaleString()} 元，保健品投資已暫停！請重新激活。`
+            }));
+        }
+        
+        console.log(`⚠️ 玩家 ${player.playerName} 保健品投資因現金不足而暫停`);
+        return false;
+    }
+}
+
+
+ 
+// ==================== 格子事件处理 ====================
 function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding = false) {
     switch(tile.type) {
         case 'income':
@@ -752,25 +1118,80 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding =
         case 'four_leaf_clover':
             state.fourLeafClover = (state.fourLeafClover || 0) + 1;
             return `🍀 获得四叶草！下次掷骰移动步数 x2 倍！`;
+
+        case 'lier':
+            console.log(`🎭 玩家 ${player.playerName} 踩中骗子卡格子，自动执行`);
+            drawAndExecuteLierCard(ws, state, roomId, player);
+            return null;
+
+        case 'awareness':
+            console.log(`📜 玩家 ${player.playerName} 踩中察覺卡格子`);
+            showRevelationCardTypeSelection(ws, state, roomId, player);
+            return null;
+            
+        // ==================== 逆流层入口 ====================
+        case 'reverse_entry':
+            console.log(`🌀 玩家 ${player.playerName} 踩中逆流层入口`);
+            
+            // 进入逆流层
+            state.inReverse = true;
+            state.inFlow = false;
+            state.reversePos = 0;
+            
+            // 抽一张逆境自强卡
+            drawHardshipCard(ws, state, roomId, player);
+            
+            return `🌀 你進入了逆流層！並抽到了一張逆境自強卡！`;
+            
+        // ==================== 逆流层出口 ====================
+        case 'reverse_exit':
+            console.log(`🌀 玩家 ${player.playerName} 踩中逆流层出口`);
+            
+            // 如果玩家在逆流层，立即回到平流层
+            if (state.inReverse) {
+                state.inReverse = false;
+                state.reversePos = 0;
+                return `🌀 你踩中逆流層出口，成功脫離逆流層！`;
+            }
+            
+            // 如果不在逆流层，这是一个普通格子
+            return `🌀 逆流層出口（目前不在逆流層中）`;
             
         case 'settlement':
-            const totalIncome = state.salary + state.sideIncome;
-            state.cash += totalIncome;
-            state.totalAssets += Math.floor(totalIncome * 0.2);
-
-              // ===== 面包店精力奖励 =====
-            if (state.bakeryCount && state.bakeryCount > 0) {
-                const bakeryEnergyBonus = state.bakeryCount; // 每个面包店 +1 精力
-                state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
-                const bonusMessage = ` 🍞 麵包店提供精力 +${bakeryEnergyBonus}！`;
-                if (eventMessage) {
-                    eventMessage += bonusMessage;
-                } else {
-                    eventMessage = bonusMessage;
-                }
-            }
-            // =========================
+            // 计算收入（逆流层没有收入）
+            let totalIncome = 0;
+            let incomeMessage = '';
             
+            if (!state.inReverse) {
+                totalIncome = state.salary + state.sideIncome;
+                state.cash += totalIncome;
+                state.totalAssets += Math.floor(totalIncome * 0.2);
+                incomeMessage = `获得 ${totalIncome.toLocaleString()} 元现金流`;
+            } else {
+                incomeMessage = `⚠️ 你身處逆流層，本次結算日沒有收入！`;
+            }  
+
+            // 计算支出（应用减免）
+            const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+            let expenseReductionMessage = '';
+            if (reductionPercent > 0) {
+                expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
+            }
+            
+            // 面包店精力奖励（所有层级都有效）
+            if (state.bakeryCount && state.bakeryCount > 0) {
+                const bakeryEnergyBonus = state.bakeryCount;
+                state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
+                incomeMessage += ` 🍞 麵包店提供精力 +${bakeryEnergyBonus}！`;
+            }
+
+            // 健康投資每月扣款
+            processHealthInvestment(state, player, ws, roomId);
+            
+            // 保健品投資每月扣款
+            processHealthSupplementInvestment(state, player, ws, roomId);
+            
+            // 处理贷款还款
             const repaymentResult = processSettlementRepayment(player, ws, roomId);
             if (repaymentResult) {
                 ws.send(JSON.stringify(repaymentResult));
@@ -784,6 +1205,8 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding =
                 salary: state.salary,
                 sideIncome: state.sideIncome,
                 totalIncome: totalIncome,
+                totalExpense: totalExpense,
+                expenseReductionMessage: expenseReductionMessage,
                 isExactLanding: isExactLanding,
                 gameState: state
             };
@@ -791,9 +1214,9 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding =
             broadcastToRoom(roomId, settlementMsg, ws);
             
             if (isExactLanding) {
-                return `💰 结算日！正好踩中！获得 ${totalIncome.toLocaleString()} 元现金流，并额外获得一次掷骰机会！`;
+                return `💰 结算日！正好踩中！${incomeMessage}${expenseReductionMessage}，并额外获得一次掷骰机会！`;
             }
-            return `💰 结算日！经过结算日，获得 ${totalIncome.toLocaleString()} 元现金流`;
+            return `💰 结算日！${incomeMessage}${expenseReductionMessage}`;
             
         case 'grace':
             state.cash += 500;
@@ -837,73 +1260,97 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding =
                 return `🔄 市场转机！获得 ${bonus} 元，幸运值 +1`;
             }
             break;
+
+        case 'volunteer':
+            console.log(`🤝 玩家 ${player.playerName} 踩中義工格子`);
+            drawVolunteerCard(ws, state, roomId, player, isExactLanding);
+            return null;
             
         case 'opportunity':
             showCardTypeSelection(ws, state, roomId, player);
+            return null;
+        
+        case 'police':
+            console.log(`👮 玩家 ${player.playerName} 踩中警察卡格子`);
+            drawPoliceCard(ws, state, roomId, player);
             return null;
     }
     return null;
 }
 
-function processReverseTile(state, tile) {
+function processReverseTile(state, tile, ws, roomId, player) {
     switch(tile.type) {
         case 'hardship':
-            const r = Math.floor(Math.random() * 3);
-            let msg = '';
-            if (r === 0) {
-                state.salary = Math.max(0, state.salary - 1000);
-                msg = '😔 逆境自强：月薪减少 1000 元';
-            } else if (r === 1) {
-                state.energy = Math.max(0, state.energy - 3);
-                msg = '😫 逆境自强：精力消耗 3 点';
-            } else {
-                state.sideIncome = Math.max(0, state.sideIncome - 500);
-                msg = '😥 逆境自强：副业收入减少 500 元';
-            }
-            state.luck = Math.max(0, state.luck - 1);
-            msg += `，幸运值 -1`;
-            return msg;
-            
-        case 'recovery':
-            state.cash += 3000;
-            state.energy = Math.min(state.maxEnergy, state.energy + 5);
-            state.sideIncome += 500;
-            state.luck = Math.min(state.maxLuck, state.luck + 3);
-            const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-            const cf = (state.salary + state.sideIncome + state.passiveIncome) - totalExp;
-            if (cf >= 0 && state.passiveIncome > totalExp * 0.3) {
-                state.inReverse = false;
-                return `🦋 浴火重生！获得 3000 元，精力 +5，副业 +500，幸运 +3，成功脱离逆流层！`;
-            }
-            return `🦋 浴火重生！获得 3000 元，精力 +5，副业 +500，幸运 +3`;
-            
-        case 'unemployment':
-            const totalExpU = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-            state.cash = Math.max(0, state.cash - totalExpU);
-            state.salary = 0;
-            state.energy = Math.min(state.maxEnergy, state.energy + 6);
-            return `⚠️ 失业危机！支出 ${totalExpU.toLocaleString()} 元，月薪归零，精力 +6`;
-            
-        case 'bankruptcy':
-            state.cash = 0;
-            state.loanAmount = Math.max(0, state.loanAmount - 5000);
-            state.loanInterest = Math.round(state.loanAmount * 0.01);
-            state.salary = Math.max(0, state.salary - 2000);
-            return `💔 破产重组！现金归零，贷款减少 5000，月薪减少 2000`;
-            
-        case 'miracle':
-            state.cash += 10000;
-            state.energy = state.maxEnergy;
-            state.luck = state.maxLuck;
-            state.inReverse = false;
-            return `🌟 奇迹发生！获得 10000 元，精力恢复满，幸运值满，脱离逆流层！`;
+            // 抽一張逆境自強卡
+            console.log(`🎭 玩家 ${player.playerName} 踩中逆境自強卡格子`);
+            drawHardshipCard(ws, state, roomId, player);
+            return null;
             
         case 'awareness':
-            state.luck = Math.min(state.maxLuck, state.luck + 3);
-            state.energy = Math.min(state.maxEnergy, state.energy + 3);
-            return `🧘 觉察卡（逆流）！幸运值 +3，精力 +3`;
+            // 覺察卡（逆流）
+            const luckBonus = Math.floor(Math.random() * 3) + 2; // 2-4
+            const energyBonus = Math.floor(Math.random() * 3) + 2; // 2-4
+            state.luck = Math.min(state.maxLuck || 10, state.luck + luckBonus);
+            state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
+            return `🧘 覺察卡（逆流）！幸運值 +${luckBonus}，精力 +${energyBonus}`;
+            
+        case 'business_failure':
+            // 生意失敗 - 失去一半現金
+            const loss = Math.floor(state.cash / 2);
+            const originalCash = state.cash;
+            state.cash = Math.max(0, state.cash - loss);
+            state.luck = Math.max(0, state.luck - 2);
+            
+            addTransactionRecord(
+                player.playerName,
+                { name: "生意失敗", type: "hardship" },
+                "生意失敗",
+                -loss,
+                `生意失敗！損失 ${loss.toLocaleString()} 元 (原有現金 ${originalCash.toLocaleString()} 元的一半)，幸運值 -2`,
+                null,
+                state
+            );
+            return `💼 生意失敗！損失 ${loss.toLocaleString()} 元，幸運值 -2`;
+            
+        case 'miracle':
+            // 奇蹟 - 隨意移動到平流層格子（不可以是結算日）
+            const availablePositions = [];
+            for (let i = 0; i < streamlineTiles.length; i++) {
+                if (streamlineTiles[i].type !== 'settlement') {
+                    availablePositions.push(i);
+                }
+            }
+            const randomIndex = Math.floor(Math.random() * availablePositions.length);
+            const newPos = availablePositions[randomIndex];
+            const targetTile = streamlineTiles[newPos];
+            
+            state.inReverse = false;
+            state.streamlinePos = newPos;
+            
+            return `🌟 奇蹟發生！你移動到平流層「${targetTile.name}」格子！`;
+            
+        case 'unemployment':
+            // 失業 - 減去一個月月收入
+            const monthlyIncome = state.salary + state.sideIncome;
+            const unemploymentLoss = Math.min(state.cash, monthlyIncome);
+            state.cash = Math.max(0, state.cash - unemploymentLoss);
+            state.salary = 0;
+            state.energy = Math.min(state.maxEnergy, state.energy + 6);
+            
+            addTransactionRecord(
+                player.playerName,
+                { name: "失業", type: "hardship" },
+                "失業",
+                -unemploymentLoss,
+                `失業！損失 ${unemploymentLoss.toLocaleString()} 元（一個月收入），月薪歸零，精力 +6`,
+                null,
+                state
+            );
+            return `⚠️ 失業！損失 ${unemploymentLoss.toLocaleString()} 元（一個月收入），月薪歸零，精力 +6`;
+            
+        default:
+            return `📌 逆流層格子：${tile.name}`;
     }
-    return null;
 }
 
 function processFlowTile(state, tile) {
@@ -952,6 +1399,1654 @@ function processFlowTile(state, tile) {
     }
     return null;
 }
+// ==================== 义工卡处理 ====================
+
+// 抽取义工卡
+function drawVolunteerCard(ws, state, roomId, player, isExactLanding = false) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    if (volunteerCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '暫無義工卡資料' }));
+        return;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * volunteerCards.length);
+    const card = volunteerCards[randomIndex];
+    
+    console.log(`🤝 玩家 ${player.playerName} 抽到义工卡: ${card.name}`);
+    
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    // 构建发送给前端的卡片信息
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'volunteer',
+        cardTypeName: '義工卡',
+        cardTypeIcon: '🤝',
+        requiresDonation: card.requiresDonation || false,
+        requiresChoice: card.requiresChoice || false
+    };
+    
+    // 检查是否需要多玩家交互（如V02需要捐款）
+    if (card.requiresDonation) {
+        // 保存待处理的义工卡
+        if (!room.pendingVolunteerEvents) {
+            room.pendingVolunteerEvents = new Map();
+        }
+        room.pendingVolunteerEvents.set(ws, {
+            type: 'volunteer_card',
+            card: card,
+            playerId: player.playerId,
+            playerName: player.playerName,
+            timestamp: Date.now(),
+            isExactLanding: isExactLanding
+        });
+        
+        ws.send(JSON.stringify({
+            type: 'volunteer_card_draw',
+            card: serializableCard,
+            cardData: {
+                requiresDonation: true,
+                donationAmount: 2000
+            }
+        }));
+        return;
+    }
+    
+    // 检查是否需要选择（如V05需要选择奖励类型）
+    if (card.requiresChoice) {
+        if (!room.pendingVolunteerEvents) {
+            room.pendingVolunteerEvents = new Map();
+        }
+        room.pendingVolunteerEvents.set(ws, {
+            type: 'volunteer_card_choice',
+            card: card,
+            playerId: player.playerId,
+            playerName: player.playerName,
+            timestamp: Date.now(),
+            isExactLanding: isExactLanding
+        });
+        
+        ws.send(JSON.stringify({
+            type: 'volunteer_card_choice',
+            card: serializableCard,
+            options: [
+                { id: 'cash', name: '💰 獲得 $3,000 元', description: '直接獲得現金獎勵' },
+                { id: 'volunteer', name: '⭐ 獲得 1 次義工資格', description: '增加義工次數，可幫助其他玩家抵擋騙子卡' }
+            ]
+        }));
+        return;
+    }
+    
+    // 普通义工卡，直接执行效果
+    let effectResult = '';
+    try {
+        effectResult = card.effect(player.gameState);
+    } catch (e) {
+        effectResult = `執行「${card.name}」效果`;
+    }
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        card,
+        '義工卡',
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 发送骰子结果
+    const diceResult = {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: 0,
+        originalSteps: 0,
+        multiplierUsed: false,
+        gameState: player.gameState,
+        tile: { name: "義工卡", type: "volunteer" },
+        eventMessage: null,
+        multiplierMessage: ''
+    };
+    ws.send(JSON.stringify(diceResult));
+    broadcastToRoom(roomId, diceResult, ws);
+    
+    // 发送义工卡执行消息
+    ws.send(JSON.stringify({
+        type: 'volunteer_card_execute',
+        card: serializableCard,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🤝 ${player.playerName} 獲得義工卡「${card.name}」！${effectResult}`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    console.log(`✅ 玩家 ${player.playerName} 执行了义工卡: ${card.name}`);
+}
+
+// 执行需要捐款的义工卡（V02）
+function executeVolunteerDonation(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingVolunteerEvents?.get(ws);
+    if (!pendingEvent || !pendingEvent.card || !pendingEvent.card.requiresDonation) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的义工卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const isExactLanding = pendingEvent.isExactLanding;
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    // 执行捐款效果
+    let effectResult = '';
+    try {
+        effectResult = card.effect(player.gameState, room, player, ws, roomId);
+    } catch (e) {
+        console.error('执行捐款效果失败:', e);
+        effectResult = `執行「${card.name}」效果時發生錯誤`;
+    }
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        card,
+        '義工卡',
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 发送骰子结果（如果是踩中格子触发的）
+    if (isExactLanding) {
+        const diceResult = {
+            type: 'dice_result',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            steps: 0,
+            originalSteps: 0,
+            multiplierUsed: false,
+            gameState: player.gameState,
+            tile: { name: "義工卡", type: "volunteer" },
+            eventMessage: null,
+            multiplierMessage: ''
+        };
+        ws.send(JSON.stringify(diceResult));
+        broadcastToRoom(roomId, diceResult, ws);
+    }
+    
+    // 发送义工卡执行消息
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'volunteer',
+        cardTypeName: '義工卡',
+        cardTypeIcon: '🤝'
+    };
+    
+    ws.send(JSON.stringify({
+        type: 'volunteer_card_execute',
+        card: serializableCard,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🤝 ${player.playerName} 執行義工卡「${card.name}」！${effectResult.substring(0, 100)}`
+    });
+    
+    // 广播状态更新给所有玩家
+    room.players.forEach((p, pWs) => {
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: p.playerId,
+            gameState: p.gameState
+        });
+    });
+    
+    // 清理待处理事件
+    room.pendingVolunteerEvents.delete(ws);
+    
+    console.log(`✅ 玩家 ${player.playerName} 执行了捐款义工卡: ${card.name}`);
+}
+
+// 执行需要选择的义工卡（V05）
+function executeVolunteerChoice(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingVolunteerEvents?.get(ws);
+    if (!pendingEvent || !pendingEvent.card || !pendingEvent.card.requiresChoice) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的义工卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const choice = data.choice;
+    const isExactLanding = pendingEvent.isExactLanding;
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    if (!choice || (choice !== 'cash' && choice !== 'volunteer')) {
+        ws.send(JSON.stringify({ type: 'error', message: '无效的选择' }));
+        return;
+    }
+    
+    // 执行选择效果
+    let effectResult = '';
+    try {
+        effectResult = card.effect(player.gameState, choice);
+    } catch (e) {
+        console.error('执行选择效果失败:', e);
+        effectResult = `執行「${card.name}」效果時發生錯誤`;
+    }
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        card,
+        '義工卡',
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 发送骰子结果
+    if (isExactLanding) {
+        const diceResult = {
+            type: 'dice_result',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            steps: 0,
+            originalSteps: 0,
+            multiplierUsed: false,
+            gameState: player.gameState,
+            tile: { name: "義工卡", type: "volunteer" },
+            eventMessage: null,
+            multiplierMessage: ''
+        };
+        ws.send(JSON.stringify(diceResult));
+        broadcastToRoom(roomId, diceResult, ws);
+    }
+    
+    // 发送义工卡执行消息
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'volunteer',
+        cardTypeName: '義工卡',
+        cardTypeIcon: '🤝'
+    };
+    
+    ws.send(JSON.stringify({
+        type: 'volunteer_card_execute',
+        card: serializableCard,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🤝 ${player.playerName} 執行義工卡「${card.name}」！${effectResult}`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    // 清理待处理事件
+    room.pendingVolunteerEvents.delete(ws);
+    
+    console.log(`✅ 玩家 ${player.playerName} 执行了选择义工卡: ${card.name}`);
+}
+
+// ==================== 集体捐款响应处理 ====================
+function handleVolunteerDonationResponse(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    // 获取待处理的义工卡事件
+    const pendingEvent = room.pendingVolunteerEvents?.get(ws);
+    if (!pendingEvent || !pendingEvent.card) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的义工卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const cardId = data.cardId;
+    const donationResponses = data.donationResponses;
+    
+    // 验证卡片ID是否匹配
+    if (card.id !== cardId) {
+        ws.send(JSON.stringify({ type: 'error', message: '卡片ID不匹配' }));
+        return;
+    }
+    
+    // 执行卡片效果，传入捐款响应
+    let effectResult = '';
+    try {
+        // 根据卡片类型调用不同的effect方法
+        if (card.id === 'V02' || card.id === 'V04') {
+            // 捐款给玩家的卡片
+            effectResult = card.effect(player.gameState, room, player, ws, roomId, donationResponses);
+        } else if (card.id === 'V03') {
+            // 捐款给银行的卡片
+            effectResult = card.effect(player.gameState, room, player, ws, roomId, donationResponses);
+        } else if (card.id === 'V12') {
+            // 捐赠精力给玩家的卡片
+            effectResult = card.effect(player.gameState, room, player, ws, roomId, donationResponses);
+        } else if (card.id === 'V13') {
+            // 捐赠精力给银行的卡片
+            effectResult = card.effect(player.gameState, room, player, ws, roomId, donationResponses);
+        } else {
+            effectResult = card.effect(player.gameState, room, player, ws, roomId, donationResponses);
+        }
+    } catch (e) {
+        console.error('执行义工卡效果失败:', e);
+        effectResult = `執行「${card.name}」效果時發生錯誤`;
+    }
+    
+    // 记录交易（如果effectResult是字符串）
+    if (typeof effectResult === 'string') {
+        addTransactionRecord(
+            player.playerName,
+            card,
+            '義工卡',
+            0,
+            effectResult,
+            null,
+            player.gameState
+        );
+    }
+    
+    // 发送结果给当前玩家
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'volunteer',
+        cardTypeName: '義工卡',
+        cardTypeIcon: '🤝'
+    };
+    
+    ws.send(JSON.stringify({
+        type: 'volunteer_card_execute',
+        card: serializableCard,
+        effectMessage: typeof effectResult === 'string' ? effectResult : '執行成功',
+        gameState: player.gameState
+    }));
+    
+    // 广播状态更新给所有玩家
+    room.players.forEach((p, pWs) => {
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: p.playerId,
+            gameState: p.gameState
+        });
+    });
+    
+    // 清理待处理事件
+    room.pendingVolunteerEvents.delete(ws);
+    
+    console.log(`✅ 玩家 ${player.playerName} 完成了义工卡捐款响应: ${card.name}`);
+}
+
+// ==================== 情绪支援处理 ====================
+
+// 存储待处理的情绪支援请求
+const pendingEmotionalSupport = new Map();
+
+// 使用情绪支援
+function handleUseEmotionalSupport(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const targetPlayerName = data.targetPlayer;
+    const cardId = data.cardId;
+    
+    // 找到目标玩家
+    let targetPlayerObj = null;
+    let targetWs = null;
+    for (let [pWs, p] of room.players) {
+        if (p.playerName === targetPlayerName) {
+            targetPlayerObj = p;
+            targetWs = pWs;
+            break;
+        }
+    }
+    
+    if (!targetPlayerObj) {
+        ws.send(JSON.stringify({ type: 'error', message: '找不到目标玩家' }));
+        return;
+    }
+    
+    // 获取待处理的伤害事件
+    const pendingDamage = pendingEmotionalSupport.get(targetPlayerName);
+    if (!pendingDamage) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的伤害事件' }));
+        return;
+    }
+    
+    // 检查玩家是否有情绪支援护盾
+    if (!player.gameState.emotionalSupportShield || player.gameState.emotionalSupportShield <= 0) {
+        ws.send(JSON.stringify({ type: 'error', message: '你没有情绪支援护盾可用' }));
+        return;
+    }
+    
+    // 使用护盾
+    player.gameState.emotionalSupportShield--;
+    
+    // 记录使用
+    addTransactionRecord(
+        player.playerName,
+        { name: "情緒支援卡使用", type: "volunteer", id: "V14" },
+        "使用情緒支援",
+        0,
+        `使用情緒支援護盾，幫助 ${targetPlayerObj.playerName} 抵銷了「${pendingDamage.damageDescription}」的傷害 ${pendingDamage.damageAmount.toLocaleString()} 元`,
+        null,
+        player.gameState
+    );
+    
+    // 执行者获得奖励
+    player.gameState.luck = Math.min(player.gameState.maxLuck || 10, player.gameState.luck + 1);
+    player.gameState.energy = Math.min(player.gameState.maxEnergy, player.gameState.energy + 1);
+    
+    // 抵销目标玩家的伤害
+    const originalDamage = pendingDamage.damageAmount;
+    targetPlayerObj.gameState.cash += originalDamage; // 退还伤害金额
+    
+    // 记录受助记录
+    addTransactionRecord(
+        targetPlayerObj.playerName,
+        { name: "情緒支援受助", type: "volunteer", id: "V14" },
+        "接受情緒支援",
+        originalDamage,
+        `收到 ${player.playerName} 的情緒支援，抵銷了 ${originalDamage.toLocaleString()} 元傷害`,
+        null,
+        targetPlayerObj.gameState
+    );
+    
+    // 通知使用者
+    ws.send(JSON.stringify({
+        type: 'emotional_support_result',
+        success: true,
+        resultMessage: `你使用情緒支援幫助 ${targetPlayerObj.playerName} 抵銷了 ${originalDamage.toLocaleString()} 元傷害！`,
+        remainingShield: player.gameState.emotionalSupportShield,
+        gameState: player.gameState
+    }));
+    
+    // 通知受助者
+    if (targetWs && targetWs !== ws) {
+        targetWs.send(JSON.stringify({
+            type: 'notification',
+            message: `💝 ${player.playerName} 使用了情緒支援，幫助你抵銷了 ${originalDamage.toLocaleString()} 元傷害！`
+        }));
+        targetWs.send(JSON.stringify({
+            type: 'state_updated',
+            playerId: targetPlayerObj.playerId,
+            gameState: targetPlayerObj.gameState
+        }));
+    }
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `💝 ${player.playerName} 使用情緒支援幫助 ${targetPlayerObj.playerName} 抵銷了傷害！`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    // 清除待处理的伤害事件
+    pendingEmotionalSupport.delete(targetPlayerName);
+    
+    console.log(`💝 玩家 ${player.playerName} 使用情绪支援帮助 ${targetPlayerObj.playerName}`);
+}
+
+// 跳过情绪支援
+function handleSkipEmotionalSupport(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const targetPlayerName = data.targetPlayer;
+    
+    // 清除待处理的伤害事件
+    pendingEmotionalSupport.delete(targetPlayerName);
+    
+    console.log(`⏭️ 玩家跳过情绪支援，目标: ${targetPlayerName}`);
+}
+
+// 当玩家受到伤害时，检查是否有其他玩家可以支援（需要在伤害处理函数中调用）
+function checkAndNotifyEmotionalSupport(room, damagedPlayer, damageAmount, damageDescription, roomId, card, onSuccessCallback, onTimeoutCallback) {
+    const supporters = [];
+    
+    // 查找有情绪支援护盾的玩家
+    for (let [pWs, p] of room.players) {
+        if (pWs !== damagedPlayer.ws && p.gameState.emotionalSupportShield && p.gameState.emotionalSupportShield > 0) {
+            supporters.push({
+                ws: pWs,
+                player: p
+            });
+        }
+    }
+    
+    if (supporters.length === 0) return false;
+    
+    // 生成唯一请求ID
+    const requestId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    
+    // 存储待处理的伤害事件
+    pendingEmotionalSupport.set(requestId, {
+        damagedPlayer: damagedPlayer,
+        damageAmount: damageAmount,
+        damageDescription: damageDescription,
+        onSuccessCallback: onSuccessCallback,
+        onTimeoutCallback: onTimeoutCallback,
+        supporters: supporters,
+        timestamp: Date.now(),
+        responded: false
+    });
+    
+    // 通知所有有护盾的玩家
+    for (const supporter of supporters) {
+        supporter.ws.send(JSON.stringify({
+            type: 'emotional_support_available',
+            requestId: requestId,
+            damagedPlayer: damagedPlayer.player.playerName,
+            damageAmount: damageAmount,
+            damageDescription: damageDescription,
+            cardId: card ? card.id : "V14"
+        }));
+    }
+    
+    // 设置超时（15秒）
+    setTimeout(() => {
+        const pending = pendingEmotionalSupport.get(requestId);
+        if (pending && !pending.responded) {
+            console.log(`⏰ 情绪支援请求超时: ${requestId}`);
+            pending.responded = true;
+            pendingEmotionalSupport.delete(requestId);
+            if (pending.onTimeoutCallback) {
+                pending.onTimeoutCallback();
+            }
+        }
+    }, 15000);
+    
+    return true;
+}
+
+// ==================== 骗子卡处理 ====================
+// 抽取骗子卡
+function drawLierCard(ws, state, roomId, player) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    if (lierCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '暫無騙子卡資料' }));
+        return;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * lierCards.length);
+    const card = lierCards[randomIndex];
+    
+    // 保留完整卡片对象
+    const fullCard = { ...card };
+    fullCard.cardType = 'lier';
+    
+    // 保存到待处理事件
+    if (!room.pendingEvents) {
+        room.pendingEvents = new Map();
+    }
+    room.pendingEvents.set(ws, {
+        type: 'lier_card',
+        card: fullCard,
+        playerId: player.playerId,
+        timestamp: Date.now()
+    });
+    
+    // 发送给前端
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'lier',
+        cardTypeName: '騙子卡',
+        cardTypeIcon: '🎭'
+    };
+    
+    ws.send(JSON.stringify({
+        type: 'lier_card_draw',
+        card: serializableCard
+    }));
+    
+    console.log(`🎭 玩家 ${player.playerName} 抽到骗子卡: ${card.name}`);
+}
+
+// 执行骗子卡
+function executeLierCard(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingEvents.get(ws);
+    if (!pendingEvent || pendingEvent.type !== 'lier_card') {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的骗子卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    // 执行卡片效果
+    const effectResult = card.effect(player.gameState);
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName, 
+        card, 
+        '骗子卡', 
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 广播结果
+    broadcastToRoom(roomId, {
+        type: 'lier_card_executed',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        cardName: card.name,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    });
+    
+    // 发送结果给当前玩家
+    ws.send(JSON.stringify({
+        type: 'lier_card_result',
+        cardName: card.name,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 清理待处理事件
+    room.pendingEvents.delete(ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+}
+
+function drawAndExecuteLierCard(ws, state, roomId, player) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    if (lierCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '暫無騙子卡資料' }));
+        return;
+    }
+
+    // ==================== 檢查是否有「保持警惕」取消騙子卡 ====================
+    if (player.gameState.lierCardCancellation && player.gameState.lierCardCancellation > 0) {
+        player.gameState.lierCardCancellation--;
+        
+        // 记录取消
+        addTransactionRecord(
+            player.playerName,
+            { name: "保持警惕取消騙子卡", type: "tip", id: "IN10" },
+            "取消騙子卡",
+            0,
+            `「保持警惕」生效！成功取消了本次騙子卡，剩餘 ${player.gameState.lierCardCancellation} 次取消機會`,
+            null,
+            player.gameState
+        );
+        
+        // 发送骰子结果
+        const diceResult = {
+            type: 'dice_result',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            steps: 0,
+            originalSteps: 0,
+            multiplierUsed: false,
+            gameState: player.gameState,
+            tile: { name: "騙子卡", type: "lier" },
+            eventMessage: null,
+            multiplierMessage: ''
+        };
+        ws.send(JSON.stringify(diceResult));
+        broadcastToRoom(roomId, diceResult, ws);
+        
+        // 通知玩家
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🛡️ 你的「保持警惕」生效！成功取消了本次騙子卡！剩餘 ${player.gameState.lierCardCancellation} 次取消機會。`
+        }));
+        
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🛡️ ${player.playerName} 的「保持警惕」生效，成功取消了騙子卡！`
+        }, ws);
+        
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: player.playerId,
+            gameState: player.gameState
+        });
+        
+        console.log(`🛡️ 玩家 ${player.playerName} 使用「保持警惕」取消了骗子卡`);
+        return;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * lierCards.length);
+    const card = lierCards[randomIndex];
+    
+    console.log(`🎭 玩家 ${player.playerName} 抽到骗子卡: ${card.name}`);
+    
+    // 判断是否是需要抵挡的卡片类型
+    const isFraudCard = card.type === 'lier' || 
+                        card.category === '骗子卡' ||
+                        (card.name && (card.name.includes('加密貨幣') || 
+                                       card.name.includes('P2P') || 
+                                       card.name.includes('信用卡')));
+    
+    // ==================== 计算伤害金额（用于情绪支援） ====================
+    let damageAmount = 0;
+    let damageDescription = card.name;
+    
+    // 根据不同卡片类型计算伤害金额
+    if (isFraudCard) {
+        if (card.id === 'SC01') {
+            damageAmount = 3000;
+        } else if (card.id === 'SC02') {
+            damageAmount = Math.floor(player.gameState.cash * 0.1);
+            if (damageAmount < 100 && player.gameState.cash >= 100) damageAmount = 100;
+        } else if (card.id === 'SC03') {
+            damageAmount = 1000;
+        } else if (card.id === 'SC04') {
+            damageAmount = 30000;
+        } else if (card.id === 'SC07') {
+            damageAmount = 20000;
+        } else if (card.id === 'SC08' && card.name === '虛擬貨幣騙局') {
+            damageAmount = Math.floor(Math.random() * 20000) + 10000;
+        } else if (card.name && card.name.includes('被游說買了大量運動套票')) {
+            damageAmount = Math.floor(player.gameState.cash / 2);
+        } else if (card.name && card.name.includes('網上買賣被騙')) {
+            damageAmount = 3000;
+        } else {
+            // 默认伤害金额为现金的10%，最小1000，最大50000
+            damageAmount = Math.min(50000, Math.max(1000, Math.floor(player.gameState.cash * 0.1)));
+        }
+    }
+    // ================================================================
+    
+    // ==================== 检查情绪支援（在其他护盾之前） ====================
+    // 如果是伤害类卡片，先检查是否有其他玩家可以提供情绪支援
+    if (isFraudCard && damageAmount > 0) {
+        const hasEmotionalSupport = checkAndNotifyEmotionalSupport(
+            room,
+            { ws: ws, player: player },
+            damageAmount,
+            damageDescription,
+            roomId,
+            card,
+            // 情绪支援被使用后的回调 - 伤害被抵销，继续执行但跳过伤害
+            () => {
+                console.log(`💝 玩家 ${player.playerName} 的伤害被情绪支援抵销: ${card.name}`);
+                
+                // 发送卡片信息但不执行伤害
+                const serializableCard = {
+                    id: card.id,
+                    name: card.name,
+                    description: card.description,
+                    image: card.image,
+                    cardType: 'lier',
+                    cardTypeName: '騙子卡',
+                    cardTypeIcon: '🎭'
+                };
+                
+                // 发送骰子结果
+                const diceResult = {
+                    type: 'dice_result',
+                    playerId: player.playerId,
+                    playerName: player.playerName,
+                    steps: 0,
+                    originalSteps: 0,
+                    multiplierUsed: false,
+                    gameState: player.gameState,
+                    tile: { name: "騙子卡", type: "lier" },
+                    eventMessage: null,
+                    multiplierMessage: ''
+                };
+                ws.send(JSON.stringify(diceResult));
+                broadcastToRoom(roomId, diceResult, ws);
+                
+                // 发送骗子卡自动执行消息（无伤害版本）
+                ws.send(JSON.stringify({
+                    type: 'lier_card_auto_execute',
+                    card: serializableCard,
+                    effectMessage: `💝 幸運！你獲得了其他玩家的情緒支援，成功抵銷了「${card.name}」的傷害！`,
+                    gameState: player.gameState
+                }));
+                
+                broadcastToRoom(roomId, {
+                    type: 'notification',
+                    message: `🎭 ${player.playerName} 踩中騙子卡「${card.name}」，但獲得其他玩家的情緒支援，傷害被抵銷了！`
+                }, ws);
+                
+                broadcastToRoom(roomId, {
+                    type: 'state_updated',
+                    playerId: player.playerId,
+                    gameState: player.gameState
+                });
+            },
+            // 没有情绪支援或超时后的回调 - 继续执行正常的护盾检查
+            () => {
+                console.log(`⚠️ 玩家 ${player.playerName} 没有获得情绪支援，继续执行护盾检查: ${card.name}`);
+                continueWithShieldCheck();
+            }
+        );
+        
+        // 如果有情绪支援可用，等待回调，不立即执行后续护盾检查
+        if (hasEmotionalSupport) {
+            return;
+        }
+    }
+    
+    // 继续执行护盾检查（情绪支援超时或没有情绪支援时调用）
+    function continueWithShieldCheck() {
+        // ==================== 检查是否有其他玩家可以帮助（志愿者） ====================
+        let volunteerHelper = null;
+        let volunteerHelperName = null;
+        
+        if (isFraudCard) {
+            // 遍历所有玩家，寻找有志愿者资格且不是当前玩家的玩家
+            for (let [otherWs, otherPlayer] of room.players) {
+                if (otherWs !== ws && otherPlayer.gameState.volunteerShield && otherPlayer.gameState.volunteerShield > 0) {
+                    volunteerHelper = otherPlayer;
+                    volunteerHelperName = otherPlayer.playerName;
+                    break;
+                }
+            }
+        }
+        // ================================================================
+        
+        // ==================== 检查自己的防骗护盾 ====================
+        let shieldUsed = false;
+        let shieldMessage = '';
+        
+        if (isFraudCard && player.gameState.fraudShield && player.gameState.fraudShield > 0) {
+            // 使用自己的防骗护盾
+            player.gameState.fraudShield--;
+            shieldUsed = true;
+            
+            addTransactionRecord(
+                player.playerName, 
+                { name: '防騙通行證', cardType: 'police' }, 
+                '防騙護盾', 
+                0,
+                `抵擋了騙子卡「${card.name}」的傷害`,
+                JSON.parse(JSON.stringify(player.gameState)),
+                player.gameState
+            );
+            
+            shieldMessage = `🛡️ 你的「防騙通行證」生效！成功抵擋了騙子卡「${card.name}」的傷害！剩餘 ${player.gameState.fraudShield} 次防騙機會。`;
+            
+            sendShieldNotification(ws, room, player, card, shieldMessage);
+            return;
+        }
+        // ============================================================
+        
+        // ==================== 志愿者帮助检查 ====================
+        if (isFraudCard && volunteerHelper && !shieldUsed) {
+            // 使用志愿者的帮助
+            volunteerHelper.gameState.volunteerShield--;
+            
+            // 记录志愿者的义工行为
+            addTransactionRecord(
+                volunteerHelper.playerName, 
+                { name: '防騙教育義工', cardType: 'police' }, 
+                '義工幫助', 
+                0,
+                `幫助玩家 ${player.playerName} 抵擋了騙子卡「${card.name}」的傷害`,
+                JSON.parse(JSON.stringify(volunteerHelper.gameState)),
+                volunteerHelper.gameState
+            );
+            
+            // 记录被帮助玩家的受益
+            addTransactionRecord(
+                player.playerName, 
+                { name: '防騙教育受益', cardType: 'police' }, 
+                '義工幫助受益', 
+                0,
+                `獲得 ${volunteerHelper.playerName} 的幫助，抵擋了騙子卡「${card.name}」的傷害`,
+                JSON.parse(JSON.stringify(player.gameState)),
+                player.gameState
+            );
+            
+            shieldMessage = `👮 ${volunteerHelperName} 運用「防騙教育」義工資格，幫助你抵擋了騙子卡「${card.name}」的傷害！剩餘義工次數: ${volunteerHelper.gameState.volunteerShield}`;
+            
+            // 通知被帮助的玩家
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: shieldMessage
+            }));
+            
+            // 通知帮助的玩家
+            const helperWs = getWsByPlayerId(room, volunteerHelper.playerId);
+            if (helperWs) {
+                helperWs.send(JSON.stringify({
+                    type: 'notification',
+                    message: `👮 你運用了「防騙教育」義工資格，成功幫助玩家 ${player.playerName} 抵擋了騙子卡「${card.name}」的傷害！剩餘義工次數: ${volunteerHelper.gameState.volunteerShield}`
+                }));
+            }
+            
+            // 广播给其他玩家
+            broadcastToRoom(roomId, {
+                type: 'notification',
+                message: `👮 ${volunteerHelperName} 運用義工資格，幫助 ${player.playerName} 抵擋了騙子卡效果！`
+            }, ws);
+            
+            // 发送骰子结果
+            const diceResult = {
+                type: 'dice_result',
+                playerId: player.playerId,
+                playerName: player.playerName,
+                steps: 0,
+                originalSteps: 0,
+                multiplierUsed: false,
+                gameState: player.gameState,
+                tile: { name: "騙子卡", type: "lier" },
+                eventMessage: null,
+                multiplierMessage: ''
+            };
+            ws.send(JSON.stringify(diceResult));
+            broadcastToRoom(roomId, diceResult, ws);
+            
+            // 发送护盾使用消息
+            ws.send(JSON.stringify({
+                type: 'lier_card_volunteer_used',
+                helperName: volunteerHelperName,
+                cardName: card.name,
+                shieldMessage: shieldMessage,
+                remainingVolunteer: volunteerHelper.gameState.volunteerShield,
+                gameState: player.gameState
+            }));
+            
+            console.log(`👮 玩家 ${volunteerHelperName} 使用义工资格帮助 ${player.playerName} 抵挡了骗子卡: ${card.name}`);
+            return;
+        }
+        // ============================================================
+        
+        // 没有护盾，正常执行骗子卡效果
+        console.log(`🎭 玩家 ${player.playerName} 执行骗子卡: ${card.name}（无护盾）`);
+        
+        const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+        
+        // 直接执行卡片效果
+        const effectResult = card.effect(player.gameState);
+        
+        // 记录交易
+        addTransactionRecord(
+            player.playerName, 
+            card, 
+            '骗子卡', 
+            player.gameState.cash - stateBefore.cash,
+            effectResult,
+            stateBefore,
+            player.gameState
+        );
+        
+        // 发送卡片信息和执行结果给前端
+        const serializableCard = {
+            id: card.id,
+            name: card.name,
+            description: card.description,
+            image: card.image,
+            cardType: 'lier',
+            cardTypeName: '騙子卡',
+            cardTypeIcon: '🎭'
+        };
+        
+        // 发送骰子结果
+        const diceResult = {
+            type: 'dice_result',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            steps: 0,
+            originalSteps: 0,
+            multiplierUsed: false,
+            gameState: player.gameState,
+            tile: { name: "騙子卡", type: "lier" },
+            eventMessage: null,
+            multiplierMessage: ''
+        };
+        ws.send(JSON.stringify(diceResult));
+        broadcastToRoom(roomId, diceResult, ws);
+        
+        // 发送骗子卡自动执行消息
+        ws.send(JSON.stringify({
+            type: 'lier_card_auto_execute',
+            card: serializableCard,
+            effectMessage: effectResult,
+            gameState: player.gameState
+        }));
+        
+        // 广播给其他玩家
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🎭 ${player.playerName} 踩中騙子卡「${card.name}」！${effectResult}`
+        }, ws);
+        
+        // 广播状态更新
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: player.playerId,
+            gameState: player.gameState
+        });
+        
+        console.log(`✅ 玩家 ${player.playerName} 自动执行了骗子卡: ${card.name}`);
+    }
+    
+    // 如果没有情绪支援检查或者情绪支援检查已跳过，直接执行护盾检查
+    if (!isFraudCard || damageAmount <= 0) {
+        continueWithShieldCheck();
+    }
+}
+
+// 辅助函数：根据playerId获取WebSocket
+function getWsByPlayerId(room, playerId) {
+    for (let [ws, player] of room.players) {
+        if (player.playerId === playerId) {
+            return ws;
+        }
+    }
+    return null;
+}
+
+// 辅助函数：发送护盾使用通知
+function sendShieldNotification(ws, room, player, card, shieldMessage) {
+    const diceResult = {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: 0,
+        originalSteps: 0,
+        multiplierUsed: false,
+        gameState: player.gameState,
+        tile: { name: "騙子卡", type: "lier" },
+        eventMessage: null,
+        multiplierMessage: ''
+    };
+    ws.send(JSON.stringify(diceResult));
+    broadcastToRoom(room.currentRoomId, diceResult, ws);
+    
+    ws.send(JSON.stringify({
+        type: 'lier_card_shield_used',
+        cardName: card.name,
+        shieldMessage: shieldMessage,
+        remainingShield: player.gameState.fraudShield,
+        gameState: player.gameState
+    }));
+}
+//  ==================== 義工卡处理 ====================
+let volunteerCards = [];
+
+try {
+    const volunteerData = require('./volunteer_cards.js');
+    volunteerCards = volunteerData.volunteerCards || [];
+    console.log(`📚 加载义工卡: ${volunteerCards.length}张`);
+    // 打印卡片列表以便确认
+    volunteerCards.forEach(card => {
+        console.log(`   - ${card.id}: ${card.name}`);
+    });
+} catch (e) {
+    console.log('⚠️ 无法加载 volunteer_cards.js，使用默认卡片');
+    volunteerCards = [];
+}
+
+//  ==================== 警察卡处理 ====================
+let policeCards = [];
+
+try {
+    const policeData = require('./police_cards.js');
+    policeCards = policeData.policeCards || [];
+    console.log(`📚 加载警察卡: ${policeCards.length}张`);
+} catch (e) {
+    console.log('⚠️ 无法加载 police_cards.js，使用默认卡片');
+    policeCards = [];
+}
+
+// 抽取警察卡
+function drawPoliceCard(ws, state, roomId, player) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    if (policeCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '暫無警察卡資料' }));
+        return;
+    }
+    
+    const randomIndex = Math.floor(Math.random() * policeCards.length);
+    const card = policeCards[randomIndex];
+    
+    console.log(`👮 玩家 ${player.playerName} 抽到警察卡: ${card.name}`);
+    
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    // 执行卡片效果
+    const effectResult = card.effect(player.gameState);
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName, 
+        card, 
+        '警察卡', 
+        player.gameState.cash - stateBefore.cash,
+        effectResult,
+        stateBefore,
+        player.gameState
+    );
+    
+    // 发送卡片信息给前端
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: 'police',
+        cardTypeName: '警察卡',
+        cardTypeIcon: '👮'
+    };
+    
+    // 发送骰子结果
+    const diceResult = {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: 0,
+        originalSteps: 0,
+        multiplierUsed: false,
+        gameState: player.gameState,
+        tile: { name: "警察卡", type: "police" },
+        eventMessage: null,
+        multiplierMessage: ''
+    };
+    ws.send(JSON.stringify(diceResult));
+    broadcastToRoom(roomId, diceResult, ws);
+    
+    // 发送警察卡执行消息
+    ws.send(JSON.stringify({
+        type: 'police_card_execute',
+        card: serializableCard,
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `👮 ${player.playerName} 獲得警察卡「${card.name}」！${effectResult}`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    console.log(`✅ 玩家 ${player.playerName} 执行了警察卡: ${card.name}`);
+}
+
+// ==================== 察覺卡处理 ====================
+// 加载覺察卡卡数据
+let marketNewsCards = [];
+let tipCards = [];
+
+try {
+    const revelationData = require('./revelation_cards.js');
+    marketNewsCards = revelationData.marketNewsCards || [];
+    tipCards = revelationData.tipCards || [];
+    console.log(`📚 加载启示卡: 市场消息卡${marketNewsCards.length}张, 锦囊卡${tipCards.length}张`);
+} catch (e) {
+    console.log('⚠️ 无法加载 revelation_cards.js，使用默认卡片');
+    marketNewsCards = [];
+    tipCards = [];
+}
+// 显示察覺卡类型选择
+function showRevelationCardTypeSelection(ws, state, roomId, player) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const cardTypes = [
+        { id: 'market_news', name: '市場消息卡', icon: '📊', color: '#2196f3', description: '影響市場價格，持有相關資產的玩家可選擇出售', cards: marketNewsCards },
+        { id: 'tip', name: '錦囊卡', icon: '🎁', color: '#9c27b0', description: '獲得特殊技能或團隊福利', cards: tipCards }
+    ];
+    
+    ws.send(JSON.stringify({
+        type: 'revelation_type_selection',
+        cardTypes: cardTypes,
+        canAfford: state.cash >= 500
+    }));
+    
+    if (!room.pendingRevelationSelections) {
+        room.pendingRevelationSelections = new Map();
+    }
+    room.pendingRevelationSelections.set(ws, { playerId: player.playerId, timestamp: Date.now() });
+}
+
+// 处理察覺卡类型选择
+function handleRevelationCardTypeChoice(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const selectedType = data.cardType;
+    let cards = [];
+    let cardTypeName = '';
+    
+    if (selectedType === 'market_news') {
+        cards = marketNewsCards;
+        cardTypeName = '市場消息卡';
+    } else if (selectedType === 'tip') {
+        cards = tipCards;
+        cardTypeName = '錦囊卡';
+    } else {
+        ws.send(JSON.stringify({ type: 'error', message: '无效的卡片类型' }));
+        return;
+    }
+    
+    if (cards.length === 0) {
+        ws.send(JSON.stringify({ type: 'error', message: `暫無${cardTypeName}資料` }));
+        return;
+    }
+    
+    if (room.pendingRevelationSelections) {
+        room.pendingRevelationSelections.delete(ws);
+    }
+    
+    const randomIndex = Math.floor(Math.random() * cards.length);
+    const originalCard = cards[randomIndex];
+    
+    // 复制卡片
+    const card = { ...originalCard };
+    card.cardType = selectedType;
+    card.cardTypeName = cardTypeName;
+    
+    // 保留effect方法
+    if (originalCard.effect) {
+        card.effect = originalCard.effect.bind(card);
+    }
+    
+    // 构建可序列化的卡片对象
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cost: card.cost,
+        cardType: selectedType,
+        cardTypeName: cardTypeName,
+        cardTypeIcon: selectedType === 'market_news' ? '📊' : '🎁',
+        scope: card.scope || 'personal'
+    };
+    
+    if (!room.pendingRevelationEvents) {
+        room.pendingRevelationEvents = new Map();
+    }
+    room.pendingRevelationEvents.set(ws, {
+        type: 'revelation_card',
+        card: card,
+        cardType: selectedType,
+        playerId: player.playerId,
+        purchased: false,
+        timestamp: Date.now()
+    });
+    
+    ws.send(JSON.stringify({
+        type: 'revelation_card_draw',
+        card: serializableCard,
+        canAfford: player.gameState.cash >= 500
+    }));
+    
+    console.log(`📜 玩家 ${player.playerName} 选择${cardTypeName}，抽到: ${card.name} (ID: ${card.id})`);
+}
+
+// 购买察覺卡
+function handlePurchaseRevelationCard(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingRevelationEvents?.get(ws);
+    if (!pendingEvent || pendingEvent.type !== 'revelation_card') {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的启示卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    
+    if (player.gameState.cash < 500) {
+        ws.send(JSON.stringify({
+            type: 'purchase_failed',
+            message: `现金不足 500 元，无法购买「${card.name}」`
+        }));
+        room.pendingRevelationEvents.delete(ws);
+        return;
+    }
+    
+    player.gameState.cash -= 500;
+    pendingEvent.purchased = true;
+    pendingEvent.purchaseTime = Date.now();
+    
+    const serializableCard = {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image,
+        cardType: pendingEvent.cardType,
+        cardTypeName: card.cardTypeName,
+        cardTypeIcon: pendingEvent.cardType === 'market_news' ? '📊' : '🎁',
+        scope: card.scope || 'personal'
+    };
+    
+    ws.send(JSON.stringify({
+        type: 'revelation_card_purchased',
+        card: serializableCard,
+        message: `已支付 500 元购买「${card.name}」，请查看效果并决定是否执行`
+    }));
+    
+    broadcastToRoom(roomId, {
+        type: 'player_purchased_card',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        cardName: card.name,
+        cardType: card.cardTypeName,
+        message: `${player.playerName} 花费 500 元购买了「${card.name}」`
+    }, ws);
+    
+    console.log(`💰 玩家 ${player.playerName} 支付 500 元购买了启示卡: ${card.name}`);
+}
+
+// 执行察覺卡
+function handleExecuteRevelationCard(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingRevelationEvents?.get(ws);
+    if (!pendingEvent || pendingEvent.type !== 'revelation_card' || !pendingEvent.purchased) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有已购买的启示卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const execute = data.execute;
+    const playerChoices = data.playerChoices;
+    
+    let resultMessage = '';
+    let effectResult = '';
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    
+    if (execute) {
+        // 执行卡片效果
+        try {
+            if (card.scope === 'team' || (card.type === 'tip' && card.scope === 'team')) {
+                // 团队锦囊卡，需要收集所有玩家的选择
+                effectResult = card.effect(player.gameState, room, player, ws, roomId, playerChoices);
+            } else if (card.type === 'market_news') {
+                // 市场消息卡，需要收集持有资产的玩家选择
+                effectResult = card.effect(player.gameState, room, player, ws, roomId, playerChoices);
+            } else {
+                // 个人锦囊卡
+                effectResult = card.effect(player.gameState);
+            }
+        } catch (e) {
+            console.error('执行启示卡效果失败:', e);
+            effectResult = `执行「${card.name}」效果时发生错误`;
+        }
+        
+        // ==================== 特殊处理：時間管理卡片 IN13 ====================
+        if (card.id === "IN13") {
+            // 设置额外回合标记
+            player.gameState.extraTurn = true;
+            
+            // 覆盖效果结果
+            effectResult = "獲得一個額外回合！";
+            resultMessage = `✨ 执行「${card.name}」成功！獲得一個額外回合！`;
+            
+            // 通知玩家
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `⏰ 時間管理生效！你將在結束回合後獲得一個額外回合！`
+            }));
+            
+            // 记录交易（使用自定义金额变化）
+            addTransactionRecord(
+                player.playerName,
+                card,
+                '执行',
+                0,
+                effectResult,
+                stateBefore,
+                player.gameState
+            );
+            
+            broadcastToRoom(roomId, {
+                type: 'card_executed',
+                playerId: player.playerId,
+                playerName: player.playerName,
+                cardName: card.name,
+                cardType: card.cardTypeName,
+                effectMessage: effectResult,
+                gameState: player.gameState
+            });
+            
+            console.log(`✅ 玩家 ${player.playerName} 执行了时间管理卡片，获得额外回合`);
+            
+            // 发送结果给当前玩家
+            ws.send(JSON.stringify({
+                type: 'card_decision_result',
+                execute: execute,
+                message: resultMessage,
+                gameState: player.gameState,
+                cardName: card.name,
+                effectMessage: effectResult
+            }));
+            
+            // 清理待处理事件
+            room.pendingRevelationEvents.delete(ws);
+            
+            // 广播状态更新
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: player.playerId,
+                gameState: player.gameState
+            });
+            
+            return;
+        }
+        // ================================================================
+        
+        resultMessage = `✨ 执行「${card.name}」成功！${effectResult}`;
+        
+        // 记录交易
+        addTransactionRecord(
+            player.playerName,
+            card,
+            '执行',
+            player.gameState.cash - stateBefore.cash,
+            effectResult,
+            stateBefore,
+            player.gameState
+        );
+        
+        broadcastToRoom(roomId, {
+            type: 'card_executed',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            cardName: card.name,
+            cardType: card.cardTypeName,
+            effectMessage: effectResult,
+            gameState: player.gameState
+        });
+        
+        console.log(`✅ 玩家 ${player.playerName} 执行了启示卡: ${card.name}`);
+    } else {
+        resultMessage = `❌ 你决定不执行「${card.name}」，但已支付的 500 元无法退还。`;
+        
+        addTransactionRecord(
+            player.playerName,
+            card,
+            '放弃',
+            -500,
+            '放弃执行，500元不退还',
+            stateBefore,
+            player.gameState
+        );
+        
+        broadcastToRoom(roomId, {
+            type: 'card_skipped',
+            playerId: player.playerId,
+            playerName: player.playerName,
+            cardName: card.name,
+            cardType: card.cardTypeName,
+            message: resultMessage
+        });
+        
+        console.log(`⏭️ 玩家 ${player.playerName} 选择不执行启示卡: ${card.name}`);
+    }
+    
+    ws.send(JSON.stringify({
+        type: 'card_decision_result',
+        execute: execute,
+        message: resultMessage,
+        gameState: player.gameState,
+        cardName: card.name,
+        effectMessage: typeof effectResult === 'string' ? effectResult : JSON.stringify(effectResult)
+    }));
+    
+    room.pendingRevelationEvents.delete(ws);
+    
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+}
+
+// 处理市场消息卡玩家选择
+function handleMarketNewsResponse(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingEvent = room.pendingRevelationEvents?.get(ws);
+    if (!pendingEvent || !pendingEvent.card) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的启示卡' }));
+        return;
+    }
+    
+    const card = pendingEvent.card;
+    const playerChoices = data.playerChoices;
+    
+    // 执行卡片效果，传入所有玩家的选择
+    let effectResult = '';
+    try {
+        effectResult = card.effect(player.gameState, room, player, ws, roomId, playerChoices);
+    } catch (e) {
+        console.error('执行市场消息效果失败:', e);
+        effectResult = `执行「${card.name}」效果时发生错误`;
+    }
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        card,
+        '市场消息',
+        0,
+        effectResult,
+        null,
+        player.gameState
+    );
+    
+    ws.send(JSON.stringify({
+        type: 'market_news_result',
+        effectMessage: effectResult,
+        gameState: player.gameState
+    }));
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    room.pendingRevelationEvents.delete(ws);
+}
+
 
 // ==================== 机会卡处理 ====================
 
@@ -1179,8 +3274,37 @@ function handleExecuteCard(ws, data, roomId) {
     
     console.log(`🔍 执行卡片: ${card.name} (ID: ${card.id})`);
     console.log(`   - isStockCard: ${isStockCard}, isCryptoCard: ${isCryptoCard}, isFundCard: ${isFundCard}, isP2PCard: ${isP2PCard}, isPartyRoomCard: ${isPartyRoomCard}`);
-    
-    if (execute) {
+   
+    // 多進行一回合:
+    if (card.id === "IN13" && execute) {player.gameState.extraTurn = true;}
+
+     if (execute) {
+        // 在處理警察卡執行時，檢查是否需要抽取錦囊卡
+        if (card.id === 'P08' && data.choice === 'card') {
+            // 觸發抽取錦囊卡 - 錦囊卡可以是機會卡的一種特殊類型
+            // 或者直接給予一個隨機獎勵
+            
+            const bonusOptions = [
+                { type: 'cash', amount: 3000, message: '獲得警方的獎勵金 $3,000 元！' },
+                { type: 'energy', amount: 3, message: '獲得警方的表揚，精力 +3！' },
+                { type: 'luck', amount: 2, message: '好事傳千里，幸運值 +2！' },
+                { type: 'cash', amount: 5000, message: '獲得警方特別獎勵 $5,000 元！' }
+            ];
+            
+            const randomBonus = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
+            
+            if (randomBonus.type === 'cash') {
+                gameState.cash += randomBonus.amount;
+            } else if (randomBonus.type === 'energy') {
+                gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + randomBonus.amount);
+            } else if (randomBonus.type === 'luck') {
+                gameState.luck = Math.min(gameState.maxLuck, gameState.luck + randomBonus.amount);
+            }
+            
+            effectMessage = randomBonus.message;
+        }
+
+
         // ==================== 派对房间卡片特殊处理 (C02) ====================
         if (isPartyRoomCard) {
             console.log(`🎉 处理派对房间卡片: ${card.id} - ${card.name}`);
@@ -1753,6 +3877,7 @@ function handleExecuteCard(ws, data, roomId) {
         gameState: player.gameState
     });
 }
+
 // ==================== 四叶草处理 ====================
 
 function handleUseFourLeafClover(ws, data, roomId) {
@@ -1827,7 +3952,286 @@ function handleUseLuckyStar(ws, data, roomId) {
 }
 
 // ==================== 玩家操作处理 ====================
+// ==================== 格子事件处理 ====================
+function handleRoll(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const state = player.gameState;
+    
+    // ==================== 检查是否被暂停一回合 ====================
+    if (state.skipNextTurn) {
+        state.skipNextTurn = false;
+        ws.send(JSON.stringify({ 
+            type: 'notification', 
+            message: '⏸️ 你被暫停一回合，無法擲骰，自動結束回合！' 
+        }));
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `⏸️ ${player.playerName} 被暫停一回合，無法行動`
+        }, ws);
+        handleEndTurn(ws, data, roomId);
+        return;
+    }
+    // ============================================================
+    
+    if (state.energy <= 0) {
+        ws.send(JSON.stringify({ type: 'error', message: '精力不足，无法掷骰' }));
+        return;
+    }
+    
+    state.energy = Math.max(0, state.energy - 1);
+    
+    let originalSteps = Math.floor(Math.random() * 6) + 1;
+    let steps = originalSteps;
+    let multiplierMessage = '';
+    
+    if (state.diceMultiplierActive) {
+        if (state.diceMultiplier === 2) {
+            steps = originalSteps * 2;
+            multiplierMessage = `🍀 四叶草生效！步数 ${originalSteps} x2 = ${steps} 步！`;
+        } else if (state.diceMultiplier === 3) {
+            steps = originalSteps * 3;
+            multiplierMessage = `⭐ 幸运星生效！步数 ${originalSteps} x3 = ${steps} 步！`;
+        }
+        state.diceMultiplierActive = false;
+        state.diceMultiplier = 1;
+        
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: multiplierMessage
+        }));
+    }
+    
+    let oldPos = state.streamlinePos;
+    let tile = null;
+    let eventMessage = null;
+    let isLierCard = false;
+    
+    if (state.inFlow) {
+        state.flowPos = (state.flowPos + steps) % room.flowTiles.length;
+        tile = room.flowTiles[state.flowPos];
+        eventMessage = processFlowTile(state, tile);
+    } 
+    // ==================== 逆流层移动逻辑（更新版） ====================
+    else if (state.inReverse) {
+        let stepsLeft = steps;
+        let currentReversePos = state.reversePos;
+        
+        // 遍历每一步
+        for (let i = 1; i <= steps; i++) {
+            // 计算新位置
+            let newReversePos = currentReversePos + 1;
+            let completedReverse = false;
+            
+            // 检查是否完成逆流层（走完第9格后）
+            if (newReversePos >= room.reverseTiles.length) {
+                completedReverse = true;
+                newReversePos = room.reverseTiles.length - 1;
+            }
+            
+            let tileAtPos = room.reverseTiles[newReversePos];
+            
+            // 处理逆流层格子效果
+            if (tileAtPos.type !== 'settlement') {
+                const eventMsg = processReverseTile(state, tileAtPos, ws, roomId, player);
+                if (eventMsg && typeof eventMsg === 'string') {
+                    ws.send(JSON.stringify({
+                        type: 'notification',
+                        message: `${player.playerName}: ${eventMsg}`
+                    }));
+                }
+            }
+            
+            // 更新位置
+            currentReversePos = newReversePos;
+            state.reversePos = currentReversePos;
+            
+            // 如果完成逆流层，回到平流层
+            if (completedReverse) {
+                state.inReverse = false;
+                const remainingSteps = steps - i;
+                
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: '🎉 恭喜完成逆流層，回到平流層！'
+                }));
+                broadcastToRoom(roomId, {
+                    type: 'notification',
+                    message: `🎉 ${player.playerName} 完成逆流層，回到平流層！`
+                }, ws);
+                
+                // 如果还有剩余步数，在平流层继续移动
+                if (remainingSteps > 0) {
+                    let newStreamlinePos = (state.streamlinePos + remainingSteps) % room.streamlineTiles.length;
+                    
+                    // 检查经过的结算日
+                    for (let j = 1; j <= remainingSteps; j++) {
+                        let tempPos = (state.streamlinePos + j) % room.streamlineTiles.length;
+                        let checkTile = room.streamlineTiles[tempPos];
+                        if (checkTile.type === 'settlement') {
+                            const totalIncome = state.salary + state.sideIncome;
+                            state.cash += totalIncome;
+                            state.totalAssets += Math.floor(totalIncome * 0.2);
+                            
+                            const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+                            let expenseReductionMessage = '';
+                            if (reductionPercent > 0) {
+                                expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
+                            }
+                            
+                            if (state.bakeryCount && state.bakeryCount > 0) {
+                                const bakeryEnergyBonus = state.bakeryCount;
+                                state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
+                            }
+                            
+                            processHealthInvestment(state, player, ws, roomId);
+                            processHealthSupplementInvestment(state, player, ws, roomId);
+                            
+                            const repaymentResult = processSettlementRepayment(player, ws, roomId);
+                            if (repaymentResult) {
+                                ws.send(JSON.stringify(repaymentResult));
+                                broadcastToRoom(roomId, repaymentResult, ws);
+                            }
+                            
+                            const settlementMsg = {
+                                type: 'settlement',
+                                playerId: player.playerId,
+                                playerName: player.playerName,
+                                salary: state.salary,
+                                sideIncome: state.sideIncome,
+                                totalIncome: totalIncome,
+                                totalExpense: totalExpense,
+                                expenseReductionMessage: expenseReductionMessage,
+                                isExactLanding: (j === remainingSteps),
+                                gameState: state
+                            };
+                            ws.send(JSON.stringify(settlementMsg));
+                            broadcastToRoom(roomId, settlementMsg, ws);
+                        }
+                    }
+                    
+                    state.streamlinePos = newStreamlinePos;
+                }
+                
+                // 设置最终格子
+                tile = room.streamlineTiles[state.streamlinePos];
+                eventMessage = `完成逆流層，回到平流層「${tile.name}」`;
+                break;
+            }
+            
+            stepsLeft--;
+        }
+        
+        // 如果还在逆流层，设置最终格子
+        if (state.inReverse) {
+            tile = room.reverseTiles[state.reversePos];
+            eventMessage = `移動到逆流層「${tile.name}」`;
+        }
+    }
+    // ============================================================
+    else {
+        // 平流层移动逻辑
+        for (let i = 1; i <= steps; i++) {
+            let newPos = (oldPos + i) % room.streamlineTiles.length;
+            let tileAtPos = room.streamlineTiles[newPos];
+            if (tileAtPos.type === 'settlement') {
+                const totalIncome = state.salary + state.sideIncome;
+                state.cash += totalIncome;
+                state.totalAssets += Math.floor(totalIncome * 0.2);
+                
+                const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+                let expenseReductionMessage = '';
+                if (reductionPercent > 0) {
+                    expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
+                }
+                
+                if (state.bakeryCount && state.bakeryCount > 0) {
+                    const bakeryEnergyBonus = state.bakeryCount;
+                    state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
+                }
 
+                processHealthInvestment(state, player, ws, roomId);
+                processHealthSupplementInvestment(state, player, ws, roomId);
+                                
+                const repaymentResult = processSettlementRepayment(player, ws, roomId);
+                if (repaymentResult) {
+                    ws.send(JSON.stringify(repaymentResult));
+                    broadcastToRoom(roomId, repaymentResult, ws);
+                }
+                
+                const settlementMsg = {
+                    type: 'settlement',
+                    playerId: player.playerId,
+                    playerName: player.playerName,
+                    salary: state.salary,
+                    sideIncome: state.sideIncome,
+                    totalIncome: totalIncome,
+                    totalExpense: totalExpense,
+                    expenseReductionMessage: expenseReductionMessage,
+                    isExactLanding: (i === steps),
+                    gameState: state
+                };
+                ws.send(JSON.stringify(settlementMsg));
+                broadcastToRoom(roomId, settlementMsg, ws);
+            }
+        }
+        
+        state.streamlinePos = (state.streamlinePos + steps) % room.streamlineTiles.length;
+        tile = room.streamlineTiles[state.streamlinePos];
+        
+        if (tile.type !== 'settlement') {
+            const isExactLanding = tile.type === 'settlement';
+            
+            if (tile.type === 'lier') {
+                isLierCard = true;
+                eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding);
+            } else {
+                eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding);
+            }
+        }
+    }
+    
+    // 检查进入顺流层的条件
+    const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
+    if (!state.inReverse && state.passiveIncome > totalExp && !state.inFlow) {
+        state.inFlow = true;
+        state.flowPos = 0;
+        ws.send(JSON.stringify({ type: 'notification', message: '🎉 恭喜进入顺流层！' }));
+        broadcastToRoom(roomId, { type: 'notification', message: `🎉 ${player.playerName} 进入顺流层！` }, ws);
+    }
+    
+    const result = {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: steps,
+        originalSteps: originalSteps,
+        multiplierUsed: multiplierMessage !== '',
+        gameState: state,
+        tile: tile,
+        eventMessage: eventMessage,
+        multiplierMessage: multiplierMessage
+    };
+    
+    if (tile && tile.type !== 'opportunity' && tile.type !== 'lier' && tile.type !== 'hardship') {
+        ws.send(JSON.stringify(result));
+        broadcastToRoom(roomId, result, ws);
+        
+        if (eventMessage && tile.type !== 'settlement' && tile.type !== 'lier') {
+            ws.send(JSON.stringify({ type: 'notification', message: eventMessage }));
+            broadcastToRoom(roomId, { type: 'notification', message: `${player.playerName}: ${eventMessage}` }, ws);
+        }
+    } else if (tile && tile.type === 'opportunity') {
+        ws.send(JSON.stringify(result));
+        broadcastToRoom(roomId, result, ws);
+    }
+    
+    console.log(`🎲 玩家 ${player.playerName} 掷出 ${originalSteps} 步${multiplierMessage ? ' (翻倍后 ' + steps + '步)' : ''}，移动到 ${tile?.name || '未知'}`);
+}
 function handleJoin(ws, data, roomId) {
     const room = getOrCreateRoom(roomId);
     const playerId = data.playerId;
@@ -1874,8 +4278,19 @@ function handleJoin(ws, data, roomId) {
         luckyStarCount: 0,
         diceMultiplier: 0,
         diceMultiplierActive: false,
-        totalSettlementCount: 0
+        totalSettlementCount: 0,
+        fraudShield: 0,
+        hasFraudAlert: false,
+        hasFraudKnowledge: false,
+        volunteerCount: 0,
+        volunteerShield: 0,
+        expenseReduction: 0,
+        bakeryCount: 0,
+        skipNextTurn: false
     };
+    
+    // 添加月现金流计算
+    gameState.monthlyCashFlow = calculateMonthlyCashFlow(gameState);
     
     room.players.set(ws, { playerId, playerName, gameState });
     
@@ -1919,127 +4334,6 @@ function handleJoin(ws, data, roomId) {
     console.log(`👤 玩家加入: ${playerName} (${professionData.name}), 房间: ${roomId}, 当前人数: ${room.players.size}`);
 }
 
-function handleRoll(ws, data, roomId) {
-    const room = rooms.get(roomId);
-    if (!room) return;
-    
-    const player = room.players.get(ws);
-    if (!player) return;
-    
-    const state = player.gameState;
-    if (state.energy <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '精力不足，无法掷骰' }));
-        return;
-    }
-    
-    state.energy = Math.max(0, state.energy - 1);
-    
-    let originalSteps = Math.floor(Math.random() * 6) + 1;
-    let steps = originalSteps;
-    let multiplierMessage = '';
-    
-    if (state.diceMultiplierActive) {
-        if (state.diceMultiplier === 2) {
-            steps = originalSteps * 2;
-            multiplierMessage = `🍀 四叶草生效！步数 ${originalSteps} x2 = ${steps} 步！`;
-        } else if (state.diceMultiplier === 3) {
-            steps = originalSteps * 3;
-            multiplierMessage = `⭐ 幸运星生效！步数 ${originalSteps} x3 = ${steps} 步！`;
-        }
-        state.diceMultiplierActive = false;
-        state.diceMultiplier = 1;
-        
-        ws.send(JSON.stringify({
-            type: 'notification',
-            message: multiplierMessage
-        }));
-    }
-    
-    let oldPos = state.streamlinePos;
-    let tile = null;
-    let eventMessage = null;
-    
-    if (state.inFlow) {
-        state.flowPos = (state.flowPos + steps) % room.flowTiles.length;
-        tile = room.flowTiles[state.flowPos];
-        eventMessage = processFlowTile(state, tile);
-    } else if (state.inReverse) {
-        state.reversePos = (state.reversePos + steps) % room.reverseTiles.length;
-        tile = room.reverseTiles[state.reversePos];
-        eventMessage = processReverseTile(state, tile);
-    } else {
-        for (let i = 1; i <= steps; i++) {
-            let newPos = (oldPos + i) % room.streamlineTiles.length;
-            let tileAtPos = room.streamlineTiles[newPos];
-            if (tileAtPos.type === 'settlement') {
-                const totalIncome = state.salary + state.sideIncome;
-                state.cash += totalIncome;
-                state.totalAssets += Math.floor(totalIncome * 0.2);
-                
-                const repaymentResult = processSettlementRepayment(player, ws, roomId);
-                if (repaymentResult) {
-                    ws.send(JSON.stringify(repaymentResult));
-                    broadcastToRoom(roomId, repaymentResult, ws);
-                }
-                
-                const settlementMsg = {
-                    type: 'settlement',
-                    playerId: player.playerId,
-                    playerName: player.playerName,
-                    salary: state.salary,
-                    sideIncome: state.sideIncome,
-                    totalIncome: totalIncome,
-                    isExactLanding: (i === steps),
-                    gameState: state
-                };
-                ws.send(JSON.stringify(settlementMsg));
-                broadcastToRoom(roomId, settlementMsg, ws);
-            }
-        }
-        
-        state.streamlinePos = (state.streamlinePos + steps) % room.streamlineTiles.length;
-        tile = room.streamlineTiles[state.streamlinePos];
-        
-        if (tile.type !== 'settlement') {
-            const isExactLanding = tile.type === 'settlement';
-            eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding);
-        }
-    }
-    
-    const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-    if (!state.inReverse && state.passiveIncome > totalExp && !state.inFlow) {
-        state.inFlow = true;
-        state.flowPos = 0;
-        ws.send(JSON.stringify({ type: 'notification', message: '🎉 恭喜进入顺流层！' }));
-        broadcastToRoom(roomId, { type: 'notification', message: `🎉 ${player.playerName} 进入顺流层！` }, ws);
-    }
-    
-    const result = {
-        type: 'dice_result',
-        playerId: player.playerId,
-        playerName: player.playerName,
-        steps: steps,
-        originalSteps: originalSteps,
-        multiplierUsed: multiplierMessage !== '',
-        gameState: state,
-        tile: tile,
-        eventMessage: eventMessage,
-        multiplierMessage: multiplierMessage
-    };
-    
-    if (tile.type !== 'opportunity') {
-        ws.send(JSON.stringify(result));
-        broadcastToRoom(roomId, result, ws);
-        
-        if (eventMessage && tile.type !== 'settlement') {
-            ws.send(JSON.stringify({ type: 'notification', message: eventMessage }));
-            broadcastToRoom(roomId, { type: 'notification', message: `${player.playerName}: ${eventMessage}` }, ws);
-        }
-    }
-    
-    console.log(`🎲 玩家 ${player.playerName} 掷出 ${originalSteps} 步${multiplierMessage ? ' (翻倍后 ' + steps + '步)' : ''}，移动到 ${tile.name}`);
-}
-
 function handleEndTurn(ws, data, roomId) {
     const room = rooms.get(roomId);
     if (!room) return;
@@ -2047,9 +4341,33 @@ function handleEndTurn(ws, data, roomId) {
     const player = room.players.get(ws);
     if (!player) return;
     
+    // ==================== 檢查是否有額外回合 ====================
+    if (player.gameState.extraTurn) {
+        player.gameState.extraTurn = false;
+        
+        // 通知玩家獲得額外回合
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: '⏰ 時間管理生效！你獲得一個額外回合！'
+        }));
+        
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `⏰ ${player.playerName} 獲得了額外回合！`
+        }, ws);
+        
+        // 不結束回合，讓玩家再次行動
+        console.log(`⏰ 玩家 ${player.playerName} 獲得額外回合，繼續行動`);
+        return;
+    }
+    // ============================================================
+    
     player.gameState.energy = Math.min(player.gameState.maxEnergy, player.gameState.energy + 1);
     player.gameState.usedSilverWing = false;
     player.gameState.luck = Math.max(0, player.gameState.luck - 0.5);
+    
+    // 更新月现金流
+    player.gameState.monthlyCashFlow = calculateMonthlyCashFlow(player.gameState);
     
     const result = {
         type: 'turn_ended',
@@ -2106,6 +4424,38 @@ wss.on('connection', (ws) => {
                     break;
                 case 'use_lucky_star':
                     handleUseLuckyStar(ws, data, playerRoomId);
+                    break;
+                case 'execute_lier_card':
+                    executeLierCard(ws, data, playerRoomId);
+                    break;
+                case 'police_card_execute':
+                    break;
+                case 'volunteer_card_confirm':
+                    executeVolunteerDonation(ws, data, playerRoomId);
+                    break;
+                case 'volunteer_card_choice_confirm':
+                    executeVolunteerChoice(ws, data, playerRoomId);
+                    break;
+                case 'volunteer_donation_response':
+                    handleVolunteerDonationResponse(ws, data, playerRoomId);
+                    break;
+                case 'use_emotional_support':
+                    handleUseEmotionalSupport(ws, data, playerRoomId);
+                    break;
+                case 'skip_emotional_support':
+                    handleSkipEmotionalSupport(ws, data, playerRoomId);
+                    break;
+                case 'revelation_type_choice':
+                    handleRevelationCardTypeChoice(ws, data, playerRoomId);
+                    break;
+                case 'purchase_revelation_card':
+                    handlePurchaseRevelationCard(ws, data, playerRoomId);
+                    break;
+                case 'execute_revelation_card':
+                    handleExecuteRevelationCard(ws, data, playerRoomId);
+                    break;
+                case 'market_news_response':
+                    handleMarketNewsResponse(ws, data, playerRoomId);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知消息类型' }));
@@ -2175,7 +4525,7 @@ server.listen(PORT, '0.0.0.0', () => {
 ║   • 现金不足时扣除所有现金，剩余欠款继续计息                                 ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║   📅 结算日机制:                                                            ║
-║   第5、13、21格 - 获得月薪+副业收入                                         ║
+║   第5、13、21格 - 获得月薪+副业收入，并应用支出减免                         ║
 ║   正好踩中结算日 - 额外获得一次掷骰机会                                      ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║   📚 机会卡系统:                                                            ║
@@ -2188,6 +4538,11 @@ server.listen(PORT, '0.0.0.0', () => {
 ║   • 自动记录所有卡片交易                                                    ║
 ║   • 访问 /api/transactions 查看JSON数据                                     ║
 ║   • 访问 /record.html 查看交易记录页面                                      ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║   💰 支出减免系统:                                                          ║
+║   • expenseReduction 属性支持支出百分比减免                                ║
+║   • 结算日自动计算减免后的支出                                              ║
+║   • monthlyCashFlow 自动计算月现金流                                       ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║   🌐 访问地址: http://localhost:${PORT}                                      ║
 ╚══════════════════════════════════════════════════════════════════════════════╝

@@ -722,7 +722,7 @@ const financeCards = [
     {
         id: "F06",
         code: "B01",
-        name: "股票交易 - 金融公司",
+        name: "股票交易 - B01金融公司",
         description: "股票代碼 B01 | 今日價格 $5/股 | 價格波動範圍 $5-$30/股 | 可購買股數 100股的倍數 (無上限)",
         image: "../cards/finance/F06.png",
         cost: 500,
@@ -892,7 +892,7 @@ const financeCards = [
     {
         id: "F07",
         code: "B01",
-        name: "股票交易 - 金融公司",
+        name: "股票交易 - B01金融公司",
         description: "股票代碼 B01 | 今日價格 $10/股 | 價格波動範圍 $5-$30/股 | 可購買股數 100股的倍數 (無上限)",
         image: "../cards/finance/F07.png",
         cost: 500,
@@ -1061,7 +1061,7 @@ const financeCards = [
     {
         id: "F08",
         code: "B01",
-        name: "股票交易 - 金融公司",
+        name: "股票交易 - B01金融公司",
         description: "股票代碼 B01 | 今日價格 $20/股 | 價格波動範圍 $5-$30/股 | 可購買股數 100股的倍數 (無上限)",
         image: "../cards/finance/F08.png",
         cost: 500,
@@ -1230,7 +1230,7 @@ const financeCards = [
     {
         id: "F09",
         code: "B01",
-        name: "股票交易 - 金融公司",
+        name: "股票交易 - B01金融公司",
         description: "股票代碼 B01 | 今日價格 $30/股 | 價格波動範圍 $5-$30/股 | 可購買股數 100股的倍數 (無上限)",
         image: "../cards/finance/F09.png",
         cost: 500,
@@ -1398,9 +1398,9 @@ const financeCards = [
 
     {
         id: "F10",
-        code: "A01",
-        name: "股票交易 - 金融公司",
-        description: "股票代碼 A01 | 今日價格 $1/股 | 價格波動範圍 $1-$100/股 | 可購買股數 100股的倍數 (無上限)",
+        code: "B01",
+        name: "股票交易 - B01金融公司",
+        description: "股票代碼 B01 | 今日價格 $1/股 | 價格波動範圍 $1-$100/股 | 可購買股數 100股的倍數 (無上限)",
         image: "../cards/finance/F08.png",
         cost: 500,
         type: "finance",
