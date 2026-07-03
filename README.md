@@ -42,3 +42,9 @@ then your termina should shows
 Please Ctrl+ left click the http://localhost:8080        
 
 Or open the browser：http://localhost:8080/frontend/index.html
+
+# LAN-server-school competition
+in the minPC server pls type following command in it:
+
+
+
