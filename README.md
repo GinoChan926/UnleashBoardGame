@@ -43,7 +43,7 @@ Please Ctrl+ left click the http://localhost:8080
 
 Or open the browser：http://localhost:8080/frontend/index.html
 
-# LAN-server-school competition
+# LAN-server for school competition
 in the minPC server pls type following command below in terminal:
 1. cd ../project/backend
 2. node server.js
