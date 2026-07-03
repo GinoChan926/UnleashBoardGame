@@ -2,7 +2,7 @@
 
 // ==================== 职业定义 ====================
 const PROFESSIONS = {
-    doctor: { name: "👨‍⚕️ 医生", salary: 15000, sideIncome: 0, cash: 20000, energy: 2, maxEnergy: 100, livingExpense: 8000, tax: 1500, luck: 5.0 },
+    doctor: { name: "👨‍⚕️ 医生", salary: 15000, sideIncome: 0, cash: 2000000, energy: 2, maxEnergy: 100, livingExpense: 8000, tax: 1500, luck: 5.0 },
     engineer: { name: "👨‍🔧 工程师", salary: 12000, sideIncome: 0, cash: 15000, energy: 3, maxEnergy: 100, livingExpense: 6000, tax: 1200, luck: 5.5 },
     teacher: { name: "👩‍🏫 教师", salary: 8000, sideIncome: 0, cash: 10000, energy: 5, maxEnergy: 100, livingExpense: 4500, tax: 800, luck: 6.0 },
     artist: { name: "🎨 艺术家", salary: 6000, sideIncome: 1000, cash: 8000, energy: 6, maxEnergy: 100, livingExpense: 4000, tax: 600, luck: 7.0 },
@@ -65,17 +65,38 @@ class GameClient {
         ];
         
         this.flowTiles = [
-            { name: "查稅審計", type: "audit" }, { name: "古董投資", type: "investment" }, { name: "藝術基金", type: "investment" },
-            { name: "度假莊園", type: "investment" }, { name: "私人飛機", type: "dream", needEnergy: 40 }, { name: "破產陷阱", type: "flowbankruptcy" },
-            { name: "環球旅遊", type: "dream", needEnergy: 45 }, { name: "慈善基金會", type: "investment" }, { name: "隱形俱樂部", type: "investment" },
-            { name: "智庫董事", type: "investment" }, { name: "終極夢想", type: "dream", needEnergy: 50 }, { name: "財務自由", type: "dream", needEnergy: 35 },
-            { name: "豪華別墅", type: "dream", needEnergy: 45 }, { name: "私人遊艇", type: "investment" }, { name: "頂級收藏", type: "investment" },
-            { name: "高級俱樂部", type: "investment" }, { name: "家族基金", type: "investment" }, { name: "國際投資", type: "investment" },
-            { name: "房地產帝國", type: "investment" }, { name: "能源項目", type: "investment" }, { name: "科技股票", type: "investment" },
-            { name: "貴金屬投資", type: "investment" }, { name: "珍稀物業", type: "investment" }, { name: "商業帝國", type: "investment" },
-            { name: "董事會席位", type: "investment" }, { name: "慈善榮譽", type: "grace" }, { name: "年度評選", type: "event" },
-            { name: "財富峰會", type: "event" }, { name: "投資分紅", type: "income" }, { name: "版稅收入", type: "income" },
-            { name: "顧問費用", type: "income" }, { name: "終極成就", type: "dream", needEnergy: 60 }
+            { name: "資產信託", type: "asset_trust" },               // 第1格
+            { name: "訂制夢想跑車", type: "dream", needEnergy: 50 }, // 第2格
+            { name: "項目投資", type: "investment_tile" },           // 第3格
+            { name: "私人島嶼", type: "dream", needEnergy: 40 },     // 第4格
+            { name: "社会服务中心", type: "social_service" },         // 第5格
+            { name: "登頂富士山", type: "dream"},                    // 第6格
+            { name: "項目投資", type: "investment_tile" },           // 第7格
+            { name: "夢想", type: "dream"},                          // 第8格
+            { name: "慈善基金會", type: "investment" },              // 第9格
+            { name: "夢想", type: "dream"},                          // 第10格
+            { name: "項目投資", type: "investment_tile" },           // 第11格
+            { name: "夢想", type: "dream"},                          // 第12格
+            { name: "財務自由", type: "dream", needEnergy: 35 },     // 第13格
+            { name: "豪華別墅", type: "dream", needEnergy: 45 },     // 第14格
+            { name: "項目投資", type: "investment_tile" },           // 第15格
+            { name: "夢想", type: "dream"},                          // 第16格
+            { name: "高級俱樂部", type: "investment" },              // 第17格
+            { name: "夢想", type: "dream"},                          // 第18格
+            { name: "項目投資", type: "investment_tile" },           // 第19格
+            { name: "夢想", type: "dream"},                          // 第20格
+            { name: "社会服务中心", type: "social_service" },         // 第21格
+            { name: "夢想", type: "dream"},                          // 第22格
+            { name: "項目投資", type: "investment_tile" },           // 第23格
+            { name: "夢想", type: "dream"},                          // 第24格
+            { name: "商業帝國", type: "investment" },                // 第25格
+            { name: "夢想", type: "dream"},                          // 第26格
+            { name: "項目投資", type: "investment_tile" },           // 第27格
+            { name: "夢想", type: "dream"},                          // 第28格
+            { name: "財富峰會", type: "event" },                     // 第29格
+            { name: "投資分紅", type: "income" },                    // 第30格
+            { name: "項目投資", type: "investment_tile" },           // 第31格
+            { name: "夢想", type: "dream"},                          // 第32格
         ];
         
         this.setupMusicMonitor();
@@ -301,6 +322,9 @@ class GameClient {
     doConnect() {
         const playerNameInput = this.getInput('playerName');
         this.playerName = playerNameInput?.value.trim() || `Player_${Date.now()}`;
+
+        const wsUrl = `ws://${window.location.hostname}:8080`;
+        this.ws = new WebSocket(wsUrl);
         
         if (!this.selectedProfession) {
             this.showNotification('请先选择职业', 'error');
@@ -308,9 +332,7 @@ class GameClient {
         }
         
         console.log(`🔌 开始连接服务器，职业: ${this.selectedProfession.data.name}`);
-        
-        this.ws = new WebSocket('ws://localhost:8080');
-        
+
         this.ws.onopen = () => {
             this.isConnected = true;
             this.playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
@@ -551,7 +573,7 @@ class GameClient {
         }
     }
     
-    showPurchaseConfirm(card, canAfford) {
+   showPurchaseConfirm(card, canAfford) {
         console.log('显示购买确认:', card.name);
         const modal = document.getElementById('purchaseConfirmModal');
         const modalBody = document.getElementById('purchaseModalBody');
@@ -560,37 +582,214 @@ class GameClient {
         const cancelBtn = document.getElementById('cancelPurchaseBtn');
         const affordWarning = document.getElementById('purchaseAffordWarning');
         const cardTypeSpan = document.getElementById('purchaseCardTypeSpan');
+        const modalTitle = document.querySelector('#purchaseConfirmModal .modal-title');
         
         if (!modal || !modalBody) return;
         
+        // ========== 根据卡片类型设置标题 ==========
+        let titleText = '💰 购买机会卡';
+        if (card.cardType === 'investment') {
+            titleText = '🏗️ 投资项目';
+        } else if (card.cardType === 'dream') {
+            titleText = '🌟 实现梦想';
+        } else if (card.cardType === 'social') {
+            titleText = '🤝 贡献社会';
+        } else if (card.cardType === 'part_time') {
+            titleText = '💼 兼职机会';
+        } else if (card.cardType === 'finance') {
+            titleText = '📈 财务机会';
+        } else if (card.cardType === 'business') {
+            titleText = '🚀 创业机会';
+        } else if (card.cardType === 'property') {
+            titleText = '🏠 地产机会';
+        }
+        
+        if (modalTitle) {
+            modalTitle.textContent = titleText;
+        }
+        
+        // ========== 卡片类型颜色（添加 social 和 dream） ==========
         if (cardTypeSpan && card.cardTypeName) {
-            const typeColors = { 'part_time': '#4caf50', 'finance': '#2196f3', 'business': '#ff9800', 'property': '#9c27b0' };
+            const typeColors = { 
+                'part_time': '#4caf50', 
+                'finance': '#2196f3', 
+                'business': '#ff9800', 
+                'property': '#9c27b0',
+                'investment': '#ff6f00',
+                'dream': '#d4a017',      // 金色 - 梦想
+                'social': '#2e7d32',      // 深绿色 - 社会服务
+                'volunteer': '#4caf50',
+                'lier': '#dc143c',
+                'police': '#1565c0',
+                'market_news': '#0d47a1',
+                'tip': '#6a1b9a',
+                'hardship': '#b71c1c'
+            };
             const color = typeColors[card.cardType || ''] || '#ffb347';
             cardTypeSpan.style.backgroundColor = color;
             cardTypeSpan.innerHTML = `${card.cardTypeIcon || '🎴'} ${card.cardTypeName || '机会卡'}`;
         }
         
+        // ========== 构建额外信息（根据卡片类型） ==========
+        let extraInfo = '';
+        
+        if (card.cardType === 'investment') {
+            extraInfo = `
+                <div style="background: #fff3e0; padding: 12px; border-radius: 8px; margin-top: 10px; text-align: left;">
+                    <div style="color: #e65100; font-size: 14px; font-weight: bold; margin-bottom: 6px;">📊 投资详情</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #333;">
+                        <span>💰 投资金额: <strong>${card.investmentCost ? card.investmentCost.toLocaleString() : '0'} 元</strong></span>
+                        ${card.monthlyReturn ? `<span>📈 月被动收入: <strong style="color: #2e7d32;">+${card.monthlyReturn.toLocaleString()} 元</strong></span>` : ''}
+                        ${card.energyCost ? `<span>⚡ 精力消耗: <strong style="color: #c62828;">-${card.energyCost}</strong></span>` : ''}
+                        ${card.energyGain ? `<span>⚡ 精力获得: <strong style="color: #2e7d32;">+${card.energyGain}</strong></span>` : ''}
+                        ${card.luckGain ? `<span>🍀 幸运值: <strong style="color: #2e7d32;">+${card.luckGain}</strong></span>` : ''}
+                        ${card.healthGain ? `<span>💚 健康指数: <strong style="color: #2e7d32;">+${card.healthGain}</strong></span>` : ''}
+                        ${card.paybackMonths ? `<span>⏱️ 预计回本: <strong>${card.paybackMonths} 个月</strong></span>` : ''}
+                    </div>
+                </div>
+            `;
+        } else if (card.cardType === 'dream') {
+            extraInfo = `
+                <div style="background: #fff8e1; padding: 12px; border-radius: 8px; margin-top: 10px; text-align: left; border: 1px solid #ffd54f;">
+                    <div style="color: #f57f17; font-size: 14px; font-weight: bold; margin-bottom: 6px;">🌟 梦想详情</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #333;">
+                        ${card.investmentCost ? `<span>💰 花费: <strong>${card.investmentCost.toLocaleString()} 元</strong></span>` : ''}
+                        ${card.energyCost ? `<span>⚡ 精力消耗: <strong style="color: #c62828;">-${card.energyCost}</strong></span>` : ''}
+                        ${card.luckGain ? `<span>🍀 幸运值: <strong style="color: #2e7d32;">+${card.luckGain}</strong></span>` : ''}
+                        ${card.healthGain ? `<span>💚 健康指数: <strong style="color: #2e7d32;">+${card.healthGain}</strong></span>` : ''}
+                        ${card.position ? `<span>📍 梦想格: <strong>第 ${card.position} 格</strong></span>` : ''}
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #795548; font-style: italic;">
+                        ✨ 实现梦想，成就非凡人生！
+                    </div>
+                </div>
+            `;
+        } else if (card.cardType === 'social') {
+            extraInfo = `
+                <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; margin-top: 10px; text-align: left; border: 1px solid #4caf50;">
+                    <div style="color: #1b5e20; font-size: 14px; font-weight: bold; margin-bottom: 6px;">🤝 社会服务详情</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 13px; color: #333;">
+                        ${card.investmentCost ? `<span>💰 投入: <strong>${card.investmentCost.toLocaleString()} 元</strong></span>` : ''}
+                        ${card.monthlyReturn ? `<span>📈 月被动收入: <strong style="color: #2e7d32;">+${card.monthlyReturn.toLocaleString()} 元</strong></span>` : ''}
+                        ${card.energyCost ? `<span>⚡ 精力消耗: <strong style="color: #c62828;">-${card.energyCost}</strong></span>` : ''}
+                        ${card.luckGain ? `<span>🍀 幸运值: <strong style="color: #2e7d32;">+${card.luckGain}</strong></span>` : ''}
+                        ${card.healthGain ? `<span>💚 健康指数: <strong style="color: #2e7d32;">+${card.healthGain}</strong></span>` : ''}
+                        ${card.extraDice ? `<span>🎲 额外掷骰: <strong style="color: #e65100;">+${card.extraDice} 次</strong></span>` : ''}
+                    </div>
+                    <div style="margin-top: 8px; font-size: 12px; color: #33691e; font-style: italic;">
+                        ❤️ 贡献社会，造福人群！
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== 构建模态框内容 ==========
         modalBody.innerHTML = `
             <div style="text-align: center;">
                 <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 20px;">${this.escapeHtml(card.name || '机会卡')}</h3>
-                <p style="color: #555; font-size: 14px;">${this.escapeHtml(card.description || '')}</p>
-                ${card.investmentCost ? `<div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #2e7d32;">💰 需要额外投资: ${card.investmentCost.toLocaleString()} 元</span></div>` : ''}
+                <p style="color: #555; font-size: 14px; line-height: 1.6;">${this.escapeHtml(card.description || '')}</p>
+                ${card.investmentCost ? `<div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #2e7d32;">💰 需要投资: ${card.investmentCost.toLocaleString()} 元</span></div>` : ''}
+                ${extraInfo}
                 <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px;">
                     <span style="color: #1565c0;">💡 支付 500 元购买后，可查看详细效果并决定是否执行</span>
                 </div>
             </div>
         `;
         
-        if (cardImage && card.image) {
-            let imageUrl = card.image;
-            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-                imageUrl = '/' + imageUrl;
+        // ========== 图片加载（添加占位符支持） ==========
+        if (cardImage) {
+            if (card.image) {
+                let imageUrl = card.image;
+                if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+                    imageUrl = '/' + imageUrl;
+                }
+                cardImage.src = imageUrl || '';
+                cardImage.onload = () => console.log('购买图片加载成功');
+                cardImage.onerror = () => {
+                    // 图片加载失败，显示占位符
+                    cardImage.style.display = 'none';
+                    const parent = cardImage.parentElement;
+                    if (parent) {
+                        // 移除已有的占位符
+                        const oldPlaceholder = parent.querySelector('.card-placeholder');
+                        if (oldPlaceholder) oldPlaceholder.remove();
+                        
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'card-placeholder';
+                        let icon = '🎴';
+                        if (card.cardType === 'dream') icon = '🌟';
+                        else if (card.cardType === 'investment') icon = '🏗️';
+                        else if (card.cardType === 'social') icon = '🤝';
+                        else if (card.cardType === 'part_time') icon = '💼';
+                        else if (card.cardType === 'finance') icon = '📈';
+                        else if (card.cardType === 'business') icon = '🚀';
+                        else if (card.cardType === 'property') icon = '🏠';
+                        
+                        placeholder.style.cssText = `
+                            width: 100%;
+                            padding: 30px 20px;
+                            background: linear-gradient(135deg, #2a1a0a, #1a0a00);
+                            border-radius: 12px;
+                            text-align: center;
+                            font-size: 48px;
+                            color: #ffd966;
+                            border: 2px dashed #ffb347;
+                            min-height: 100px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                        `;
+                        placeholder.innerHTML = `
+                            <div style="font-size: 56px;">${icon}</div>
+                            <div style="font-size: 16px; margin-top: 6px; color: #ffb347; font-weight: bold;">${card.name || '卡片'}</div>
+                            <div style="font-size: 11px; margin-top: 2px; color: #886644;">${card.cardTypeName || ''}</div>
+                        `;
+                        parent.appendChild(placeholder);
+                    }
+                };
+            } else {
+                // 没有图片，直接显示占位符
+                cardImage.style.display = 'none';
+                const parent = cardImage.parentElement;
+                if (parent) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'card-placeholder';
+                    let icon = '🎴';
+                    if (card.cardType === 'dream') icon = '🌟';
+                    else if (card.cardType === 'investment') icon = '🏗️';
+                    else if (card.cardType === 'social') icon = '🤝';
+                    else if (card.cardType === 'part_time') icon = '💼';
+                    else if (card.cardType === 'finance') icon = '📈';
+                    else if (card.cardType === 'business') icon = '🚀';
+                    else if (card.cardType === 'property') icon = '🏠';
+                    
+                    placeholder.style.cssText = `
+                        width: 100%;
+                        padding: 30px 20px;
+                        background: linear-gradient(135deg, #2a1a0a, #1a0a00);
+                        border-radius: 12px;
+                        text-align: center;
+                        font-size: 48px;
+                        color: #ffd966;
+                        border: 2px dashed #ffb347;
+                        min-height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    `;
+                    placeholder.innerHTML = `
+                        <div style="font-size: 56px;">${icon}</div>
+                        <div style="font-size: 16px; margin-top: 6px; color: #ffb347; font-weight: bold;">${card.name || '卡片'}</div>
+                        <div style="font-size: 11px; margin-top: 2px; color: #886644;">${card.cardTypeName || ''}</div>
+                    `;
+                    parent.appendChild(placeholder);
+                }
             }
-            cardImage.src = imageUrl || '';
-            cardImage.onload = () => console.log('购买图片加载成功');
-            cardImage.onerror = () => { cardImage.style.display = 'none'; };
         }
         
+        // ========== 购买按钮文字 ==========
         if (affordWarning) {
             affordWarning.style.display = canAfford ? 'none' : 'inline';
         }
@@ -603,7 +802,7 @@ class GameClient {
         
         const handleCancel = () => {
             this.closePurchaseConfirmModal();
-            this.addLog('已放弃购买机会卡', 'warning');
+            this.addLog('已放弃购买', 'warning');
         };
         
         if (confirmBtn) {
@@ -611,6 +810,17 @@ class GameClient {
             confirmBtn.disabled = !canAfford;
             confirmBtn.style.opacity = canAfford ? '1' : '0.5';
             confirmBtn.style.cursor = canAfford ? 'pointer' : 'not-allowed';
+            
+            // 根据卡片类型修改按钮文字
+            let btnText = '💰 支付500购买';
+            if (card.cardType === 'investment') {
+                btnText = '🏗️ 投资 (支付500)';
+            } else if (card.cardType === 'dream') {
+                btnText = '🌟 实现梦想 (支付500)';
+            } else if (card.cardType === 'social') {
+                btnText = '🤝 贡献社会 (支付500)';
+            }
+            confirmBtn.textContent = btnText;
         }
         if (cancelBtn) cancelBtn.onclick = handleCancel;
         
@@ -846,96 +1056,568 @@ class GameClient {
             case 'property_sell_choices':this.showPropertySellChoices(message);break;
             case 'slow_life_choices':this.showSlowLifeChoices(message);break;
             case 'hardship_card_execute':this.handleHardshipCardExecute(message);break;
+            case 'asset_trust_prompt':this.handleAssetTrustPrompt(message);break;
+            case 'flow_layer_choice':this.handleFlowLayerChoice(message);break;
+            case 'auction_start':this.handleAuctionStart(message);break;
+            case 'auction_update':this.handleAuctionUpdate(message);break;
+            case 'auction_end':this.handleAuctionEnd(message);break;
+            case 'auction_error':this.addLog(`❌ ${message.message}`, 'error');break;
+            case 'social_service_prompt':this.handleSocialServicePrompt(message);break;
+            case 'social_service_result':this.handleSocialServiceResult(message);break;
+
             default: this.addLog(`⚠️ 未知消息类型: ${message.type}`, 'warning');
         }
     }
 
-    // ==================== 逆境自强卡处理 ====================
 
-    handleHardshipCardExecute(message) {
-        console.log('逆境自强卡执行:', message.card);
+   // ====================处理顺流层选择====================
+    handleFlowLayerChoice(message) {
+        const userChoice = confirm(
+            `${message.message}\n\n` +
+            `按下「确定」进入顺流层\n` +
+            `按下「取消」留在平流层`
+        );
         
-        const card = message.card;
-        const effectMessage = message.effectMessage;
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'flow_layer_choice',
+                willEnter: userChoice
+            }));
+        }
         
+        if (userChoice) {
+            this.addLog('🎉 你选择进入顺流层！', 'success');
+        } else {
+            this.addLog('📌 你选择暂时留在平流层', 'info');
+        }
+    }
+
+    // 在 game.js 中添加
+    showFlowLayerChoiceModal(message) {
         // 创建或获取模态框
-        let modal = document.getElementById('hardshipCardModal');
+        let modal = document.getElementById('flowLayerChoiceModal');
         if (!modal) {
             modal = document.createElement('div');
-            modal.id = 'hardshipCardModal';
+            modal.id = 'flowLayerChoiceModal';
             modal.className = 'modal';
             modal.innerHTML = `
-                <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #4a1a1a, #3a0a0a); border-radius: 24px; text-align: center;">
-                    <div class="modal-title" style="color: #ff6b6b; font-size: 24px; text-align: center;">🎭 逆境自強卡</div>
-                    <div id="hardshipCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="hardshipCardImg" src="" alt="逆境自强卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #ff6b6b;">
-                    </div>
-                    <div class="modal-body" id="hardshipCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
-                    <div style="background: rgba(255,107,107,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
-                        <span style="color: #ff6b6b; font-size: 14px;" id="hardshipCardEffect"></span>
-                    </div>
-                    <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
-                        <button class="btn-primary" id="closeHardshipCardBtn" style="background: #ff6b6b; padding: 10px 30px; border-radius: 30px; cursor: pointer;">確認</button>
+                <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #1a472a, #0d2b1a); border-radius: 28px; text-align: center; border: 2px solid #ffd700;">
+                    <div class="modal-title" style="color: #ffd700; font-size: 24px;">🌟 进入顺流层？</div>
+                    <div class="modal-body" id="flowLayerChoiceBody" style="color: #ffefc0; text-align: left; font-size: 14px; line-height: 1.6;"></div>
+                    <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                        <button class="btn-secondary" id="stayInStreamlineBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">📌 留在平流层</button>
+                        <button class="btn-primary" id="enterFlowLayerBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">🚀 进入顺流层</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
         }
         
-        const cardImg = document.getElementById('hardshipCardImg');
-        const cardBody = document.getElementById('hardshipCardBody');
-        const effectSpan = document.getElementById('hardshipCardEffect');
+        const modalBody = document.getElementById('flowLayerChoiceBody');
+        if (modalBody) {
+            modalBody.innerHTML = message.message.replace(/\n/g, '<br>');
+        }
         
-        if (cardImg && card.image) {
-            let imageUrl = card.image;
-            if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
-                imageUrl = '/' + imageUrl;
+        const enterBtn = document.getElementById('enterFlowLayerBtn');
+        const stayBtn = document.getElementById('stayInStreamlineBtn');
+        
+        const handleEnter = () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ type: 'flow_layer_choice', willEnter: true }));
             }
-            cardImg.src = imageUrl || '';
-            cardImg.onerror = () => {
-                cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23dc143c"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🎭</text></svg>';
-            };
-        }
+            modal.classList.remove('show');
+            this.addLog('🎉 你选择进入顺流层！', 'success');
+        };
         
-        if (cardBody) {
-            cardBody.innerHTML = `
-                <strong style="font-size: 20px; color: #ff6b6b;">${this.escapeHtml(card.name)}</strong><br>
-                <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+        const handleStay = () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ type: 'flow_layer_choice', willEnter: false }));
+            }
+            modal.classList.remove('show');
+            this.addLog('📌 你选择暂时留在平流层', 'info');
+        };
+        
+        enterBtn.onclick = handleEnter;
+        stayBtn.onclick = handleStay;
+        
+        modal.classList.add('show');
+        this.waitingForAction = true;
+    }
+
+    // 然后修改 handleFlowLayerChoice 方法
+    handleFlowLayerChoice(message) {
+        this.showFlowLayerChoiceModal(message);
+    }
+
+    handleAuctionStart(message) {
+        console.log('🔨 竞拍开始:', message);
+        
+        const isInitiator = this.playerName === message.initiator;
+        
+        // 显示竞拍模态框
+        let modal = document.getElementById('auctionModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'auctionModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px; text-align: center; border: 2px solid #ff6f00;">
+                    <div class="modal-title" style="color: #ff6f00; font-size: 24px;">🔨 竞拍进行中</div>
+                    <div id="auctionBody" style="color: #ffefc0; text-align: left; font-size: 14px; line-height: 1.8;"></div>
+                    <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
+                        <button class="btn-secondary" id="auctionPassBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">⏭️ PASS</button>
+                        <button class="btn-primary" id="auctionBidBtn" style="background: #ff6f00; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 出价</button>
+                    </div>
+                </div>
             `;
+            document.body.appendChild(modal);
         }
         
-        if (effectSpan) {
-            effectSpan.innerHTML = `📌 效果：${this.escapeHtml(effectMessage)}`;
+        const body = document.getElementById('auctionBody');
+        body.innerHTML = `
+            <div style="text-align: center; margin-bottom: 15px;">
+                <strong style="font-size: 18px; color: #ffd966;">${message.cardName}</strong>
+                <p style="font-size: 12px; color: #aaa; margin-top: 5px;">${message.description}</p>
+            </div>
+            <div style="background: rgba(255,111,0,0.2); padding: 12px; border-radius: 12px;">
+                <div>💰 当前价格: <strong style="color: #ff6f00; font-size: 18px;">${message.currentPrice.toLocaleString()} 元</strong></div>
+                <div>👤 当前出价: <strong style="color: #ffd966;">${message.currentBidder || '无人出价'}</strong></div>
+                <div>📈 每次加价: ${message.minBidIncrement.toLocaleString()} 元</div>
+                <div>⚡ 奖励: <strong style="color: #4caf50;">+${message.energyReward} 精力</strong></div>
+                <div style="font-size: 12px; color: #888; margin-top: 8px;">发起人: ${message.initiator}</div>
+            </div>
+        `;
+        
+        // 按钮事件
+        const bidBtn = document.getElementById('auctionBidBtn');
+        const passBtn = document.getElementById('auctionPassBtn');
+        
+        bidBtn.onclick = () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'auction_bid',
+                    auctionId: message.auctionId
+                }));
+            }
+        };
+        
+        passBtn.onclick = () => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'auction_pass',
+                    auctionId: message.auctionId
+                }));
+                modal.classList.remove('show');
+            }
+        };
+        
+        modal.classList.add('show');
+        this.waitingForAction = true;
+        
+        // 存储当前竞拍ID
+        this.currentAuctionId = message.auctionId;
+    }
+
+    handleAuctionUpdate(message) {
+        console.log('🔨 竞拍更新:', message);
+        
+        const body = document.getElementById('auctionBody');
+        if (body) {
+            const currentPriceEl = body.querySelector('div strong[style*="color: #ff6f00"]');
+            if (currentPriceEl) {
+                currentPriceEl.textContent = message.currentPrice.toLocaleString() + ' 元';
+            }
+            const bidderEl = body.querySelector('div strong[style*="color: #ffd966"]');
+            if (bidderEl) {
+                bidderEl.textContent = message.currentBidder || '无人出价';
+            }
+        }
+        
+        this.addLog(`🔨 ${message.message}`, 'event');
+    }
+
+    handleAuctionEnd(message) {
+        console.log('🔨 竞拍结束:', message);
+        
+        const modal = document.getElementById('auctionModal');
+        if (modal) {
+            modal.classList.remove('show');
+            this.waitingForAction = false;
+        }
+        
+        if (message.winner) {
+            this.addLog(`🏆 ${message.message}`, 'success');
+            this.showNotification(message.message, 'success');
+        } else {
+            this.addLog(`📌 ${message.message}`, 'info');
+        }
+        
+        this.currentAuctionId = null;
+    }
+    
+    // ====================处理社会服务提示 ====================
+    // 处理社会服务提示 - 使用自定义模态框替代 confirm
+    handleSocialServicePrompt(message) {
+        // 创建或获取模态框
+        let modal = document.getElementById('socialServiceModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'socialServiceModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 580px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px; text-align: center; border: 2px solid #ffb347; padding: 24px;">
+                    <div class="modal-title" style="color: #ffd966; font-size: 24px; text-align: center; margin-bottom: 16px;">🏛️ 社会服务中心</div>
+                    <div class="modal-body" id="socialServiceBody" style="color: #ffefc0; text-align: center; font-size: 14px; line-height: 1.8; margin-bottom: 20px;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                        <!-- 项目投资卡选项 -->
+                        <div id="socialChoiceInvestment" style="cursor: pointer; transition: all 0.3s ease; border-radius: 16px; overflow: hidden; border: 2px solid #ff6f00; background: rgba(255,111,0,0.1);">
+                            <div style="padding: 12px; background: rgba(0,0,0,0.5); text-align: center;">
+                                <div style="font-size: 14px; color: #ffd966; font-weight: bold;">🏗️ 项目投资卡</div>
+                            </div>
+                            <div style="padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 120px; background: rgba(0,0,0,0.3);">
+                                <img src="/cards/cover/investment.png" 
+                                    alt="项目投资卡" 
+                                    style="width: 100%; max-width: 140px; height: auto; border-radius: 8px; border: 1px solid #ff6f00;"
+                                    onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 48px;\\'>🏗️</div><div style=\\'font-size: 12px; color: #ffd966;\\'>项目投资</div>'">
+                            </div>
+                            <div style="padding: 10px; background: rgba(0,0,0,0.4); text-align: center; font-size: 12px; color: #aaa;">
+                                大型投资项目 · 高回报
+                            </div>
+                        </div>
+                        
+                        <!-- 服务社会卡选项 -->
+                        <div id="socialChoiceSocial" style="cursor: pointer; transition: all 0.3s ease; border-radius: 16px; overflow: hidden; border: 2px solid #2e7d32; background: rgba(46,125,50,0.1);">
+                            <div style="padding: 12px; background: rgba(0,0,0,0.5); text-align: center;">
+                                <div style="font-size: 14px; color: #81c784; font-weight: bold;">🤝 服务社会卡</div>
+                            </div>
+                            <div style="padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 120px; background: rgba(0,0,0,0.3);">
+                                <img src="/cards/cover/social.png" 
+                                    alt="服务社会卡" 
+                                    style="width: 100%; max-width: 140px; height: auto; border-radius: 8px; border: 1px solid #2e7d32;"
+                                    onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 48px;\\'>🤝</div><div style=\\'font-size: 12px; color: #81c784;\\'>服务社会</div>'">
+                            </div>
+                            <div style="padding: 10px; background: rgba(0,0,0,0.4); text-align: center; font-size: 12px; color: #aaa;">
+                                社会公益 · 造福人群
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 18px; display: flex; justify-content: center; gap: 15px;">
+                        <button class="btn-secondary" id="socialServiceCancelBtn" style="background: #9e9e9e; padding: 10px 30px; border-radius: 30px; cursor: pointer; font-size: 14px; border: none; color: #333;">取消</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #666; text-align: center;">
+                        💡 点击上方卡片选择类型
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // 设置内容
+        const body = document.getElementById('socialServiceBody');
+        if (body) {
+            body.innerHTML = message.message.replace(/\n/g, '<br>');
+        }
+        
+        // 获取选项容器
+        const investmentOption = document.getElementById('socialChoiceInvestment');
+        const socialOption = document.getElementById('socialChoiceSocial');
+        const cancelBtn = document.getElementById('socialServiceCancelBtn');
+        
+        // 定义选择处理函数
+        const handleChoice = (choice) => {
+            modal.classList.remove('show');
+            this.waitingForAction = false;
+            
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({
+                    type: 'social_service_choice',
+                    choice: choice
+                }));
+            }
+            
+            if (choice === 'investment') {
+                this.addLog('🏛️ 你选择抽取项目投资卡', 'event');
+            } else if (choice === 'social') {
+                this.addLog('🏛️ 你选择抽取服务社会卡', 'event');
+            } else {
+                this.addLog('❌ 已取消社会服务中心', 'warning');
+            }
+        };
+        
+        // 悬停效果
+        if (investmentOption) {
+            investmentOption.onmouseenter = () => {
+                investmentOption.style.transform = 'scale(1.03)';
+                investmentOption.style.boxShadow = '0 8px 25px rgba(255,111,0,0.3)';
+            };
+            investmentOption.onmouseleave = () => {
+                investmentOption.style.transform = 'scale(1)';
+                investmentOption.style.boxShadow = 'none';
+            };
+            investmentOption.onclick = () => handleChoice('investment');
+        }
+        
+        if (socialOption) {
+            socialOption.onmouseenter = () => {
+                socialOption.style.transform = 'scale(1.03)';
+                socialOption.style.boxShadow = '0 8px 25px rgba(46,125,50,0.3)';
+            };
+            socialOption.onmouseleave = () => {
+                socialOption.style.transform = 'scale(1)';
+                socialOption.style.boxShadow = 'none';
+            };
+            socialOption.onclick = () => handleChoice('social');
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.onclick = () => handleChoice('cancel');
         }
         
         modal.classList.add('show');
+        this.waitingForAction = true;
+    }
+
+// 处理社会服务结果
+    handleSocialServiceResult(message) {
+        this.addLog(`🏛️ ${message.message}`, 'success');
+        this.showNotification('🏛️ 社会服务中心抽卡完成！', 'success');
         
-        const closeBtn = document.getElementById('closeHardshipCardBtn');
-        const closeModal = () => {
-            modal.classList.remove('show');
-            if (closeBtn) closeBtn.removeEventListener('click', closeModal);
-        };
-        if (closeBtn) {
-            closeBtn.onclick = closeModal;
-        }
-        
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('show');
-                modal.onclick = null;
-            }
-        };
-        
-        this.addLog(`🎭 ${effectMessage}`, 'error');
-        this.showNotification(effectMessage, 'error');
-        
-        if (message.gameState) {
-            this.gameState = message.gameState;
-            this.updateUI();
-            this.renderAllTiles();
-            this.updatePlayersList();
+        // 如果有卡片，显示提示
+        if (message.cards && message.cards.length > 0) {
+            const cardNames = message.cards.map(c => `${c.cardTypeIcon} ${c.name}`).join('\n');
+            this.showNotification(`📋 获得 ${message.cards.length} 张卡片！`, 'info');
         }
     }
+
+
+    // ==================== 资产信托功能 ====================
+    handleAssetTrustPrompt(message) {
+        const amount = prompt(message.message);
+        if (amount && !isNaN(parseInt(amount))) {
+            const depositAmount = parseInt(amount);
+            if (depositAmount > 0 && depositAmount <= message.maxAmount) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'asset_trust_setup',
+                        amount: depositAmount
+                    }));
+                }
+            } else {
+                this.addLog(`❌ 信托金额无效，必须在 1 ~ ${message.maxAmount.toLocaleString()} 元之间`, 'error');
+            }
+        } else {
+            this.addLog('❌ 已取消资产信托设立', 'warning');
+        }
+    }
+
+// ==================== 逆境自强卡处理 ====================
+
+handleHardshipCardExecute(message) {
+    console.log('逆境自强卡执行:', message.card);
+    
+    const card = message.card;
+    const effectMessage = message.effectMessage;
+    
+    // 创建或获取模态框
+    let modal = document.getElementById('hardshipCardModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'hardshipCardModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #4a1a1a, #3a0a0a); border-radius: 24px; text-align: center; padding: 20px;">
+                <div class="modal-title" style="color: #ff6b6b; font-size: 24px; text-align: center; margin-bottom: 10px;">🎭 逆境自強卡</div>
+                <div id="hardshipCardImage" style="text-align: center; margin: 10px 0;">
+                    <img id="hardshipCardImg" src="" alt="逆境自强卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #ff6b6b;">
+                </div>
+                <div class="modal-body" id="hardshipCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
+                <div style="background: rgba(255,107,107,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
+                    <span style="color: #ff6b6b; font-size: 14px;" id="hardshipCardEffect"></span>
+                </div>
+                <div class="modal-buttons" style="justify-content: center; margin-top: 15px;">
+                    <button class="btn-primary" id="closeHardshipCardBtn" style="background: #ff6b6b; padding: 10px 30px; border-radius: 30px; cursor: pointer; border: none; color: white;">確認</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const cardImg = document.getElementById('hardshipCardImg');
+    const cardBody = document.getElementById('hardshipCardBody');
+    const effectSpan = document.getElementById('hardshipCardEffect');
+    
+    if (cardImg && card.image) {
+        let imageUrl = card.image;
+        if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
+            imageUrl = '/' + imageUrl;
+        }
+        cardImg.src = imageUrl || '';
+        cardImg.onerror = () => {
+            cardImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23dc143c"/><text x="50" y="55" text-anchor="middle" fill="white" font-size="40">🎭</text></svg>';
+        };
+    }
+    
+    if (cardBody) {
+        cardBody.innerHTML = `
+            <strong style="font-size: 20px; color: #ff6b6b;">${this.escapeHtml(card.name)}</strong><br>
+            <p style="margin-top: 10px;">${this.escapeHtml(card.description)}</p>
+        `;
+    }
+    
+    if (effectSpan) {
+        effectSpan.innerHTML = `📌 效果：${this.escapeHtml(effectMessage)}`;
+    }
+    
+    modal.classList.add('show');
+    
+    const closeBtn = document.getElementById('closeHardshipCardBtn');
+    const closeModal = () => {
+        modal.classList.remove('show');
+        if (closeBtn) closeBtn.removeEventListener('click', closeModal);
+    };
+    if (closeBtn) {
+        closeBtn.onclick = closeModal;
+    }
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('show');
+            modal.onclick = null;
+        }
+    };
+    
+    this.addLog(`🎭 ${effectMessage}`, 'error');
+    this.showNotification(effectMessage, 'error');
+    
+    if (message.gameState) {
+        this.gameState = message.gameState;
+        this.updateUI();
+        this.renderAllTiles();
+        this.updatePlayersList();
+    }
+}
+
+
+
+handleSocialServicePrompt(message) {
+    // 创建或获取模态框
+    let modal = document.getElementById('socialServiceModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'socialServiceModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 580px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px; text-align: center; border: 2px solid #ffb347; padding: 24px;">
+                <div class="modal-title" style="color: #ffd966; font-size: 24px; text-align: center; margin-bottom: 16px;">🏛️ 社会服务中心</div>
+                <div class="modal-body" id="socialServiceBody" style="color: #ffefc0; text-align: center; font-size: 14px; line-height: 1.8; margin-bottom: 20px;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                    <!-- 项目投资卡选项 -->
+                    <div id="socialChoiceInvestment" style="cursor: pointer; transition: all 0.3s ease; border-radius: 16px; overflow: hidden; border: 2px solid #ff6f00; background: rgba(255,111,0,0.1);">
+                        <div style="padding: 12px; background: rgba(0,0,0,0.5); text-align: center;">
+                            <div style="font-size: 14px; color: #ffd966; font-weight: bold;">🏗️ 项目投资卡</div>
+                        </div>
+                        <div style="padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 120px; background: rgba(0,0,0,0.3);">
+                            <img src="/cards/cover/investment.png" 
+                                 alt="项目投资卡" 
+                                 style="width: 100%; max-width: 140px; height: auto; border-radius: 8px; border: 1px solid #ff6f00;"
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 48px;\\'>🏗️</div><div style=\\'font-size: 12px; color: #ffd966;\\'>项目投资</div>'">
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.4); text-align: center; font-size: 12px; color: #aaa;">
+                            大型投资项目 · 高回报
+                        </div>
+                    </div>
+                    
+                    <!-- 服务社会卡选项 -->
+                    <div id="socialChoiceSocial" style="cursor: pointer; transition: all 0.3s ease; border-radius: 16px; overflow: hidden; border: 2px solid #2e7d32; background: rgba(46,125,50,0.1);">
+                        <div style="padding: 12px; background: rgba(0,0,0,0.5); text-align: center;">
+                            <div style="font-size: 14px; color: #81c784; font-weight: bold;">🤝 服务社会卡</div>
+                        </div>
+                        <div style="padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 120px; background: rgba(0,0,0,0.3);">
+                            <img src="/cards/cover/social.png" 
+                                 alt="服务社会卡" 
+                                 style="width: 100%; max-width: 140px; height: auto; border-radius: 8px; border: 1px solid #2e7d32;"
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 48px;\\'>🤝</div><div style=\\'font-size: 12px; color: #81c784;\\'>服务社会</div>'">
+                        </div>
+                        <div style="padding: 10px; background: rgba(0,0,0,0.4); text-align: center; font-size: 12px; color: #aaa;">
+                            社会公益 · 造福人群
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 18px; display: flex; justify-content: center; gap: 15px;">
+                    <button class="btn-secondary" id="socialServiceCancelBtn" style="background: #9e9e9e; padding: 10px 30px; border-radius: 30px; cursor: pointer; font-size: 14px; border: none; color: #333;">取消</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #666; text-align: center;">
+                    💡 点击上方卡片选择类型
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // 设置内容
+    const body = document.getElementById('socialServiceBody');
+    if (body) {
+        body.innerHTML = message.message.replace(/\n/g, '<br>');
+    }
+    
+    // 获取选项容器
+    const investmentOption = document.getElementById('socialChoiceInvestment');
+    const socialOption = document.getElementById('socialChoiceSocial');
+    const cancelBtn = document.getElementById('socialServiceCancelBtn');
+    
+    // 定义选择处理函数
+    const handleChoice = (choice) => {
+        modal.classList.remove('show');
+        this.waitingForAction = false;
+        
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({
+                type: 'social_service_choice',
+                choice: choice
+            }));
+        }
+        
+        if (choice === 'investment') {
+            this.addLog('🏛️ 你选择抽取项目投资卡', 'event');
+        } else if (choice === 'social') {
+            this.addLog('🏛️ 你选择抽取服务社会卡', 'event');
+        } else {
+            this.addLog('❌ 已取消社会服务中心', 'warning');
+        }
+    };
+    
+    // 悬停效果
+    if (investmentOption) {
+        investmentOption.onmouseenter = () => {
+            investmentOption.style.transform = 'scale(1.03)';
+            investmentOption.style.boxShadow = '0 8px 25px rgba(255,111,0,0.3)';
+        };
+        investmentOption.onmouseleave = () => {
+            investmentOption.style.transform = 'scale(1)';
+            investmentOption.style.boxShadow = 'none';
+        };
+        investmentOption.onclick = () => handleChoice('investment');
+    }
+    
+    if (socialOption) {
+        socialOption.onmouseenter = () => {
+            socialOption.style.transform = 'scale(1.03)';
+            socialOption.style.boxShadow = '0 8px 25px rgba(46,125,50,0.3)';
+        };
+        socialOption.onmouseleave = () => {
+            socialOption.style.transform = 'scale(1)';
+            socialOption.style.boxShadow = 'none';
+        };
+        socialOption.onclick = () => handleChoice('social');
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.onclick = () => handleChoice('cancel');
+    }
+    
+    modal.classList.add('show');
+    this.waitingForAction = true;
+}
 
     // ==================== 察覺卡处理 ====================
 
@@ -2694,7 +3376,7 @@ class GameClient {
         });
     }
     
-   updateUI() {
+    updateUI() {
         if (!this.gameState) return;
         
         // 计算原始总支出
@@ -2711,20 +3393,75 @@ class GameClient {
             expenseReductionMessage = ` (已減免 ${expenseReductionPercent}%)`;
         }
         
-        // 计算月现金流（使用减免后的支出）
-        const monthlyCF = (this.gameState.salary + this.gameState.sideIncome + this.gameState.passiveIncome) - totalExp;
+        // ========== 调试日志 ==========
+        console.log(`📊 updateUI 调试:`);
+        console.log(`   层级: ${this.gameState.inFlow ? '顺流层' : this.gameState.inReverse ? '逆流层' : '平流层'}`);
+        console.log(`   现金值: ${this.gameState.cash.toLocaleString()}`);
+        console.log(`   原始被動收入: ${this.gameState.passiveIncome.toLocaleString()}`);
+        console.log(`   flowPassiveIncome: ${this.gameState.flowPassiveIncome ? this.gameState.flowPassiveIncome.toLocaleString() : '未定义'}`);
+        console.log(`   inFlow: ${this.gameState.inFlow}`);
         
-        const totalLoanRepay = this.gameState.loanAmount + Math.round(this.gameState.loanAmount * 0.1);
+        // 计算月现金流（顺流层时使用放大后的被動收入）
+        let effectivePassiveIncome = this.gameState.passiveIncome;
+        if (this.gameState.inFlow && this.gameState.flowPassiveIncome) {
+            effectivePassiveIncome = this.gameState.flowPassiveIncome;
+            console.log(`   ✅ 使用放大后的被動收入: ${effectivePassiveIncome.toLocaleString()}`);
+        } else {
+            console.log(`   使用原始被動收入: ${effectivePassiveIncome.toLocaleString()}`);
+        }
         
+        const monthlyCF = (this.gameState.salary + this.gameState.sideIncome + effectivePassiveIncome) - totalExp;
+        console.log(`   月现金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}`);
+        
+        // ========== 获取统计数据 ==========
         const luckyStarCount = this.gameState.luckyStarCount || 0;
         const fourLeafCloverCount = this.gameState.fourLeafClover || 0;
+        const totalLoanRepay = this.gameState.loanAmount + Math.round(this.gameState.loanAmount * 0.1);
         
-        // 更新各个统计元素
-        const statCash = this.getElement('statCash');
-        const statSalary = this.getElement('statSalary');
-        const statSideIncome = this.getElement('statSideIncome');
-        const statPassiveIncome = this.getElement('statPassiveIncome');
-        const statMonthlyCF = this.getElement('statMonthlyCF');
+        // ========== 直接使用 document.getElementById 更新现金（最可靠） ==========
+        const cashElement = document.getElementById('statCash');
+        if (cashElement) {
+            // 先清空再设置
+            cashElement.textContent = '';
+            cashElement.innerText = this.gameState.cash.toLocaleString();
+            // 额外验证
+            console.log(`💰 直接更新 #statCash: ${cashElement.innerText}`);
+            console.log(`💰 实际现金值: ${this.gameState.cash.toLocaleString()}`);
+            
+            // 确保显示正确
+            if (cashElement.innerText !== this.gameState.cash.toLocaleString()) {
+                console.warn(`⚠️ 现金显示不匹配! 重新设置...`);
+                cashElement.innerText = this.gameState.cash.toLocaleString();
+            }
+        } else {
+            console.error(`❌ 找不到 #statCash 元素！请检查 HTML 中是否有 id="statCash"`);
+        }
+        
+        // ========== 使用 document.getElementById 更新其他关键元素 ==========
+        const salaryElement = document.getElementById('statSalary');
+        if (salaryElement) salaryElement.innerText = this.gameState.salary.toLocaleString();
+        
+        const sideIncomeElement = document.getElementById('statSideIncome');
+        if (sideIncomeElement) sideIncomeElement.innerText = this.gameState.sideIncome.toLocaleString();
+        
+        // 被動收入
+        const passiveIncomeElement = document.getElementById('statPassiveIncome');
+        if (passiveIncomeElement) {
+            let displayPassiveIncome = this.gameState.passiveIncome;
+            if (this.gameState.inFlow && this.gameState.flowPassiveIncome) {
+                displayPassiveIncome = this.gameState.flowPassiveIncome;
+            }
+            passiveIncomeElement.innerText = displayPassiveIncome.toLocaleString();
+        }
+        
+        // 月现金流
+        const monthlyCFElement = document.getElementById('statMonthlyCF');
+        if (monthlyCFElement) {
+            monthlyCFElement.innerText = (monthlyCF >= 0 ? '+' : '') + monthlyCF.toLocaleString();
+            monthlyCFElement.style.color = monthlyCF >= 0 ? '#4caf50' : '#ff6b6b';
+        }
+        
+        // ========== 使用 this.getElement 更新其余元素 ==========
         const statLiving = this.getElement('statLiving');
         const statTax = this.getElement('statTax');
         const statLoanInterest = this.getElement('statLoanInterest');
@@ -2734,54 +3471,40 @@ class GameClient {
         const statLuckyStar = this.getElement('statLuckyStar');
         const statLayer = this.getElement('statLayer');
         const statFourLeafClover = this.getElement('statFourLeafClover');
+        const totalLoanRepayEl = this.getElement('statTotalLoanRepay');
         
-        if (statCash) statCash.innerText = this.gameState.cash.toLocaleString();
-        if (statSalary) statSalary.innerText = this.gameState.salary.toLocaleString();
-        if (statSideIncome) statSideIncome.innerText = this.gameState.sideIncome.toLocaleString();
-        if (statPassiveIncome) statPassiveIncome.innerText = this.gameState.passiveIncome.toLocaleString();
-        if (statMonthlyCF) statMonthlyCF.innerText = (monthlyCF >= 0 ? '+' : '') + monthlyCF.toLocaleString();
+        // 更新支出
         if (statLiving) statLiving.innerText = this.gameState.livingExpense.toLocaleString();
         if (statTax) statTax.innerText = this.gameState.tax.toLocaleString();
         if (statLoanInterest) statLoanInterest.innerText = this.gameState.loanInterest.toLocaleString();
         
-        // 显示减免后的总支出
+        // 总支出
         if (statTotalExpense) {
             statTotalExpense.innerText = totalExp.toLocaleString() + expenseReductionMessage;
-            if (expenseReductionPercent > 0) {
-                statTotalExpense.style.color = '#4caf50';
-            } else {
-                statTotalExpense.style.color = '#ffefc0';
-            }
+            statTotalExpense.style.color = expenseReductionPercent > 0 ? '#4caf50' : '#ffefc0';
         }
         
+        // 精力
         if (statEnergy) statEnergy.innerText = `${this.gameState.energy}/${this.gameState.maxEnergy}`;
         if (statLuck) statLuck.innerText = this.gameState.luck.toFixed(1);
         if (statLuckyStar) statLuckyStar.innerText = luckyStarCount;
         if (statFourLeafClover) statFourLeafClover.innerText = fourLeafCloverCount;
         
+        // 层级
         const layerText = this.gameState.inFlow ? '顺流层' : (this.gameState.inReverse ? '逆流层' : '平流层');
         if (statLayer) statLayer.innerText = layerText;
         
-        // 更新本利和显示
-        const totalLoanRepayEl = this.getElement('statTotalLoanRepay');
+        // 贷款本利和
         if (totalLoanRepayEl) {
             totalLoanRepayEl.innerText = totalLoanRepay.toLocaleString();
-            if (this.gameState.loanAmount > 0) {
-                totalLoanRepayEl.style.color = '#ff6b6b';
-            } else {
-                totalLoanRepayEl.style.color = '#4caf50';
-            }
+            totalLoanRepayEl.style.color = this.gameState.loanAmount > 0 ? '#ff6b6b' : '#4caf50';
         }
         
         // 更新贷款按钮状态
         const loanBtn = this.getButton('btnLoan');
         if (loanBtn) {
             loanBtn.disabled = this.gameState.loanAmount > 0;
-            if (this.gameState.loanAmount > 0) {
-                loanBtn.title = '请先还清当前贷款';
-            } else {
-                loanBtn.title = '';
-            }
+            loanBtn.title = this.gameState.loanAmount > 0 ? '请先还清当前贷款' : '';
         }
         
         // 更新还款按钮状态

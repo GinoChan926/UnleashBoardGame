@@ -5,7 +5,7 @@ const path = require('path');
 
 // ==================== 职业定义 ====================
 const PROFESSIONS = {
-    doctor: { name: "👨‍⚕️ 医生", salary: 15000, sideIncome: 0, cash: 20000, energy: 2, maxEnergy: 100, livingExpense: 8000, tax: 1500, luck: 5.0 },
+    doctor: { name: "👨‍⚕️ 医生", salary: 15000, sideIncome: 0, cash: 2000000, energy: 2, maxEnergy: 100, livingExpense: 8000, tax: 1500, luck: 5.0 },
     engineer: { name: "👨‍🔧 工程师", salary: 12000, sideIncome: 0, cash: 15000, energy: 3, maxEnergy: 100, livingExpense: 6000, tax: 1200, luck: 5.5 },
     teacher: { name: "👩‍🏫 教师", salary: 8000, sideIncome: 0, cash: 10000, energy: 5, maxEnergy: 100, livingExpense: 4500, tax: 800, luck: 6.0 },
     artist: { name: "🎨 艺术家", salary: 6000, sideIncome: 1000, cash: 8000, energy: 6, maxEnergy: 100, livingExpense: 4000, tax: 600, luck: 7.0 },
@@ -45,9 +45,42 @@ let transactions = [];
 // 添加交易记录
 function addTransactionRecord(playerName, card, action, amountChange, details, stateBefore, stateAfter) {
     console.log(`🔍 addTransactionRecord 被调用: ${playerName} ${action} ${card.name}`);
-    
-    // 使用 getCardTypeFromCard 函数获取卡片类型（支持所有卡片类型）
-    let cardType = getCardTypeFromCard(card);
+    // 计算被动收入变化（考虑顺流层放大）
+        let passiveIncomeChange = 0;
+        if (stateBefore && stateAfter) {
+            // 获取进入前的被动收入（如果是在顺流层，使用 flowPassiveIncome 否则使用 passiveIncome）
+            const beforePassive = stateBefore.inFlow && stateBefore.flowPassiveIncome 
+                ? stateBefore.flowPassiveIncome 
+                : (stateBefore.passiveIncome || 0);
+            const afterPassive = stateAfter.inFlow && stateAfter.flowPassiveIncome 
+                ? stateAfter.flowPassiveIncome 
+                : (stateAfter.passiveIncome || 0);
+            passiveIncomeChange = afterPassive - beforePassive;
+            
+            console.log(`   📊 被动收入变化: ${beforePassive} → ${afterPassive} (变化: ${passiveIncomeChange})`);
+        }
+        
+        // 计算副业收入变化
+        let sideIncomeChange = 0;
+        if (stateBefore && stateAfter) {
+            sideIncomeChange = (stateAfter.sideIncome || 0) - (stateBefore.sideIncome || 0);
+        }
+        
+        // 计算月薪变化
+        let salaryChange = 0;
+        if (stateBefore && stateAfter) {
+            salaryChange = (stateAfter.salary || 0) - (stateBefore.salary || 0);
+        }
+        
+        // 计算精力变化
+        let energyChange = 0;
+        if (stateBefore && stateAfter) {
+            energyChange = (stateAfter.energy || 0) - (stateBefore.energy || 0);
+        }
+        
+        // 使用 getCardTypeFromCard 函数获取卡片类型
+        let cardType = getCardTypeFromCard(card);
+
     
     // 如果没有获取到类型，使用备用逻辑
     if (!cardType || cardType === 'general') {
@@ -73,7 +106,7 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
         }
     }
     
-    const record = {
+  const record = {
         id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
         timestamp: new Date().toLocaleString('zh-HK'),
         playerName: playerName,
@@ -81,10 +114,10 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
         cardName: card.name,
         action: action,
         amountChange: amountChange || 0,
-        passiveIncomeChange: (stateAfter?.passiveIncome || 0) - (stateBefore?.passiveIncome || 0),
-        sideIncomeChange: (stateAfter?.sideIncome || 0) - (stateBefore?.sideIncome || 0),
-        salaryChange: (stateAfter?.salary || 0) - (stateBefore?.salary || 0),
-        energyChange: (stateAfter?.energy || 0) - (stateBefore?.energy || 0),
+        passiveIncomeChange: passiveIncomeChange,
+        sideIncomeChange: sideIncomeChange,
+        salaryChange: salaryChange,
+        energyChange: energyChange,
         details: details || ''
     };
     
@@ -119,6 +152,8 @@ function getCardTypeFromCard(card) {
     if (card.id && card.id.startsWith('P')) return 'police';
     if (card.id && card.id.startsWith('M')) return 'market_news';
     if (card.id && card.id.startsWith('IN')) return 'tip';
+    if (card.id && card.id.startsWith('K')) return 'investment';
+    if (card.id && card.id.startsWith('CH')) return 'social';
 
     if (card.type === 'part_time') return 'part_time';
     if (card.type === 'finance') return 'finance';
@@ -128,6 +163,8 @@ function getCardTypeFromCard(card) {
     if (card.type === 'lier') return 'lier';
     if (card.type === 'market_news') return 'market_news';
     if (card.type === 'tip') return 'tip';
+    if (card.type === 'investment') return 'investment';
+    if (card.type === 'social') return 'social';
 
     if (card.cardType === 'part_time') return 'part_time';
     if (card.cardType === 'finance') return 'finance';
@@ -136,6 +173,8 @@ function getCardTypeFromCard(card) {
     if (card.cardType === 'police') return 'police';
     if (card.cardType === 'lier') return 'lier';
     if (card.cardType === 'volunteer') return 'volunteer';
+    if (card.cardType === 'investment') return 'investment';
+    if (card.cardType === 'social') return 'social';
 
     if (card.category === '财务') return 'finance';
     if (card.category === '兼职') return 'part_time';
@@ -145,6 +184,8 @@ function getCardTypeFromCard(card) {
     if (card.category === '警察卡') return 'police';
     if (card.category === '市场消息卡') return 'market_news';
     if (card.category === '锦囊卡') return 'tip';
+    if (card.category === '项目投资') return 'investment';
+    if (card.category === '貢獻社會') return 'social';
 
      // 根据卡片名称关键字判断
     if (card.name) {
@@ -327,38 +368,38 @@ const reverseTiles = [
 ];
 
 const flowTiles = [
-    { name: "查稅審計", type: "audit" },
-    { name: "古董投資", type: "investment" },
-    { name: "藝術基金", type: "investment" },
-    { name: "度假莊園", type: "investment" },
-    { name: "私人飛機", type: "dream", needEnergy: 40 },
-    { name: "破產陷阱", type: "flowbankruptcy" },
-    { name: "環球旅遊", type: "dream", needEnergy: 45 },
-    { name: "慈善基金會", type: "investment" },
-    { name: "隱形俱樂部", type: "investment" },
-    { name: "智庫董事", type: "investment" },
-    { name: "終極夢想", type: "dream", needEnergy: 50 },
-    { name: "財務自由", type: "dream", needEnergy: 35 },
-    { name: "豪華別墅", type: "dream", needEnergy: 45 },
-    { name: "私人遊艇", type: "investment" },
-    { name: "頂級收藏", type: "investment" },
-    { name: "高級俱樂部", type: "investment" },
-    { name: "家族基金", type: "investment" },
-    { name: "國際投資", type: "investment" },
-    { name: "房地產帝國", type: "investment" },
-    { name: "能源項目", type: "investment" },
-    { name: "科技股票", type: "investment" },
-    { name: "貴金屬投資", type: "investment" },
-    { name: "珍稀物業", type: "investment" },
-    { name: "商業帝國", type: "investment" },
-    { name: "董事會席位", type: "investment" },
-    { name: "慈善榮譽", type: "grace" },
-    { name: "年度評選", type: "event" },
-    { name: "財富峰會", type: "event" },
-    { name: "投資分紅", type: "income" },
-    { name: "版稅收入", type: "income" },
-    { name: "顧問費用", type: "income" },
-    { name: "終極成就", type: "dream", needEnergy: 60 }
+    { name: "資產信託", type: "asset_trust" },               // 第1格
+    { name: "查稅審計", type: "audit" },                     // 第2格
+    { name: "項目投資", type: "investment_tile" },           // 第3格
+    { name: "藝術基金", type: "investment" },                // 第4格
+    { name: "社会服务中心", type: "social_service" },         // 第5格
+    { name: "私人飛機", type: "dream", needEnergy: 40 },     // 第6格
+    { name: "項目投資", type: "investment_tile" },           // 第7格
+    { name: "環球旅遊", type: "dream", needEnergy: 45 },     // 第8格
+    { name: "慈善基金會", type: "investment" },              // 第9格
+    { name: "隱形俱樂部", type: "investment" },              // 第10格
+    { name: "項目投資", type: "investment_tile" },           // 第11格
+    { name: "終極夢想", type: "dream", needEnergy: 50 },     // 第12格
+    { name: "財務自由", type: "dream", needEnergy: 35 },     // 第13格
+    { name: "豪華別墅", type: "dream", needEnergy: 45 },     // 第14格
+    { name: "項目投資", type: "investment_tile" },           // 第15格
+    { name: "頂級收藏", type: "investment" },                // 第16格
+    { name: "高級俱樂部", type: "investment" },              // 第17格
+    { name: "家族基金", type: "investment" },                // 第18格
+    { name: "項目投資", type: "investment_tile" },           // 第19格
+    { name: "房地產帝國", type: "investment" },              // 第20格
+    { name: "社会服务中心", type: "social_service" },         // 第21格
+    { name: "科技股票", type: "investment" },                // 第22格
+    { name: "項目投資", type: "investment_tile" },           // 第23格
+    { name: "珍稀物業", type: "investment" },                // 第24格
+    { name: "商業帝國", type: "investment" },                // 第25格
+    { name: "董事會席位", type: "investment" },              // 第26格
+    { name: "項目投資", type: "investment_tile" },           // 第27格
+    { name: "年度評選", type: "event" },                     // 第28格
+    { name: "財富峰會", type: "event" },                     // 第29格
+    { name: "投資分紅", type: "income" },                    // 第30格
+    { name: "項目投資", type: "investment_tile" },           // 第31格
+    { name: "終極成就", type: "dream", needEnergy: 60 }      // 第32格
 ];
 
 // 创建 HTTP 服务器
@@ -1352,50 +1393,337 @@ function processReverseTile(state, tile, ws, roomId, player) {
             return `📌 逆流層格子：${tile.name}`;
     }
 }
+//  ==================== 投资卡处理 ====================
+let investmentCards = [];
 
-function processFlowTile(state, tile) {
+try {
+    const investmentData = require('./investment_cards.js');
+    investmentCards = investmentData.investmentCards || [];
+    console.log(`📚 加载投资卡: ${investmentCards.length}张`);
+    investmentCards.forEach(card => {
+        console.log(`   - ${card.id}: ${card.name}`);
+    });
+} catch (e) {
+    console.log('⚠️ 无法加载 investment_cards.js，使用默认卡片');
+    console.log(`   错误: ${e.message}`);
+    investmentCards = [];
+}
+
+//  ==================== 順流層处理 ====================
+function processFlowTile(state, tile, ws, roomId, player) {
+    // ========== 安全检查 ==========
+    if (!player) {
+        console.error('❌ processFlowTile: player 参数为 undefined!');
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: '❌ 游戏数据异常，请重新连接'
+        }));
+        return "❌ 玩家数据不存在";
+    }
+    
+    if (!state) {
+        console.error('❌ processFlowTile: state 参数为 undefined!');
+        return "❌ 游戏状态不存在";
+    }
+    // ==============================
+    
+    console.log(`🔍 processFlowTile 被调用: 格子类型=${tile.type}, 格子名称=${tile.name}`);
+    console.log(`👤 玩家: ${player.playerName || '未知'}, 顺流层位置: ${state.flowPos || 0}`);
+    
+    const room = rooms.get(roomId);
+    if (!room) {
+        console.error(`❌ 房间 ${roomId} 不存在`);
+        return "❌ 房间不存在";
+    }
+    
     switch(tile.type) {
+        // ==================== 资产信托 ====================
+        case 'asset_trust':
+            console.log(`🏦 处理资产信托格子`);
+            return processAssetTrustTile(state, ws, roomId, player);
+
+        // ==================== 社会服务中心（第5格和第21格） ====================
+        case 'social_service':
+            console.log(`🏛️ 处理社会服务中心: ${tile.name}`);
+            return processSocialServiceTile(state, ws, roomId, player, tile);
+        
+        // ==================== 项目投资卡（顺流层专用） ====================
+        case 'investment_tile':
+            console.log(`🏗️ 处理投资格子: ${tile.name}`);
+            
+            // 检查是否有投资卡数据
+            if (typeof investmentCards === 'undefined' || !investmentCards || investmentCards.length === 0) {
+                console.log(`❌ investmentCards 未定义或为空`);
+                ws.send(JSON.stringify({ 
+                    type: 'notification', 
+                    message: '📭 暂无投资卡数据，请检查 investment_cards.js 文件是否存在'
+                }));
+                return '📭 暂无投资卡数据';
+            }
+            
+            // 随机抽取一张投资卡
+            const randomIndex = Math.floor(Math.random() * investmentCards.length);
+            const card = investmentCards[randomIndex];
+            
+            console.log(`🏗️ 玩家 ${player.playerName} 在顺流层抽到投资卡: ${card.name} (ID: ${card.id})`);
+            
+            // ========== 检查是否是竞拍卡 ==========
+            if (card.isAuction) {
+                console.log(`🔨 这是竞拍卡: ${card.name}`);
+                
+                // 检查房间是否有其他玩家
+                if (room.players.size < 2) {
+                    ws.send(JSON.stringify({
+                        type: 'notification',
+                        message: '👤 需要至少2名玩家才能进行竞拍！'
+                    }));
+                    return '👤 需要至少2名玩家才能进行竞拍！';
+                }
+                
+                // 开始竞拍
+                const auctionId = startAuction(roomId, card, player, ws);
+                
+                // 通知发起玩家
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `🔨 你发起了「${card.name}」的竞拍！所有玩家将收到竞拍通知。`
+                }));
+                
+                return null; // 竞拍进行中
+            }
+            
+            // ========== 普通投资卡处理 ==========
+            // 构建可序列化的卡片对象（发送给前端）
+            const serializableCard = {
+                id: card.id,
+                name: card.name,
+                description: card.description,
+                image: card.image || '',
+                cost: card.cost || 500,
+                investmentCost: card.investmentCost || 0,
+                energyCost: card.energyCost || 0,
+                energyGain: card.energyGain || 0,
+                luckGain: card.luckGain || 0,
+                maxEnergyGain: card.maxEnergyGain || 0,
+                monthlyReturn: card.monthlyReturn || 0,
+                paybackMonths: card.paybackMonths || 0,
+                cardType: 'investment',
+                cardTypeName: '投资',
+                cardTypeIcon: '🏗️',
+                type: 'investment'
+            };
+            
+        // 在 processFlowTile 的投资卡处理部分
+        // 检查是否可购买（只需要 500 元）
+        const canAffordPurchase = state.cash >= 500;
+        const canAffordInvestment = state.cash >= (card.investmentCost || 0);
+        const canAffordEnergy = state.energy >= (card.energyCost || 0);
+
+        // 购买卡片只需要 500 元
+        const canPurchase = canAffordPurchase;
+
+        // 执行投资需要足够的现金和精力
+        const canExecute = canAffordInvestment && canAffordEnergy;
+
+        console.log(`💰 可购买: ${canPurchase}, 现金: ${state.cash}, 需要500元: ${state.cash >= 500}`);
+        console.log(`💰 可投资: ${canExecute}, 投资额: ${card.investmentCost}, 精力: ${state.energy}, 需要精力: ${card.energyCost}`);
+        console.log(`📊 投资额 ${card.investmentCost} 元, 当前现金 ${state.cash} 元, 差额 ${card.investmentCost - state.cash} 元`);
+
+        // 发送投资卡给前端，使用 canPurchase 而不是 canAfford
+        ws.send(JSON.stringify({
+            type: 'opportunity_card_draw',
+            card: serializableCard,
+            canAfford: canPurchase,  // ✅ 改为 canPurchase
+            canExecute: canExecute,   // ✅ 新增：是否可以执行投资
+            message: `🏗️ 你踩中了「${tile.name}」格子！抽到一张投资卡！`
+        }));
+            
+            console.log(`💰 可购买: ${canAfford}, 现金: ${state.cash}, 投资额: ${card.investmentCost}, 精力: ${state.energy}, 需要精力: ${card.energyCost}`);
+            
+            // 保存到待处理事件
+            if (!room.pendingEvents) {
+                room.pendingEvents = new Map();
+            }
+            
+            // 保存完整卡片对象（包含 effect 方法）
+            const fullCard = { ...card };
+            fullCard.cardType = 'investment';
+            fullCard.cardTypeName = '投资';
+            fullCard.cardTypeIcon = '🏗️';
+            
+            // 确保 effect 方法保留
+            if (card.effect) {
+                fullCard.effect = card.effect.bind(card);
+            }
+            
+            room.pendingEvents.set(ws, {
+                type: 'opportunity_card',  // 复用机会卡逻辑
+                card: fullCard,
+                cardType: { 
+                    id: 'investment', 
+                    name: '投资', 
+                    icon: '🏗️', 
+                    color: '#ff6f00',
+                    cards: investmentCards
+                },
+                playerId: player.playerId,
+                purchased: false,
+                timestamp: Date.now(),
+                isInvestmentCard: true,
+                tileName: tile.name
+            });
+            
+            // 发送投资卡给前端
+            ws.send(JSON.stringify({
+                type: 'opportunity_card_draw',
+                card: serializableCard,
+                canAfford: canAfford,
+                message: `🏗️ 你踩中了「${tile.name}」格子！抽到一张投资卡！`
+            }));
+            
+            // 广播给其他玩家
+            broadcastToRoom(roomId, {
+                type: 'notification',
+                message: `🏗️ ${player.playerName} 在顺流层踩中「${tile.name}」，正在查看投资机会...`
+            }, ws);
+            
+            console.log(`✅ 投资卡已发送给玩家: ${card.name}`);
+            return null; // 等待玩家决策
+        
+        // ==================== 普通投资（自动获利） ====================
         case 'investment':
+            console.log(`💰 处理普通投资: ${tile.name}`);
             const profit = Math.floor(Math.random() * 50000) + 30000;
             const income = Math.floor(Math.random() * 5000) + 2000;
             state.cash += profit;
             state.passiveIncome += income;
-            return `💎 投资获利！获得 ${profit.toLocaleString()} 元现金，被动收入增加 ${income} 元`;
             
+            addTransactionRecord(
+                player.playerName,
+                { name: `顺流层投资 (${tile.name || '投资'})`, type: "flow", id: "FLOW_INVEST" },
+                "顺流层投资",
+                profit,
+                `顺流层投资获利！获得 ${profit.toLocaleString()} 元现金，被动收入增加 ${income.toLocaleString()} 元/月`,
+                null,
+                state
+            );
+            
+            return `💎 投资获利！获得 ${profit.toLocaleString()} 元现金，被动收入增加 ${income.toLocaleString()} 元/月`;
+        
+        // ==================== 破产陷阱 ====================
         case 'flowbankruptcy':
-            state.inFlow = false;
-            state.streamlinePos = 0;
-            state.inReverse = false;
-            return `💥 破产陷阱！跌回平流层...`;
-            
+            console.log(`💥 处理破产陷阱`);
+            return processFlowBankruptcyWithTrust(state, ws, roomId, player);
+        
+        // ==================== 查税审计 ====================
         case 'audit':
+            console.log(`🔍 处理查税审计`);
             const taxAmt = Math.floor(state.totalAssets * 0.5);
-            state.totalAssets -= taxAmt;
+            state.totalAssets = Math.max(0, state.totalAssets - taxAmt);
             state.luck = Math.max(0, state.luck - 2);
-            return `🔍 查税审计！损失 ${taxAmt.toLocaleString()} 元资产，幸运值 -2`;
             
+            addTransactionRecord(
+                player.playerName,
+                { name: "查稅審計", type: "flow", id: "FLOW_AUDIT" },
+                "查税审计",
+                -taxAmt,
+                `查税审计！损失 ${taxAmt.toLocaleString()} 元资产，幸运值 -2`,
+                null,
+                state
+            );
+            
+            return `🔍 查税审计！损失 ${taxAmt.toLocaleString()} 元资产，幸运值 -2`;
+        
+        // ==================== 分红收入 ====================
         case 'income':
+            console.log(`💰 处理分红收入`);
             const bonus = 50000;
             state.cash += bonus;
-            return `💰 分红收入！获得 ${bonus.toLocaleString()} 元`;
             
+            addTransactionRecord(
+                player.playerName,
+                { name: "分红收入", type: "flow", id: "FLOW_BONUS" },
+                "分红收入",
+                bonus,
+                `分红收入！获得 ${bonus.toLocaleString()} 元现金`,
+                null,
+                state
+            );
+            
+            return `💰 分红收入！获得 ${bonus.toLocaleString()} 元`;
+        
+        // ==================== 梦想格子 ====================
         case 'dream':
+            console.log(`⭐ 处理梦想: ${tile.name}`);
             if (tile.needEnergy && state.energy >= tile.needEnergy) {
                 state.energy -= tile.needEnergy;
-                return `✨ 实现梦想「${tile.name}」！消耗 ${tile.needEnergy} 精力`;
+                
+                const dreamBonus = Math.floor(Math.random() * 100000) + 50000;
+                state.passiveIncome += dreamBonus;
+                
+                addTransactionRecord(
+                    player.playerName,
+                    { name: `实现梦想 (${tile.name})`, type: "flow", id: "FLOW_DREAM" },
+                    "实现梦想",
+                    0,
+                    `实现梦想「${tile.name}」！消耗 ${tile.needEnergy} 精力，被动收入 +${dreamBonus.toLocaleString()} 元/月`,
+                    null,
+                    state
+                );
+                
+                return `✨ 实现梦想「${tile.name}」！消耗 ${tile.needEnergy} 精力，被动收入增加 ${dreamBonus.toLocaleString()} 元/月！`;
             } else if (tile.needEnergy) {
-                return `⭐ 接近梦想「${tile.name}」，需要 ${tile.needEnergy} 精力`;
+                return `⭐ 接近梦想「${tile.name}」，需要 ${tile.needEnergy} 精力 (当前 ${state.energy})`;
             }
             break;
-            
+        
+        // ==================== 慈善荣誉 ====================
         case 'grace':
+            console.log(`✨ 处理慈善荣誉`);
             state.cash += 5000;
             state.energy = Math.min(state.maxEnergy, state.energy + 5);
             state.luck = Math.min(state.maxLuck, state.luck + 2);
-            return `✨ 慈善荣誉！获得 5000 元，精力 +5，幸运值 +2`;
             
+            addTransactionRecord(
+                player.playerName,
+                { name: "慈善荣誉", type: "flow", id: "FLOW_GRACE" },
+                "慈善荣誉",
+                5000,
+                `慈善荣誉！获得 5000 元现金，精力 +5，幸运值 +2`,
+                null,
+                state
+            );
+            
+            return `✨ 慈善荣誉！获得 5000 元，精力 +5，幸运值 +2`;
+        
+        // ==================== 特殊事件 ====================
         case 'event':
-            return `🎉 特殊事件：${tile.name}`;
+            console.log(`🎉 处理特殊事件`);
+            const eventTypes = [
+                { name: "行业峰会", cash: 20000, energy: 2 },
+                { name: "商业论坛", cash: 15000, energy: 1 },
+                { name: "慈善晚宴", cash: 10000, energy: 3, luck: 1 }
+            ];
+            const event = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+            state.cash += event.cash;
+            state.energy = Math.min(state.maxEnergy, state.energy + event.energy);
+            if (event.luck) state.luck = Math.min(state.maxLuck, state.luck + event.luck);
+            
+            addTransactionRecord(
+                player.playerName,
+                { name: `特殊事件 (${event.name})`, type: "flow", id: "FLOW_EVENT" },
+                "特殊事件",
+                event.cash,
+                `参加「${event.name}」！获得 ${event.cash.toLocaleString()} 元，精力 +${event.energy}${event.luck ? `，幸运值 +${event.luck}` : ''}`,
+                null,
+                state
+            );
+            
+            return `🎉 特殊事件「${event.name}」！获得 ${event.cash.toLocaleString()} 元，精力 +${event.energy}${event.luck ? `，幸运值 +${event.luck}` : ''}`;
+        
+        default:
+            console.log(`⚠️ 未知格子类型: ${tile.type}`);
+            return `📌 顺流层格子：${tile.name} (类型: ${tile.type})`;
     }
     return null;
 }
@@ -2230,7 +2558,6 @@ function drawAndExecuteLierCard(ws, state, roomId, player) {
             damageAmount = Math.min(50000, Math.max(1000, Math.floor(player.gameState.cash * 0.1)));
         }
     }
-    // ================================================================
     
     // ==================== 检查情绪支援（在其他护盾之前） ====================
     // 如果是伤害类卡片，先检查是否有其他玩家可以提供情绪支援
@@ -2321,7 +2648,7 @@ function drawAndExecuteLierCard(ws, state, roomId, player) {
                 }
             }
         }
-        // ================================================================
+  
         
         // ==================== 检查自己的防骗护盾 ====================
         let shieldUsed = false;
@@ -2506,6 +2833,859 @@ function drawAndExecuteLierCard(ws, state, roomId, player) {
     }
 }
 
+// ==================== 顺流层进入条件检查与资产信托功能 ====================
+
+// 检查玩家是否可以进入顺流层（统一的条件检查函数）
+function canEnterFlowLayer(state, player, ws, roomId, sendMessage = true) {
+    const totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+    
+    // 条件1: 精力不能为0或负数
+    if (state.energy <= 0) {
+        if (sendMessage) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `❌ 无法进入顺流层！精力不足 (当前 ${state.energy})，需要至少1点精力才能进入顺流层。`
+            }));
+        }
+        return false;
+    }
+    
+    // 条件2: 不能有银行贷款或债务
+    if (state.loanAmount > 0) {
+        if (sendMessage) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `❌ 无法进入顺流层！你还有银行贷款 ${state.loanAmount.toLocaleString()} 元未还清，需要先偿还所有债务。`
+            }));
+        }
+        return false;
+    }
+    
+    // 条件3: 被動收入必须大于或等于总支出
+    if (state.passiveIncome < totalExpense) {
+        if (sendMessage) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `❌ 无法进入顺流层！被動收入 ${state.passiveIncome.toLocaleString()} 元 < 总支出 ${totalExpense.toLocaleString()} 元。需要被動收入 ≥ 总支出。`
+            }));
+        }
+        return false;
+    }
+    
+    return true;
+}
+
+// 处理玩家进入顺流层的选择
+function handleFlowLayerChoice(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pendingChoice = room.pendingFlowChoices?.get(ws);
+    if (!pendingChoice) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的顺流层选择' }));
+        return;
+    }
+    
+    const willEnter = data.willEnter;
+    const state = player.gameState;
+    
+    if (willEnter) {
+        // 使用统一的检查函数
+        if (!canEnterFlowLayer(state, player, ws, roomId, true)) {
+            room.pendingFlowChoices.delete(ws);
+            return;
+        }
+        
+        // ========== 记录进入前的状态 ==========
+        const stateBefore = JSON.parse(JSON.stringify(state));
+        const cashBefore = state.cash;
+        const passiveBefore = state.passiveIncome;
+        
+        console.log(`💰 进入顺流层前: 现金 ${cashBefore.toLocaleString()} 元`);
+        console.log(`📊 进入顺流层前: 被動收入 ${passiveBefore.toLocaleString()} 元/月`);
+        
+        // 进入顺流层！
+        const incomeBoost = applyFlowLayerIncomeBoost(state);
+        state.inFlow = true;
+        state.flowPos = 0;
+        
+        // ========== 确保现金没有被修改 ==========
+        if (state.cash !== cashBefore) {
+            console.warn(`⚠️ 现金被意外修改! 之前: ${cashBefore}, 之后: ${state.cash}`);
+            console.warn(`⚠️ 强制恢复现金到 ${cashBefore.toLocaleString()} 元`);
+            state.cash = cashBefore;
+        }
+        
+        const totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+        const newMonthlyCF = calculateFlowMonthlyCashFlow(state);
+        
+        console.log(`💰 进入顺流层后: 现金 ${state.cash.toLocaleString()} 元 (保持不变)`);
+        console.log(`📈 被動收入: ${passiveBefore.toLocaleString()} → ${state.flowPassiveIncome.toLocaleString()} 元/月`);
+        console.log(`📊 新的月现金流: ${newMonthlyCF >= 0 ? '+' : ''}${newMonthlyCF.toLocaleString()} 元/月`);
+        
+        const successMessage = `🎉 你选择了进入顺流层！\n` +
+            `   📈 被動收入 × 100 倍！\n` +
+            `   💰 原被動收入: ${incomeBoost.original.toLocaleString()} 元/月\n` +
+            `   🚀 顺流层被動收入: ${incomeBoost.multiplied.toLocaleString()} 元/月\n` +
+            `   💵 现金: ${state.cash.toLocaleString()} 元 (保持不变)\n` +
+            `   📊 新的月现金流: ${newMonthlyCF >= 0 ? '+' : ''}${newMonthlyCF.toLocaleString()} 元/月\n\n` +
+            `   🏦 提示：前往「资产信托」格子可设立财富保护信托！`;
+        
+        ws.send(JSON.stringify({ type: 'notification', message: successMessage }));
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🎉 ${player.playerName} 选择进入顺流层！被動收入放大100倍！`
+        }, ws);
+        
+        // 广播状态更新
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: player.playerId,
+            gameState: state
+        });
+        
+        // 记录进入顺流层的交易（正确传递状态）
+        addTransactionRecord(
+            player.playerName,
+            { name: "进入顺流层", type: "flow", id: "FLOW_ENTER" },
+            "进入顺流层",
+            0,  // 现金变化为0
+            `选择进入顺流层！被動收入从 ${incomeBoost.original.toLocaleString()} 放大到 ${incomeBoost.multiplied.toLocaleString()} 元/月，现金 ${state.cash.toLocaleString()} 元保持不变`,
+            stateBefore,
+            state
+        );
+    } else {
+        // 玩家选择留在平流层
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `📌 你选择留在平流层继续积累。当你准备好时，可以随时再次满足条件后选择进入顺流层。`
+        }));
+        
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `📌 ${player.playerName} 选择暂时留在平流层，继续积累实力。`
+        }, ws);
+    }
+    
+    // 清理待处理选择
+    room.pendingFlowChoices.delete(ws);
+}
+
+// 进入顺流层时的收入倍增（被動收入 × 100倍）
+function applyFlowLayerIncomeBoost(state) {
+    // 保存当前现金（关键！）
+    const currentCash = state.cash;
+    const originalPassiveIncome = state.passiveIncome;
+    
+    console.log(`💰 applyFlowLayerIncomeBoost 被调用: 当前现金 ${currentCash.toLocaleString()} 元`);
+    
+    // 被动收入 × 100 倍
+    state.passiveIncomeFlowMultiplier = 100;
+    state.passiveIncomeBeforeFlow = originalPassiveIncome;
+    state.flowPassiveIncome = originalPassiveIncome * 100;
+    
+    // ========== 重要：确保现金保持不变 ==========
+    state.cash = currentCash;
+    
+    console.log(`💰 现金保持不变: ${state.cash.toLocaleString()} 元`);
+    console.log(`📈 被動收入: ${originalPassiveIncome.toLocaleString()} → ${state.flowPassiveIncome.toLocaleString()} 元/月`);
+    
+    return {
+        original: originalPassiveIncome,
+        multiplied: originalPassiveIncome * 100,
+        multiplier: 100,
+        cash: currentCash
+    };
+}
+
+// 离开顺流层时恢复被動收入
+function revertFlowLayerIncomeBoost(state) {
+    if (state.passiveIncomeBeforeFlow !== undefined) {
+        state.passiveIncome = state.passiveIncomeBeforeFlow;
+        state.passiveIncomeBeforeFlow = undefined;
+        state.flowPassiveIncome = undefined;
+        state.passiveIncomeFlowMultiplier = undefined;
+    }
+}
+
+
+// 计算顺流层的月现金流
+function calculateFlowMonthlyCashFlow(state) {
+    // 使用放大后的被動收入
+    let effectivePassiveIncome = state.flowPassiveIncome || state.passiveIncome;
+    
+    // 如果有被动收入加成，也应用到放大后的值
+    if (state.passiveIncomeBonus && state.passiveIncomeBonus > 0) {
+        effectivePassiveIncome = Math.floor(effectivePassiveIncome * (1 + state.passiveIncomeBonus / 100));
+    }
+    
+    const totalIncome = (state.salary || 0) + (state.sideIncome || 0) + effectivePassiveIncome;
+    let totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+    
+    if (state.expenseReduction && state.expenseReduction > 0) {
+        totalExpense = totalExpense - Math.floor(totalExpense * state.expenseReduction / 100);
+    }
+    
+    const monthlyCF = totalIncome - totalExpense;
+    
+    console.log(`📊 顺流层月现金流计算:`);
+    console.log(`   被動收入: ${effectivePassiveIncome.toLocaleString()} 元/月`);
+    console.log(`   总收入: ${totalIncome.toLocaleString()} 元/月`);
+    console.log(`   总支出: ${totalExpense.toLocaleString()} 元/月`);
+    console.log(`   月现金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()} 元/月`);
+    
+    return monthlyCF;
+}
+
+// ==================== 社会服务中心处理 ====================
+// 加载社會卡数据
+let socialCards = [];
+
+try {
+    const socialData = require('./social_cards.js');
+    socialCards = socialData.socialCards || [];
+    console.log(`📚 加载社會卡: ${socialCards.length}张`);
+    socialCards.forEach(card => {
+        console.log(`   - ${card.id}: ${card.name}`);
+    });
+} catch (e) {
+    console.log('⚠️ 无法加载 social_cards.js，使用默认卡片');
+    console.log(`   错误: ${e.message}`);
+    socialCards = [];
+}
+
+function processSocialServiceTile(state, ws, roomId, player, tile) {
+    const room = rooms.get(roomId);
+    if (!room) return "❌ 房间不存在";
+    
+    const cost = 10000;  // 支付10,000元
+    
+    // 检查现金是否足够
+    if (state.cash < cost) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `❌ 现金不足 ${cost.toLocaleString()} 元，无法使用社会服务中心功能。当前现金: ${state.cash.toLocaleString()} 元`
+        }));
+        return `❌ 现金不足 ${cost.toLocaleString()} 元`;
+    }
+    
+    // 记录待处理的社会服务事件
+    if (!room.pendingSocialService) {
+        room.pendingSocialService = new Map();
+    }
+    
+    // 检查是否有进行中的选择
+    if (room.pendingSocialService.has(ws)) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `⏳ 你已有一个进行中的社会服务选择，请先完成。`
+        }));
+        return `⏳ 已有进行中的选择`;
+    }
+    
+    // 发送选择提示给玩家
+    ws.send(JSON.stringify({
+        type: 'social_service_prompt',
+        message: `🏛️ 社会服务中心\n\n` +
+                 `你来到了「${tile.name}」！\n` +
+                 `支付 ${cost.toLocaleString()} 元，可以抽 2 张「项目投资卡」或「服务社会卡」！\n\n` +
+                 `📌 请选择你要抽取的卡片类型：\n` +
+                 `1️⃣ 项目投资卡 (大型投资项目，高回报)\n` +
+                 `2️⃣ 服务社会卡 (社会服务项目，提升影响力)\n\n` +
+                 `💡 提示：支付后你将获得 2 张同类型卡片！`,
+        cost: cost,
+        tileName: tile.name
+    }));
+    
+    // 存储待处理状态
+    room.pendingSocialService.set(ws, {
+        type: 'social_service_choice',
+        playerId: player.playerId,
+        timestamp: Date.now(),
+        tileName: tile.name
+    });
+    
+    console.log(`🏛️ 玩家 ${player.playerName} 触发社会服务中心，等待选择...`);
+    return null;  // 等待玩家响应
+}
+
+// 处理社会服务中心选择
+function handleSocialServiceChoice(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const pending = room.pendingSocialService?.get(ws);
+    if (!pending || pending.type !== 'social_service_choice') {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '没有待处理的社会服务选择'
+        }));
+        return;
+    }
+    
+    const choice = data.choice;  // 'investment' 或 'social'
+    const cost = 10000;
+    
+    // 再次检查现金
+    if (player.gameState.cash < cost) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: `❌ 现金不足 ${cost.toLocaleString()} 元`
+        }));
+        room.pendingSocialService.delete(ws);
+        return;
+    }
+    
+    // 扣除费用
+    player.gameState.cash -= cost;
+    
+    // 记录交易
+    addTransactionRecord(
+        player.playerName,
+        { name: `社会服务中心 (${pending.tileName})`, type: "social_service", id: "SS01" },
+        "社会服务",
+        -cost,
+        `支付 ${cost.toLocaleString()} 元，抽取 ${choice === 'investment' ? '项目投资卡' : '服务社会卡'} x2`,
+        null,
+        player.gameState
+    );
+    
+    // 根据选择抽取卡片
+    let cards = [];
+    let cardTypeName = '';
+    let cardTypeIcon = '';
+    
+    if (choice === 'investment') {
+        // 抽取项目投资卡
+        cardTypeName = '项目投资卡';
+        cardTypeIcon = '🏗️';
+        cards = drawMultipleInvestmentCards(player.gameState, 2);
+    } else if (choice === 'social') {
+        // 抽取服务社会卡（这里可以定义新的服务社会卡数据）
+        cardTypeName = '服务社会卡';
+        cardTypeIcon = '🤝';
+        cards = drawMultipleSocialCards(player.gameState, 2);
+    } else {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '无效的选择'
+        }));
+        room.pendingSocialService.delete(ws);
+        return;
+    }
+    
+    // 清理待处理状态
+    room.pendingSocialService.delete(ws);
+    
+    // 发送结果给玩家
+    ws.send(JSON.stringify({
+        type: 'social_service_result',
+        message: `🏛️ 社会服务中心 - 抽卡结果\n\n` +
+                 `你支付了 ${cost.toLocaleString()} 元，抽取了以下 2 张 ${cardTypeName}：\n\n` +
+                 cards.map((card, index) => 
+                     `${index + 1}. ${cardTypeIcon} ${card.name}\n` +
+                     `   💰 投资额: ${(card.investmentCost || 0).toLocaleString()} 元\n` +
+                     `   📈 月被动收入: ${(card.monthlyReturn || 0).toLocaleString()} 元\n` +
+                     `   ⚡ 精力消耗: ${(card.energyCost || 0)}`
+                 ).join('\n\n') +
+                 `\n\n💡 这些卡片已添加到你的待处理列表中，请逐一查看并决定是否执行。`,
+        cards: cards.map(card => ({
+            id: card.id,
+            name: card.name,
+            description: card.description,
+            image: card.image || '',
+            investmentCost: card.investmentCost || 0,
+            monthlyReturn: card.monthlyReturn || 0,
+            energyCost: card.energyCost || 0,
+            cardType: choice,
+            cardTypeName: cardTypeName,
+            cardTypeIcon: cardTypeIcon
+        })),
+        cardType: choice,
+        cardTypeName: cardTypeName,
+        cardTypeIcon: cardTypeIcon
+    }));
+    
+    // 逐张发送卡片给玩家处理
+    cards.forEach((card, index) => {
+        // 构建卡片对象
+        const serializableCard = {
+            id: card.id,
+            name: card.name,
+            description: card.description,
+            image: card.image || '',
+            cost: card.cost || 500,
+            investmentCost: card.investmentCost || 0,
+            energyCost: card.energyCost || 0,
+            monthlyReturn: card.monthlyReturn || 0,
+            paybackMonths: card.paybackMonths || 0,
+            cardType: choice,
+            cardTypeName: cardTypeName,
+            cardTypeIcon: cardTypeIcon
+        };
+        
+        // 检查是否可购买
+        const canAfford = player.gameState.cash >= 500 && 
+                          player.gameState.cash >= (card.investmentCost || 0) && 
+                          player.gameState.energy >= (card.energyCost || 0);
+        
+        // 保存到待处理事件
+        if (!room.pendingEvents) {
+            room.pendingEvents = new Map();
+        }
+        
+        const fullCard = { ...card };
+        fullCard.cardType = choice;
+        fullCard.cardTypeName = cardTypeName;
+        fullCard.cardTypeIcon = cardTypeIcon;
+        
+        if (card.effect) {
+            fullCard.effect = card.effect.bind(card);
+        }
+        
+        room.pendingEvents.set(ws, {
+            type: 'opportunity_card',
+            card: fullCard,
+            cardType: {
+                id: choice,
+                name: cardTypeName,
+                icon: cardTypeIcon,
+                color: choice === 'investment' ? '#ff6f00' : '#4caf50'
+            },
+            playerId: player.playerId,
+            purchased: false,
+            timestamp: Date.now(),
+            isFromSocialService: true,
+            cardIndex: index
+        });
+        
+        // 发送卡片给前端
+        ws.send(JSON.stringify({
+            type: 'opportunity_card_draw',
+            card: serializableCard,
+            canAfford: canAfford,
+            message: `📋 第 ${index + 1} 张 ${cardTypeName}：${card.name}`
+        }));
+    });
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🏛️ ${player.playerName} 在社会服务中心支付 ${cost.toLocaleString()} 元，抽取了 2 张${cardTypeName}！`
+    }, ws);
+    
+    // 广播状态更新
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+    
+    console.log(`✅ 玩家 ${player.playerName} 完成社会服务中心抽卡`);
+}
+
+// 抽取多张项目投资卡
+function drawMultipleInvestmentCards(state, count) {
+    const cards = [];
+    const availableCards = [...investmentCards];
+    
+    for (let i = 0; i < count && availableCards.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * availableCards.length);
+        cards.push(availableCards[randomIndex]);
+        availableCards.splice(randomIndex, 1);
+    }
+    
+    return cards;
+}
+// 抽取多张服务社会卡
+function drawMultipleSocialCards(state, count) {
+    const cards = [];
+    const availableCards = [...socialCards];
+    
+    if (availableCards.length === 0) {
+        // 如果没有社會卡，返回空数组
+        return cards;
+    }
+    
+    for (let i = 0; i < count && availableCards.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * availableCards.length);
+        cards.push(availableCards[randomIndex]);
+        availableCards.splice(randomIndex, 1);
+    }
+    
+    return cards;
+}
+
+// ==================== 梦想卡系统 ====================
+
+let dreamCards = [];
+let getDreamCard = null;
+
+try {
+    const dreamData = require('./dream_cards.js');
+    dreamCards = dreamData.dreamCards || {};
+    getDreamCard = dreamData.getDreamCard || null;
+    console.log(`📚 加载梦想卡: ${Object.keys(dreamCards).length}张`);
+    Object.keys(dreamCards).forEach(pos => {
+        console.log(`   - 第${pos}格: ${dreamCards[pos].name}`);
+    });
+} catch (e) {
+    console.log('⚠️ 无法加载 dream_cards.js，使用默认卡片');
+    console.log(`   错误: ${e.message}`);
+    dreamCards = {};
+    getDreamCard = null;
+}
+// 触发梦想卡
+function triggerDreamCard(state, tile, ws, roomId, player, oldPos, newPos) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    // 检查 getDreamCard 是否可用
+    if (typeof getDreamCard !== 'function') {
+        console.log('⚠️ getDreamCard 函数未定义，请检查 dream_cards.js 是否正确加载');
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: '🌟 梦想卡系统加载中，请稍后再试...'
+        }));
+        return;
+    }
+    
+    // 获取梦想卡（位置从1开始）
+    const position = newPos + 1;
+    const dreamCard = getDreamCard(position);
+    
+    if (!dreamCard) {
+        console.log(`⚠️ 位置 ${position} 没有梦想卡`);
+        return;
+    }
+    
+    console.log(`🌟 玩家 ${player.playerName} 经过梦想格 ${position}: ${dreamCard.name}`);
+    
+    // 检查是否已实现该梦想
+    const dreamKey = `has${dreamCard.name.replace(/[^a-zA-Z]/g, '')}`;
+    if (state[dreamKey]) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🌟 你已实现「${dreamCard.name}」梦想，无需重复实现！`
+        }));
+        return;
+    }
+    
+    // 构建可序列化的梦想卡对象
+    const serializableCard = {
+        id: dreamCard.id,
+        name: dreamCard.name,
+        description: dreamCard.description,
+        image: dreamCard.image || '',
+        cost: dreamCard.cost || 500,
+        investmentCost: dreamCard.investmentCost || 0,
+        energyCost: dreamCard.energyCost || 0,
+        luckGain: dreamCard.luckGain || 0,
+        healthGain: dreamCard.healthGain || 0,
+        cardType: 'dream',
+        cardTypeName: '梦想',
+        cardTypeIcon: '🌟',
+        type: 'dream',
+        position: position
+    };
+    
+    // 检查是否可购买
+    const canAfford = state.cash >= 500 && 
+                      state.cash >= (dreamCard.investmentCost || 0) && 
+                      state.energy >= (dreamCard.energyCost || 0);
+    
+    // 保存到待处理事件
+    if (!room.pendingEvents) {
+        room.pendingEvents = new Map();
+    }
+    
+    // 保存完整卡片对象
+    const fullCard = { ...dreamCard };
+    fullCard.cardType = 'dream';
+    fullCard.cardTypeName = '梦想';
+    fullCard.cardTypeIcon = '🌟';
+    
+    if (dreamCard.effect) {
+        fullCard.effect = dreamCard.effect.bind(dreamCard);
+    }
+    
+    room.pendingEvents.set(ws, {
+        type: 'opportunity_card',
+        card: fullCard,
+        cardType: { 
+            id: 'dream', 
+            name: '梦想', 
+            icon: '🌟', 
+            color: '#ff6f00',
+            cards: [dreamCard]
+        },
+        playerId: player.playerId,
+        purchased: false,
+        timestamp: Date.now(),
+        isDreamCard: true,
+        position: position
+    });
+    
+    // 发送梦想卡给前端
+    ws.send(JSON.stringify({
+        type: 'opportunity_card_draw',
+        card: serializableCard,
+        canAfford: canAfford,
+        message: `🌟 你经过梦想格 ${position}！「${dreamCard.name}」正在等待你实现！`
+    }));
+    
+    // 广播给其他玩家
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🌟 ${player.playerName} 经过梦想格 ${position}：${dreamCard.name}！`
+    }, ws);
+}
+
+
+// ==================== 资产信托功能 ====================
+
+// 激活资产信托（发送提示消息）
+function promptAssetTrustSetup(state, ws, roomId) {
+    const maxAmount = 10000000;  // 1000万上限
+    const feePercent = 10;        // 10%手续费
+    
+    if (state.assetTrust && state.assetTrust.active) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🏦 你已经拥有资产信托！当前信托金额: ${state.assetTrust.amount.toLocaleString()} 元。不可重复设立。`
+        }));
+        return false;
+    }
+    
+    const totalCostForMax = Math.ceil(maxAmount * (1 + feePercent / 100));
+    
+    ws.send(JSON.stringify({
+        type: 'asset_trust_prompt',
+        message: `🏦 资产信托设立\n\n📋 信托规则:\n   • 信托上限: ${maxAmount.toLocaleString()} 元\n   • 手续费: ${feePercent}% (存入金额的 ${feePercent}%)\n   • 总花费 = 存入金额 × (1 + ${feePercent}%)\n   • 信托金额最高: ${maxAmount.toLocaleString()} 元\n   • 总花费最高: ${totalCostForMax.toLocaleString()} 元\n\n✨ 信托好处:\n   • 未来如果不幸破产跌回平流层，可以立即取回全部信托金额\n   • 资产隔离，保护您的财富\n\n💰 当前现金: ${state.cash.toLocaleString()} 元\n\n请输入信托金额 (1 ~ ${maxAmount.toLocaleString()} 元):`,
+        maxAmount: maxAmount,
+        feePercent: feePercent,
+        currentCash: state.cash
+    }));
+    
+    return true;
+}
+
+// 执行资产信托设立
+function executeAssetTrust(state, depositAmount, ws, roomId, player) {
+    const maxAmount = 10000000;
+    const feePercent = 10;
+    
+    if (depositAmount < 1 || depositAmount > maxAmount) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: `❌ 信托金额无效，必须在 1 ~ ${maxAmount.toLocaleString()} 元之间。`
+        }));
+        return false;
+    }
+    
+    const fee = Math.ceil(depositAmount * feePercent / 100);
+    const totalCost = depositAmount + fee;
+    
+    if (state.cash < totalCost) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: `❌ 现金不足！需要 ${totalCost.toLocaleString()} 元 (存入 ${depositAmount.toLocaleString()} 元 + 手续费 ${fee.toLocaleString()} 元)，当前现金 ${state.cash.toLocaleString()} 元。`
+        }));
+        return false;
+    }
+    
+    const stateBefore = JSON.parse(JSON.stringify(state));
+    
+    state.cash -= totalCost;
+    
+    state.assetTrust = {
+        active: true,
+        amount: depositAmount,
+        maxAmount: maxAmount,
+        feePercent: feePercent,
+        totalCost: totalCost,
+        fee: fee,
+        createdAt: Date.now(),
+        protectedAmount: depositAmount
+    };
+    
+    // 记录交易
+    addTransactionRecord(
+        state.playerName,
+        { name: "资产信托设立", type: "trust", id: "TRUST01" },
+        "设立资产信托",
+        -totalCost,
+        `设立资产信托！存入 ${depositAmount.toLocaleString()} 元，手续费 ${fee.toLocaleString()} 元 (${feePercent}%)，总花费 ${totalCost.toLocaleString()} 元。未来破产时可取回 ${depositAmount.toLocaleString()} 元。`,
+        stateBefore,
+        state
+    );
+    
+    ws.send(JSON.stringify({
+        type: 'notification',
+        message: `🏦 资产信托设立成功！存入 ${depositAmount.toLocaleString()} 元 (手续费 ${feePercent}%)，总花费 ${totalCost.toLocaleString()} 元。您的财富已获得保护！`
+    }));
+    
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🏦 ${state.playerName} 在顺流层设立了资产信托，存入 ${depositAmount.toLocaleString()} 元！`
+    }, ws);
+    
+    return true;
+}
+
+// 破产时取回信托资产
+function retrieveAssetTrustOnBankruptcy(state, ws, roomId) {
+    if (!state.assetTrust || !state.assetTrust.active) {
+        return null;
+    }
+    
+    const stateBefore = JSON.parse(JSON.stringify(state));
+    const protectedAmount = state.assetTrust.amount;
+    
+    state.cash += protectedAmount;
+    
+    addTransactionRecord(
+        state.playerName,
+        { name: "资产信托取回", type: "trust", id: "TRUST_RETRIEVE" },
+        "信托取回",
+        protectedAmount,
+        `破产保护！从资产信托中取回 ${protectedAmount.toLocaleString()} 元。`,
+        stateBefore,
+        state
+    );
+    
+    state.assetTrust.active = false;
+    state.assetTrust.usedOnBankruptcy = true;
+    
+    const message = `🛡️ 破产保护生效！您从资产信托中取回 ${protectedAmount.toLocaleString()} 元，助您东山再起！`;
+    
+    ws.send(JSON.stringify({
+        type: 'notification',
+        message: message
+    }));
+    
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🛡️ ${state.playerName} 触发破产保护，从资产信托中取回了 ${protectedAmount.toLocaleString()} 元！`
+    }, ws);
+    
+    return protectedAmount;
+}
+
+// 检查并进入顺流层
+function checkAndEnterFlowLayer(state, player, ws, roomId) {
+    const totalExpense = (state.livingExpense || 0) + (state.tax || 0) + (state.loanInterest || 0) + (state.childExpense || 0);
+    
+    if (!state.inReverse && !state.inFlow && state.passiveIncome >= totalExpense) {
+        if (canEnterFlowLayer(state, player, ws, roomId)) {
+            // ========== 记录进入前的现金 ==========
+            const cashBefore = state.cash;
+            console.log(`💰 checkAndEnterFlowLayer: 进入前现金 ${cashBefore.toLocaleString()} 元`);
+            
+            state.inFlow = true;
+            state.flowPos = 0;
+            
+            const incomeBoost = applyFlowLayerIncomeBoost(state);
+            const newMonthlyCF = calculateFlowMonthlyCashFlow(state);
+            
+            // ========== 确保现金保持不变 ==========
+            if (state.cash !== cashBefore) {
+                console.warn(`⚠️ 现金被意外修改! 恢复中...`);
+                state.cash = cashBefore;
+            }
+            
+            console.log(`💰 checkAndEnterFlowLayer: 进入后现金 ${state.cash.toLocaleString()} 元 (保持不变)`);
+            
+            const successMessage = `🎉 恭喜进入顺流层！\n` +
+                `   📈 被動收入 × 100 倍！\n` +
+                `   💰 原被動收入: ${incomeBoost.original.toLocaleString()} 元/月\n` +
+                `   🚀 顺流层被動收入: ${incomeBoost.multiplied.toLocaleString()} 元/月\n` +
+                `   💵 现金: ${state.cash.toLocaleString()} 元 (保持不变)\n` +
+                `   📊 新的月现金流: ${newMonthlyCF >= 0 ? '+' : ''}${newMonthlyCF.toLocaleString()} 元/月\n\n` +
+                `   🏦 提示：您已到达顺流层，可以前往「资产信托」格子设立财富保护信托！`;
+            
+            ws.send(JSON.stringify({ type: 'notification', message: successMessage }));
+            broadcastToRoom(roomId, {
+                type: 'notification',
+                message: `🎉 ${player.playerName} 进入顺流层！被動收入放大100倍！`
+            }, ws);
+            
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: player.playerId,
+                gameState: state
+            });
+            
+            return true;
+        }
+    }
+    return false;
+}
+
+// 处理资产信托格子
+function processAssetTrustTile(state, ws, roomId, player) {
+    if (state.assetTrust && state.assetTrust.active) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🏦 你已经设立了资产信托！当前信托金额: ${state.assetTrust.amount.toLocaleString()} 元。已享受财富保护。`
+        }));
+        return `🏦 资产信托已设立，金额: ${state.assetTrust.amount.toLocaleString()} 元`;
+    }
+    
+    promptAssetTrustSetup(state, ws, roomId);
+    return null; // 等待用户响应
+}
+
+// 修改破产陷阱处理
+function processFlowBankruptcyWithTrust(state, ws, roomId, player) {
+    if (state.assetTrust && state.assetTrust.active) {
+        const protectedAmount = retrieveAssetTrustOnBankruptcy(state, ws, roomId);
+        
+        state.inFlow = false;
+        state.streamlinePos = 0;
+        state.inReverse = false;
+        
+        if (state.loanAmount > 0) {
+            state.loanAmount = 0;
+            state.loanInterest = 0;
+        }
+        
+        // 清空高风险资产
+        state.stockHoldings = {};
+        state.cryptoHoldings = {};
+        state.financeInvestments = [];
+        state.businessInvestments = [];
+        state.propertyInvestments = [];
+        
+        // 恢复被動收入
+        revertFlowLayerIncomeBoost(state);
+        
+        return `💥 破产陷阱触发！但您的资产信托发挥了作用，取回 ${protectedAmount.toLocaleString()} 元保护资金。您跌回平流层，但保留这笔启动资金！`;
+    } else {
+        const previousCash = state.cash;
+        state.inFlow = false;
+        state.streamlinePos = 0;
+        state.inReverse = false;
+        
+        state.cash = Math.max(0, Math.floor(previousCash * 0.1));
+        state.stockHoldings = {};
+        state.cryptoHoldings = {};
+        state.financeInvestments = [];
+        state.businessInvestments = [];
+        state.propertyInvestments = [];
+        
+        revertFlowLayerIncomeBoost(state);
+        
+        return `💥 破产陷阱！您损失了几乎所有资产，跌回平流层。仅保留 ${state.cash.toLocaleString()} 元现金。建议下次先设立资产信托！`;
+    }
+}
+
 // 辅助函数：根据playerId获取WebSocket
 function getWsByPlayerId(room, playerId) {
     for (let [ws, player] of room.players) {
@@ -2541,6 +3721,8 @@ function sendShieldNotification(ws, room, player, card, shieldMessage) {
         gameState: player.gameState
     }));
 }
+
+
 //  ==================== 義工卡处理 ====================
 let volunteerCards = [];
 
@@ -3876,6 +5058,46 @@ function handleExecuteCard(ws, data, roomId) {
         playerId: player.playerId,
         gameState: player.gameState
     });
+
+    // 在 handleExecuteCard 中，判断卡片类型部分添加
+    const isInvestmentCard = !!(card.type === 'investment' || card.cardType === 'investment' || 
+                            (card.id && card.id.startsWith('K')));
+
+    // 在普通卡片处理之前添加投资卡处理
+        if (isInvestmentCard || (card.type === 'investment')) {
+        console.log(`🏗️ 处理投资卡: ${card.id} - ${card.name}`);
+        
+        const investmentCost = card.investmentCost || 0;
+        const energyCost = card.energyCost || 0;
+        
+        if (investmentCost > 0 && player.gameState.cash < investmentCost) {
+            resultMessage = `❌ 现金不足 ${investmentCost.toLocaleString()} 元，无法执行「${card.name}」`;
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute: false, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: ""
+            }));
+            room.pendingEvents.delete(ws);
+            return;
+        }
+        
+        if (energyCost > 0 && player.gameState.energy < energyCost) {
+            resultMessage = `❌ 精力不足 ${energyCost} 点，无法执行「${card.name}」`;
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute: false, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: ""
+            }));
+            room.pendingEvents.delete(ws);
+            return;
+        }
+        
+        effectResult = card.effect(player.gameState);
+        resultMessage = `✨ 执行「${card.name}」成功！${effectResult}`;
+        
+        const cashChange = player.gameState.cash - stateBefore.cash;
+        addTransactionRecord(
+            player.playerName, card, '投资', cashChange, effectResult, stateBefore, player.gameState
+        );
+    }
 }
 
 // ==================== 四叶草处理 ====================
@@ -3978,6 +5200,41 @@ function handleRoll(ws, data, roomId) {
     }
     // ============================================================
     
+    // ==================== 检查是否有额外掷骰机会（社會卡 CH01 效果） ====================
+    if (state.extraDice && state.extraDice > 0 && !state._processingExtraDice) {
+        // 标记正在处理额外掷骰，防止无限循环
+        state._processingExtraDice = true;
+        
+        // 减少一次额外掷骰次数
+        state.extraDice--;
+        
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🎲 由於「殘疾人士就業基金」的效果，你獲得一次額外擲骰機會！剩餘 ${state.extraDice} 次`
+        }));
+        
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🎲 ${player.playerName} 因「殘疾人士就業基金」獲得額外擲骰機會！`
+        }, ws);
+        
+        // 延迟执行额外掷骰，避免递归问题
+        setTimeout(() => {
+            // 清除标记
+            state._processingExtraDice = false;
+            
+            // 重新执行掷骰
+            handleRoll(ws, data, roomId);
+        }, 300);
+        
+        return;
+    }
+    
+    // 清除标记（安全措施）
+    state._processingExtraDice = false;
+    // ============================================================
+    
+    // ==================== 检查精力 ====================
     if (state.energy <= 0) {
         ws.send(JSON.stringify({ type: 'error', message: '精力不足，无法掷骰' }));
         return;
@@ -3985,6 +5242,7 @@ function handleRoll(ws, data, roomId) {
     
     state.energy = Math.max(0, state.energy - 1);
     
+    // ==================== 掷骰逻辑 ====================
     let originalSteps = Math.floor(Math.random() * 6) + 1;
     let steps = originalSteps;
     let multiplierMessage = '';
@@ -4006,28 +5264,78 @@ function handleRoll(ws, data, roomId) {
         }));
     }
     
+    // ==================== 记录初始状态 ====================
     let oldPos = state.streamlinePos;
     let tile = null;
     let eventMessage = null;
     let isLierCard = false;
     
+    // ==================== 顺流层移动（步数加倍） ====================
     if (state.inFlow) {
-        state.flowPos = (state.flowPos + steps) % room.flowTiles.length;
+        // 顺流层步数加倍！
+        let flowSteps = steps * 2;
+        console.log(`🌊 顺流层步数加倍: ${steps} × 2 = ${flowSteps}`);
+        
+        // 记录起始位置
+        let startPos = state.flowPos;
+        let currentPos = state.flowPos;
+        let lastTriggeredDreamPos = -1;
+        
+        // 逐格移动，检测经过的梦想格
+        for (let i = 1; i <= flowSteps; i++) {
+            let newPos = (currentPos + 1) % room.flowTiles.length;
+            let tileAtPos = room.flowTiles[newPos];
+            
+            console.log(`   🚶 第 ${i} 步: 位置 ${currentPos} → ${newPos}, 格子: ${tileAtPos.name} (${tileAtPos.type})`);
+            
+            // 检查是否经过梦想格 (type 为 'dream')
+            if (tileAtPos.type === 'dream') {
+                // 防止同一格重复触发（如果步数刚好停在梦想格，会在最后处理）
+                if (newPos !== startPos || i === flowSteps) {
+                    console.log(`   🌟 经过梦想格 ${newPos + 1}: ${tileAtPos.name}`);
+                    // 触发梦想卡（但不阻塞移动）
+                    triggerDreamCard(state, tileAtPos, ws, roomId, player, currentPos, newPos);
+                    lastTriggeredDreamPos = newPos;
+                }
+            }
+            
+            // 检查是否经过社会服务中心（第5格和第21格）
+            if (tileAtPos.type === 'social_service') {
+                // 社会服务中心在 processFlowTile 中处理
+                // 但如果是经过（不是停在该格），我们只在停在该格时处理
+                // 所以这里只记录日志
+                console.log(`   🏛️ 经过社会服务中心: ${tileAtPos.name}`);
+            }
+            
+            currentPos = newPos;
+        }
+        
+        // 更新最终位置
+        state.flowPos = currentPos;
         tile = room.flowTiles[state.flowPos];
-        eventMessage = processFlowTile(state, tile);
-    } 
-    // ==================== 逆流层移动逻辑（更新版） ====================
+        
+        console.log(`🌊 玩家 ${player.playerName} 从位置 ${startPos} 移动到 ${state.flowPos} (${tile.name})`);
+        
+        // 如果最终停在梦想格，触发梦想卡（如果还没触发过）
+        if (tile.type === 'dream' && lastTriggeredDreamPos !== state.flowPos) {
+            console.log(`   🌟 最终停在梦想格 ${state.flowPos + 1}: ${tile.name}`);
+            triggerDreamCard(state, tile, ws, roomId, player, startPos, state.flowPos);
+        }
+        
+        // 处理格子效果（如果是投资格、社会服务中心或其他类型）
+        eventMessage = processFlowTile(state, tile, ws, roomId, player);
+        console.log(`📝 处理结果: ${eventMessage}`);
+    }
+    // ==================== 逆流层移动逻辑 ====================
     else if (state.inReverse) {
+        // ... 逆流层移动逻辑保持不变 ...
         let stepsLeft = steps;
         let currentReversePos = state.reversePos;
         
-        // 遍历每一步
         for (let i = 1; i <= steps; i++) {
-            // 计算新位置
             let newReversePos = currentReversePos + 1;
             let completedReverse = false;
             
-            // 检查是否完成逆流层（走完第9格后）
             if (newReversePos >= room.reverseTiles.length) {
                 completedReverse = true;
                 newReversePos = room.reverseTiles.length - 1;
@@ -4035,7 +5343,6 @@ function handleRoll(ws, data, roomId) {
             
             let tileAtPos = room.reverseTiles[newReversePos];
             
-            // 处理逆流层格子效果
             if (tileAtPos.type !== 'settlement') {
                 const eventMsg = processReverseTile(state, tileAtPos, ws, roomId, player);
                 if (eventMsg && typeof eventMsg === 'string') {
@@ -4046,11 +5353,9 @@ function handleRoll(ws, data, roomId) {
                 }
             }
             
-            // 更新位置
             currentReversePos = newReversePos;
             state.reversePos = currentReversePos;
             
-            // 如果完成逆流层，回到平流层
             if (completedReverse) {
                 state.inReverse = false;
                 const remainingSteps = steps - i;
@@ -4064,11 +5369,9 @@ function handleRoll(ws, data, roomId) {
                     message: `🎉 ${player.playerName} 完成逆流層，回到平流層！`
                 }, ws);
                 
-                // 如果还有剩余步数，在平流层继续移动
                 if (remainingSteps > 0) {
                     let newStreamlinePos = (state.streamlinePos + remainingSteps) % room.streamlineTiles.length;
                     
-                    // 检查经过的结算日
                     for (let j = 1; j <= remainingSteps; j++) {
                         let tempPos = (state.streamlinePos + j) % room.streamlineTiles.length;
                         let checkTile = room.streamlineTiles[tempPos];
@@ -4117,7 +5420,6 @@ function handleRoll(ws, data, roomId) {
                     state.streamlinePos = newStreamlinePos;
                 }
                 
-                // 设置最终格子
                 tile = room.streamlineTiles[state.streamlinePos];
                 eventMessage = `完成逆流層，回到平流層「${tile.name}」`;
                 break;
@@ -4126,15 +5428,13 @@ function handleRoll(ws, data, roomId) {
             stepsLeft--;
         }
         
-        // 如果还在逆流层，设置最终格子
         if (state.inReverse) {
             tile = room.reverseTiles[state.reversePos];
             eventMessage = `移動到逆流層「${tile.name}」`;
         }
     }
-    // ============================================================
+    // ==================== 平流层移动逻辑 ====================
     else {
-        // 平流层移动逻辑
         for (let i = 1; i <= steps; i++) {
             let newPos = (oldPos + i) % room.streamlineTiles.length;
             let tileAtPos = room.streamlineTiles[newPos];
@@ -4195,15 +5495,59 @@ function handleRoll(ws, data, roomId) {
         }
     }
     
-    // 检查进入顺流层的条件
-    const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-    if (!state.inReverse && state.passiveIncome > totalExp && !state.inFlow) {
-        state.inFlow = true;
-        state.flowPos = 0;
-        ws.send(JSON.stringify({ type: 'notification', message: '🎉 恭喜进入顺流层！' }));
-        broadcastToRoom(roomId, { type: 'notification', message: `🎉 ${player.playerName} 进入顺流层！` }, ws);
+    // ==================== 检查进入顺流层的条件 ====================
+    if (!state.inReverse && !state.inFlow) {
+        const totalExpense = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
+        
+        if (state.passiveIncome >= totalExpense) {
+            if (state.energy <= 0) {
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `❌ 无法进入顺流层！精力不足 (当前 ${state.energy})，需要至少1点精力。`
+                }));
+            } else if (state.loanAmount > 0) {
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `❌ 无法进入顺流层！你还有银行贷款 ${state.loanAmount.toLocaleString()} 元未还清。`
+                }));
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'flow_layer_choice',
+                    message: `🎉 恭喜！你已满足进入顺流层的条件！\n\n` +
+                        `📊 当前财务状况:\n` +
+                        `   被動收入: ${state.passiveIncome.toLocaleString()} 元/月\n` +
+                        `   总支出: ${totalExpense.toLocaleString()} 元/月\n` +
+                        `   精力: ${state.energy}/${state.maxEnergy}\n` +
+                        `   贷款: ${state.loanAmount.toLocaleString()} 元\n\n` +
+                        `✨ 进入顺流层后:\n` +
+                        `   • 被動收入 × 100 倍！\n` +
+                        `   • 可设立资产信托保护财富\n` +
+                        `   • 步数加倍！\n` +
+                        `   • 追求终极梦想\n\n` +
+                        `⚠️ 注意: 进入后将无法立即返回平流层！\n\n` +
+                        `你是否愿意进入顺流层？`,
+                    canEnter: true,
+                    passiveIncome: state.passiveIncome,
+                    totalExpense: totalExpense,
+                    energy: state.energy,
+                    maxEnergy: state.maxEnergy,
+                    loanAmount: state.loanAmount
+                }));
+                
+                if (!room.pendingFlowChoices) {
+                    room.pendingFlowChoices = new Map();
+                }
+                room.pendingFlowChoices.set(ws, {
+                    playerId: player.playerId,
+                    timestamp: Date.now()
+                });
+                
+                return;
+            }
+        }
     }
     
+    // ==================== 发送骰子结果 ====================
     const result = {
         type: 'dice_result',
         playerId: player.playerId,
@@ -4457,6 +5801,28 @@ wss.on('connection', (ws) => {
                 case 'market_news_response':
                     handleMarketNewsResponse(ws, data, playerRoomId);
                     break;
+                case 'flow_layer_choice':
+                    handleFlowLayerChoice(ws, data, playerRoomId);
+                    break;
+                 case 'auction_bid':
+                    handleAuctionBid(ws, data, playerRoomId);
+                    break;
+                case 'auction_pass':
+                    handleAuctionPass(ws, data, playerRoomId);
+                    break;
+                case 'asset_trust_setup':
+                const depositAmount = parseInt(data.amount);
+                if (!isNaN(depositAmount) && depositAmount > 0) {
+                    const room = rooms.get(playerRoomId);
+                    if (room && room.players.has(ws)) {
+                        const player = room.players.get(ws);
+                        executeAssetTrust(player.gameState, depositAmount, ws, playerRoomId, player);
+                    }
+                }
+                break;
+                case 'social_service_choice':
+                    handleSocialServiceChoice(ws, data, playerRoomId);
+                    break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知消息类型' }));
             }
@@ -4539,12 +5905,16 @@ server.listen(PORT, '0.0.0.0', () => {
 ║   • 访问 /api/transactions 查看JSON数据                                     ║
 ║   • 访问 /record.html 查看交易记录页面                                      ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║   💰 支出减免系统:                                                          ║
-║   • expenseReduction 属性支持支出百分比减免                                ║
-║   • 结算日自动计算减免后的支出                                              ║
-║   • monthlyCashFlow 自动计算月现金流                                       ║
+║   💰 支出减免系统:                                                            ║
+║   • expenseReduction 属性支持支出百分比减免                                    ║
+║   • 结算日自动计算减免后的支出                                                 ║
+║   • monthlyCashFlow 自动计算月现金流                                          ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║   🌐 访问地址: http://localhost:${PORT}                                      ║
+║   🌐 访问地址(boardgame):                                                    ║
+║   🎮 游戏大厅:    http://localhost:${PORT}                                   ║                       
+║   📊 交易记录:    http://localhost:${PORT}/record.html                       ║
+║   📜 规则主页:    http://localhost:${PORT}/main.html                         ║
+║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
     `);
 });

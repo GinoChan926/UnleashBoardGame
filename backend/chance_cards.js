@@ -227,6 +227,268 @@ const partTimeCards = [
     }
 ];
 
+// ==================== 竞拍系统 ====================
+
+// 存储活跃的竞拍
+const activeAuctions = new Map();
+
+// 开始竞拍
+function startAuction(roomId, card, currentPlayer, ws) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const auctionId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    
+    const auction = {
+        id: auctionId,
+        card: card,
+        roomId: roomId,
+        currentPrice: card.auctionDetails.basePrice || 700000,
+        minBidIncrement: card.auctionDetails.minBidIncrement || 100000,
+        energyReward: card.auctionDetails.energyReward || 50,
+        currentBidder: null,
+        bidders: new Map(), // ws -> { playerName, currentBid }
+        passedPlayers: new Set(), // 已PASS的玩家
+        active: true,
+        startTime: Date.now(),
+        initiator: currentPlayer.playerName
+    };
+    
+    // 收集所有玩家
+    room.players.forEach((player, playerWs) => {
+        auction.bidders.set(playerWs, {
+            playerName: player.playerName,
+            currentBid: 0,
+            ws: playerWs
+        });
+    });
+    
+    activeAuctions.set(auctionId, auction);
+    
+    // 发送竞拍开始消息给所有玩家
+    const auctionMessage = {
+        type: 'auction_start',
+        auctionId: auctionId,
+        cardName: card.name,
+        description: card.description,
+        basePrice: auction.currentPrice,
+        minBidIncrement: auction.minBidIncrement,
+        energyReward: auction.energyReward,
+        initiator: currentPlayer.playerName,
+        currentPrice: auction.currentPrice,
+        currentBidder: null
+    };
+    
+    broadcastToRoom(roomId, auctionMessage);
+    
+    console.log(`🏗️ 竞拍开始: ${card.name}, 底价: ${auction.currentPrice}, 由 ${currentPlayer.playerName} 发起`);
+    return auctionId;
+}
+
+// 处理竞拍出价
+function handleAuctionBid(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const auctionId = data.auctionId;
+    const auction = activeAuctions.get(auctionId);
+    
+    if (!auction || !auction.active) {
+        ws.send(JSON.stringify({
+            type: 'auction_error',
+            message: '竞拍已结束或不存在'
+        }));
+        return;
+    }
+    
+    // 检查玩家是否已经PASS
+    if (auction.passedPlayers.has(ws)) {
+        ws.send(JSON.stringify({
+            type: 'auction_error',
+            message: '你已PASS，不能再参与竞拍'
+        }));
+        return;
+    }
+    
+    const newBid = auction.currentPrice + auction.minBidIncrement;
+    
+    // 检查玩家现金是否足够
+    if (player.gameState.cash < newBid) {
+        ws.send(JSON.stringify({
+            type: 'auction_error',
+            message: `现金不足！需要 ${newBid.toLocaleString()} 元，当前 ${player.gameState.cash.toLocaleString()} 元`
+        }));
+        return;
+    }
+    
+    // 更新竞拍价格
+    auction.currentPrice = newBid;
+    auction.currentBidder = player.playerName;
+    
+    // 更新该玩家的出价记录
+    const bidderInfo = auction.bidders.get(ws);
+    if (bidderInfo) {
+        bidderInfo.currentBid = newBid;
+    }
+    
+    // 广播更新
+    broadcastToRoom(roomId, {
+        type: 'auction_update',
+        auctionId: auctionId,
+        currentPrice: newBid,
+        currentBidder: player.playerName,
+        message: `${player.playerName} 出价 ${newBid.toLocaleString()} 元！`
+    });
+    
+    console.log(`💰 ${player.playerName} 出价 ${newBid.toLocaleString()} 元`);
+}
+
+// 处理玩家PASS
+function handleAuctionPass(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    
+    const player = room.players.get(ws);
+    if (!player) return;
+    
+    const auctionId = data.auctionId;
+    const auction = activeAuctions.get(auctionId);
+    
+    if (!auction || !auction.active) {
+        ws.send(JSON.stringify({
+            type: 'auction_error',
+            message: '竞拍已结束或不存在'
+        }));
+        return;
+    }
+    
+    // 标记玩家已PASS
+    auction.passedPlayers.add(ws);
+    
+    // 检查是否所有玩家都已PASS
+    let allPassed = true;
+    auction.bidders.forEach((bidder, bidderWs) => {
+        if (!auction.passedPlayers.has(bidderWs)) {
+            allPassed = false;
+        }
+    });
+    
+    // 如果所有玩家都PASS了，结束竞拍
+    if (allPassed) {
+        endAuction(auctionId, roomId);
+        return;
+    }
+    
+    // 广播玩家PASS
+    broadcastToRoom(roomId, {
+        type: 'auction_update',
+        auctionId: auctionId,
+        currentPrice: auction.currentPrice,
+        currentBidder: auction.currentBidder,
+        message: `${player.playerName} 已 PASS (不能再出价)`
+    });
+    
+    console.log(`⏭️ ${player.playerName} 已PASS`);
+}
+
+// 结束竞拍
+function endAuction(auctionId, roomId) {
+    const auction = activeAuctions.get(auctionId);
+    if (!auction) return;
+    
+    auction.active = false;
+    
+    // 检查是否有赢家
+    let winner = null;
+    let highestBid = 0;
+    
+    auction.bidders.forEach((bidder, bidderWs) => {
+        if (bidder.currentBid > highestBid && !auction.passedPlayers.has(bidderWs)) {
+            highestBid = bidder.currentBid;
+            winner = {
+                ws: bidderWs,
+                playerName: bidder.playerName,
+                bid: bidder.currentBid
+            };
+        }
+    });
+    
+    const room = rooms.get(roomId);
+    
+    if (winner && room) {
+        // 找到赢家的玩家对象
+        const winnerPlayer = room.players.get(winner.ws);
+        
+        if (winnerPlayer) {
+            // 扣除现金
+            winnerPlayer.gameState.cash -= winner.bid;
+            
+            // 获得精力奖励
+            winnerPlayer.gameState.energy = Math.min(
+                winnerPlayer.gameState.maxEnergy,
+                winnerPlayer.gameState.energy + auction.energyReward
+            );
+            
+            // 记录交易
+            addTransactionRecord(
+                winnerPlayer.playerName,
+                { name: auction.card.name, type: "investment", id: auction.card.id },
+                "竞拍获胜",
+                -winner.bid,
+                `竞拍「${auction.card.name}」获胜！支出 ${winner.bid.toLocaleString()} 元，获得 ${auction.energyReward} 精力！`,
+                null,
+                winnerPlayer.gameState
+            );
+            
+            // 广播竞拍结果
+            broadcastToRoom(roomId, {
+                type: 'auction_end',
+                auctionId: auctionId,
+                winner: winner.playerName,
+                winningBid: winner.bid,
+                energyReward: auction.energyReward,
+                message: `🎉 竞拍结束！${winner.playerName} 以 ${winner.bid.toLocaleString()} 元获胜，获得 ${auction.energyReward} 精力！`
+            });
+            
+            // 更新赢家状态
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: winnerPlayer.playerId,
+                gameState: winnerPlayer.gameState
+            });
+            
+            console.log(`🏆 竞拍结束！${winner.playerName} 以 ${winner.bid.toLocaleString()} 元获胜`);
+        }
+    } else {
+        // 没有人出价，竞拍取消
+        broadcastToRoom(roomId, {
+            type: 'auction_end',
+            auctionId: auctionId,
+            winner: null,
+            winningBid: 0,
+            message: `竞拍取消 - 没有人出价`
+        });
+    }
+    
+    activeAuctions.delete(auctionId);
+}
+
+// 处理竞拍超时（60秒自动结束）
+setInterval(() => {
+    const now = Date.now();
+    activeAuctions.forEach((auction, auctionId) => {
+        if (now - auction.startTime > 60000 && auction.active) {
+            console.log(`⏰ 竞拍超时: ${auction.card.name}`);
+            endAuction(auctionId, auction.roomId);
+        }
+    });
+}, 5000);
+
+
+
 // ==================== 财务类机会卡 (Finance) ====================
 const financeCards = [
     // 基金投资 F02

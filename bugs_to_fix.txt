@@ -16,6 +16,9 @@ It need backend support to fix it(in server.js and game.js)(7/6/2026)
 10. I didn't add the function(功能:轉讓物業給其他玩家) to all 住宅卡(H01-H05) (7/6/2026)
 11. I didn't add function of P05 (在爭執時報警,立即將另一位玩家前/後移動3格,那位玩家需立即執行該格(經過月入不會有收入)。) and function of P06(舉報違法,你選擇一個玩家-$5000)
 It need backend support to fix it(in server.js and game.js)(8/6/2026)
+12.I find out that some bugs for chance card or police cards, tips cards , pls help me check all card works well(like energy calculation and money calculation)(11/6/2026)
+13.Please turn all simplified Chinese into Traditional Chinese
+14.Some Business card didn t add passive income?
 
 In revelation_cards.js(Please review all cards function):
 1. Some tipsCard in revelation(IN01-IN17) are team contribution and we don t have server yet (cannot run multiplayer function) It need backend support to fix it(in server.js and game.js)(10/6/2026)

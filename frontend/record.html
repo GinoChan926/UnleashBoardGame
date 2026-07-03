@@ -217,6 +217,9 @@
         <button class="filter-btn" data-filter="market_news">📊 市场消息</button>
         <button class="filter-btn" data-filter="hardship">🎭 逆境自强</button>
         <button class="filter-btn" data-filter="tip">🎁 锦囊卡</button>
+        <button class="filter-btn" data-filter="trust">🏦 资产信托</button>
+        <button class="filter-btn" data-filter="investment">🏗️ 投资</button>
+        <button class="filter-btn" data-filter="social">🤝 社會卡</button>
         <input type="text" class="search-input" id="searchInput" placeholder="搜尋玩家或卡片...">
         <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
     </div>
@@ -320,7 +323,19 @@
         } else if (t.cardType === 'hardship') {
             badgeClass = 'badge-lier';
             typeName = '🎭 逆境自强';
-        } else {
+        } else if (t.cardType === 'trust') {
+            badgeClass = 'badge-general';
+            typeName = '🏦 资产信托';
+        } else if (t.cardType === 'trust') {
+            badgeClass = 'badge-property';
+            typeName = '🏦 信托';
+        } else if (t.cardType === 'investment') {
+            badgeClass = 'badge-business';
+            typeName = '🏗️ 投资';
+        }  else if (t.cardType === 'social') {
+            badgeClass = 'badge-volunteer';
+            typeName = '🤝 社會卡';
+        }  else {
             badgeClass = 'badge-general';
             typeName = '🎁 察覺';
         }

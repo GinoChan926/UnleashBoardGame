@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>馬太財商沙盤  | 官方主頁</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(145deg, #002b36 0%, #004d66 100%);
+            font-family: 'Segoe UI', 'Noto Sans TC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            min-height: 100vh;
+            padding: 32px 24px;
+            color: #fef3d6;
+        }
+
+        /* 主容器 */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 標題與導航區 */
+        .hero-section {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .hero-title {
+            font-size: 3.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFE6B0, #FFB347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .hero-sub {
+            font-size: 1.1rem;
+            color: #FFDD99;
+            background: rgba(0,0,0,0.4);
+            display: inline-block;
+            padding: 6px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 快捷入口卡片 */
+        .portal-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+
+        .portal-card {
+            background: rgba(30, 40, 45, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 24px 32px;
+            width: 280px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #ffb347;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .portal-card:hover {
+            transform: translateY(-8px);
+            background: rgba(50, 70, 75, 0.95);
+            border-color: #ffd966;
+            box-shadow: 0 25px 35px rgba(0,0,0,0.4);
+        }
+
+        .portal-icon {
+            font-size: 4rem;
+        }
+
+        .portal-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd966;
+        }
+
+        .portal-desc {
+            font-size: 0.9rem;
+            color: #e0e0b0;
+        }
+
+        /* 遊戲規則區塊 + 版權區塊 雙欄佈局 */
+        .info-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            margin-top: 20px;
+        }
+
+        .rules-box {
+            flex: 2;
+            min-width: 280px;
+            background: rgba(15, 28, 32, 0.85);
+            backdrop-filter: blur(4px);
+            border-radius: 40px;
+            border: 1px solid #ffb347;
+            padding: 28px 32px;
+            transition: 0.2s;
+        }
+
+        .credits-box {
+            flex: 1.2;
+            min-width: 260px;
+            background: rgba(10, 20, 25, 0.9);
+            border-radius: 40px;
+            border: 1px solid #d4af37;
+            padding: 28px 28px;
+            backdrop-filter: blur(4px);
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            border-left: 6px solid #ffb347;
+            padding-left: 20px;
+            margin-bottom: 24px;
+            color: #ffefb0;
+        }
+
+        .rule-category {
+            margin-top: 24px;
+        }
+
+        .rule-category h3 {
+            font-size: 1.35rem;
+            color: #ffc857;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rule-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #f0e6cf;
+            margin-bottom: 10px;
+            padding-left: 16px;
+            border-left: 2px solid rgba(255, 180, 71, 0.5);
+        }
+
+        .rule-highlight {
+            color: #ffb347;
+            font-weight: 600;
+        }
+
+        .credit-item {
+            margin-bottom: 24px;
+            border-bottom: 1px dashed rgba(255, 180, 71, 0.3);
+            padding-bottom: 18px;
+        }
+
+        .credit-item:last-child {
+            border-bottom: none;
+        }
+
+        .credit-title {
+            font-weight: bold;
+            font-size: 1rem;
+            color: #FFD966;
+            margin-bottom: 6px;
+        }
+
+        .credit-text {
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: #cddde0;
+            word-break: break-word;
+        }
+
+        .credit-link {
+            color: #ffb347;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .credit-link:hover {
+            text-decoration: underline;
+        }
+
+        .footer-note {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #9bb7c0;
+            border-top: 1px solid #2e6b5e;
+            padding-top: 28px;
+        }
+
+        @media (max-width: 850px) {
+            .hero-title {
+                font-size: 2.4rem;
+            }
+            .portal-card {
+                width: 240px;
+                padding: 18px 20px;
+            }
+            .rules-box, .credits-box {
+                padding: 20px;
+            }
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 650px) {
+            body {
+                padding: 16px;
+            }
+            .portal-card {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+
+        .btn-ornament {
+            background: #ffb34720;
+            display: inline-block;
+            border-radius: 60px;
+            padding: 2px 10px;
+            font-size: 0.7rem;
+            color: #ffdd99;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- 頂部裝飾區 -->
+    <div class="hero-section">
+        <div class="hero-title">馬太財商沙盤</div>
+        <div class="hero-sub">順流 · 平流 · 逆流 | 團隊競合 財務蛻變</div>
+    </div>
+
+    <!-- 入口卡片區 -->
+    <div class="portal-row">
+        <a href="index.html" class="portal-card" target="_blank" rel="noopener noreferrer">
+            <div class="portal-icon">🎲</div>
+            <div class="portal-title">進入遊戲大廳</div>
+            <div class="portal-desc">開始您的財富覺醒體驗，選擇職業、擲骰前進，創造被動收入</div>
+        </a>
+        <a href="record.html" class="portal-card" target="_blank" rel="noopener noreferrer">
+            <div class="portal-icon">📋</div>
+            <div class="portal-title">交易記錄總覽</div>
+            <div class="portal-desc">完整追蹤每一筆卡牌效果、金流變化，回顧財富軌跡</div>
+        </a>
+    </div>
+
+    <!-- 遊戲規則 + 版權區塊 -->
+    <div class="info-grid">
+        <!-- 遊戲規則區域 -->
+        <div class="rules-box">
+            <div class="section-title">📜 遊戲規則 · 財富流核心</div>
+            
+            <div class="rule-category">
+                <h3>🎯 目標與勝利條件</h3>
+                <div class="rule-text">玩家由平流層出發，透過擲骰前進，觸發機會卡、結算日、逆流事件等。首要目標是累積<span class="rule-highlight">被動收入＞總支出</span>，達成後即可躍升至「順流層」。在順流層投資夢想、創造巨大財富，第一個完成終極夢想或累積指定財富值者即獲得最終勝利。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>⚙️ 職業與初始狀態</h3>
+                <div class="rule-text">每位玩家選擇獨特職業：醫生、工程師、教師、藝術家、創業者。不同職業影響<span class="rule-highlight">起始現金、月薪、副業收入、精力、幸運值</span>。精力是行動資源，擲骰、執行卡牌消耗精力；幸運值會影響部分隨機事件的好壞走向。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>🎲 回合流程</h3>
+                <div class="rule-text">① <span class="rule-highlight">擲骰移動</span>：骰出步數後，角色順時針移動，踩中不同格子觸發事件（機會卡/結算日/騙子卡/義工卡/覺察卡等）。</div>
+                <div class="rule-text">② <span class="rule-highlight">結算日</span>：位於第5、13、21格，獲得「月薪＋副業收入」並扣除支出。貸款系統每經12次結算日未償還會強制扣款。</div>
+                <div class="rule-text">③ <span class="rule-highlight">機會卡</span>：花費500元抽取兼職/財務/創業/地產四類卡牌，支付追加投資可獲得被動收入、副業成長或特殊技能。</div>
+                <div class="rule-text">④ <span class="rule-highlight">結束回合</span>：恢復1點精力，幸運值微量減少（若無特殊保護）。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>🃏 特殊卡牌機制</h3>
+                <div class="rule-text"><span class="rule-highlight">🎭 騙子卡</span>：立即觸發負面效果，可能損失現金、精力，甚至跌入逆流層。持有「防騙通行證」或義工玩家可抵擋。</div>
+                <div class="rule-text"><span class="rule-highlight">👮 警察卡</span>：獲得正面增益，如精力恢復、貸款利率降低、免死護盾或法例知識。</div>
+                <div class="rule-text"><span class="rule-highlight">🤝 義工卡</span>：透過捐款或捐贈精力幫助弱勢玩家，累積義工次數，未來能協助他人抵擋騙子卡，善有善報。</div>
+                <div class="rule-text"><span class="rule-highlight">📈 股票／基金／加密貨幣</span>：財務卡牌提供真實波動買賣機會，可低買高賣，高風險高回報。</div>
+                <div class="rule-text"><span class="rule-highlight">🧘 察覺卡</span>：市場消息影響全體玩家資產價格，錦囊卡帶來團隊或個人特殊增益。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>💰 貸款 & 財務系統</h3>
+                <div class="rule-text">貸款上限為(月薪+副業)×3倍，利率10%。償還時需一次付清本金加利息。每次經過結算日若未還款，貸款紀錄次數累計，12次後銀行強制扣除全部本利，現金不足則轉為剩餘貸款持續計息。</div>
+                <div class="rule-text">被動收入、副業加成與支出減免技能 (如法例知識、平面設計技能) 可以讓財務體質更穩健，加速達成財務自由。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>🍀 幸運星 & 四葉草</h3>
+                <div class="rule-text">踩中對應格子獲得幸運星或四葉草。使用幸運星下次擲骰步數x3，使用四葉草步數x2；巧妙運用可大幅增加移動效率。</div>
+            </div>
+
+            <div class="rule-category">
+                <h3>🌀 逆流層 & 出口</h3>
+                <div class="rule-text">踩中「逆流層入口」進入逆流層，該層移動將觸發困境事件（生意失敗、失業），但逆流層內仍有「覺察卡」機遇。走完整個逆流層並踩中「逆流層出口」可返回平流層，且回到後會立刻觸發格子效果。</div>
+            </div>
+            <div class="rule-text" style="margin-top:12px; background:#00000030; border-radius:20px; padding:10px;">📌 備註：所有遊戲交易自動記錄於「交易記錄總覽」頁面，可即時檢視金流、被動收入變動與歷史軌跡。</div>
+        </div>
+
+        <!-- 音樂版權信用區域 -->
+        <div class="credits-box">
+            <div class="section-title">🎵 音樂版權 Credit</div>
+            <div class="credit-item">
+                <div class="credit-title">🎼 Incredulity</div>
+                <div class="credit-text">作曲：Scott Buckley | <a href="https://www.scottbuckley.com.au" target="_blank" rel="noopener noreferrer" class="credit-link">www.scottbuckley.com.au</a><br>
+                音樂推廣：<a href="https://www.chosic.com/free-music/all/" target="_blank" class="credit-link">Chosic</a><br>
+                Creative Commons CC BY 4.0<br>
+                <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" class="credit-link">https://creativecommons.org/licenses/by/4.0/</a></div>
+            </div>
+            <div class="credit-item">
+                <div class="credit-title">🌌 Adrift Among Infinite Stars</div>
+                <div class="credit-text">作曲：Scott Buckley | www.scottbuckley.com.au<br>
+                Promoted by Chosic – CC BY 4.0</div>
+            </div>
+            <div class="credit-item">
+                <div class="credit-title">💖 Beloved</div>
+                <div class="credit-text">作曲：Sakura Girl | <a href="https://soundcloud.com/sakuragirl_official" target="_blank" class="credit-link">SoundCloud</a><br>
+                Promoted by Chosic – CC BY 3.0<br>
+                <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" class="credit-link">https://creativecommons.org/licenses/by/3.0/</a></div>
+            </div>
+            <div class="credit-item">
+                <div class="credit-title">🌙 The Long Dark</div>
+                <div class="credit-text">作曲：Scott Buckley | www.scottbuckley.com.au<br>
+                CC BY 4.0 – 授權公開使用</div>
+            </div>
+            <div class="credit-item">
+                <div class="credit-title">✨ Transcendence</div>
+                <div class="credit-text">作曲：Alexander Nakarada | <a href="https://creatorchords.com" target="_blank" class="credit-link">creatorchords.com</a><br>
+                CC BY 4.0 國際許可</div>
+            </div>
+            <div class="credit-item" style="margin-top: 12px;">
+                <div class="credit-title">🎧 遊戲背景音樂說明</div>
+                <div class="credit-text">本遊戲使用多位藝術家提供的授權音樂，遵循 CC BY 4.0 / CC BY 3.0 協議，感謝他們的慷慨創作，為財富流沙盤帶來沉浸式體驗。</div>
+            </div>
+            <div style="margin-top: 24px; background: #ffb34720; border-radius: 24px; padding: 12px; text-align: center;">
+                <span style="font-size:0.8rem;">🎲 設計與開發：財富流沙盤線上聯機版<br>所有卡片內容、職業、規則皆為原創及授權改編</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        🌟 財富流沙盤 · 多人聯機版 | 建議使用 Chrome / Edge 瀏覽器，確保 WebSocket 連接順暢。<br>
+        ⚡ 遊戲過程自動保存交易記錄，可隨時返回主頁查閱。祝各位在遊戲中洞察財富本質，收穫豐盛人生。
+    </div>
+</div>
+
+<!-- 小修飾 確保點擊外部卡片可開新頁 -->
+<script>
+    (function() {
+        // 確保外部鏈接 / a 標籤已經有 target="_blank" 屬性，此處無需額外工作
+        // 提供一個簡易導航提醒
+        console.log("🏠 財富流主頁已載入，可前往遊戲大廳與交易記錄頁面");
+        // 可選：增加背景音樂提示（但音樂僅存在於遊戲大廳，主頁不自動播放，避免干擾）
+    })();
+</script>
+</body>
+</html>
