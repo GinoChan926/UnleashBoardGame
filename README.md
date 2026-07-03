@@ -44,7 +44,31 @@ Please Ctrl+ left click the http://localhost:8080
 Or open the browser：http://localhost:8080/frontend/index.html
 
 # LAN-server-school competition
-in the minPC server pls type following command in it:
+in the minPC server pls type following command below in terminal:
+1. cd ../project/backend
+2. node server.js
+
+Then you open the server, next pls find the server IP(IPV4 address):
+Window miniPC server:
+1. Open Powershell and type the following command
+2. ipconfig
+3. Look for the IPv4 Address line
+
+macOS miniPC server:
+1.Open Terminal (found in Launchpad > Other).For internal IP:
+2.If on Wi-Fi: ipconfig getifaddr en0
+If on Ethernet: ipconfig getifaddr en1
+3.For public IP (external access): curl ifconfig.me
+
+Linux server:
+1.Open a terminal.
+2.ip addr show or ip a – lists all network interfaces with details.
+Look for an interface that is UP (e.g., eth0, ens33, wlan0). Find the inet field – that's your IPv4 address (e.g., 192.168.1.100/24).
+
+In the player computer (your own laptop or PC)
+1.ping (the IPV4 address of the server)
+2.Open a browser , type http://XXX.XXX.X.XXX:8080 (where the XXX.XXX.X.XXX is the IPV4 adress of server)
+3.Finally connect the game , and enjoy
 
 
 
