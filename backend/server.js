@@ -512,7 +512,10 @@ const server = http.createServer((req, res) => {
         }
     }
     
-    if (filePath.includes('/cards/') || filePath.includes('../cards/')) {
+    if ((filePath.includes('/cards/') || filePath.includes('../cards/'))
+        && !filePath.endsWith('.js')      // ← ADD THIS
+        && !filePath.endsWith('.css')     // ← ADD THIS
+        && !filePath.endsWith('.html')) { // ← ADD THIS{
         let relativePath = filePath;
         relativePath = relativePath.replace(/\.\.\//g, '');
         if (relativePath.startsWith('/')) relativePath = relativePath.substring(1);
@@ -686,9 +689,7 @@ function getOrCreateRoom(roomId) {
     if (!rooms.has(roomId)) {
         rooms.set(roomId, {
             players: new Map(),
-            pendingEvents: new Map(),
-            pendingTypeSelections: new Map(),
-            currentRoomId: roomId,
+            currentTurnPlayer: null,
             streamlineTiles,
             reverseTiles,
             flowTiles
@@ -5582,9 +5583,7 @@ function handleJoin(ws, data, roomId) {
     const playerName = data.playerName;
     const professionId = data.profession;
     const professionData = data.professionData || PROFESSIONS[professionId] || PROFESSIONS.teacher;
-    
-    console.log(`📊 职业数据: ${professionData.name}, 起始精力: ${professionData.energy}/${professionData.maxEnergy}`);
-    
+
     const gameState = {
         playerId,
         playerName,
@@ -5596,7 +5595,6 @@ function handleJoin(ws, data, roomId) {
         cash: professionData.cash,
         salary: professionData.salary,
         sideIncome: professionData.sideIncome || 0,
-        sideIncomeBonus: 0,
         passiveIncome: 0,
         livingExpense: professionData.livingExpense,
         tax: professionData.tax,
@@ -5604,51 +5602,25 @@ function handleJoin(ws, data, roomId) {
         loanInterest: 0,
         childExpense: 0,
         totalAssets: professionData.cash,
-        childCount: 0,
-        hasSpouse: false,
         energy: professionData.energy,
         maxEnergy: professionData.maxEnergy,
         luck: professionData.luck,
         maxLuck: 10,
-        silverWing: false,
-        usedSilverWing: false,
-        businessCostDiscount: 0,
-        hasEditSkill: false,
-        hasDesignSkill: false,
-        hasHostSkill: false,
-        hostSkillActive: false,
-        hasBusinessDiscount: false,
-        fourLeafClover: 0,
-        luckyStarCount: 0,
-        diceMultiplier: 0,
-        diceMultiplierActive: false,
-        totalSettlementCount: 0,
-        fraudShield: 0,
-        hasFraudAlert: false,
-        hasFraudKnowledge: false,
-        volunteerCount: 0,
-        volunteerShield: 0,
-        expenseReduction: 0,
-        bakeryCount: 0,
-        skipNextTurn: false
+        // Turn control
+        isMyTurn: room.players.size === 0,  // First player gets the turn
+        currentTurnPlayer: playerName
     };
-    
-    // 添加月现金流计算
-    gameState.monthlyCashFlow = calculateMonthlyCashFlow(gameState);
-    
+
     room.players.set(ws, { playerId, playerName, gameState });
-    
-    const otherPlayers = [];
-    room.players.forEach((player, otherWs) => {
-        if (otherWs !== ws) {
-            otherPlayers.push({
-                id: player.playerId,
-                name: player.playerName,
-                gameState: player.gameState
-            });
-        }
-    });
-    
+    room.currentTurnPlayer = playerName;
+
+    const otherPlayers = Array.from(room.players.values())
+        .filter(p => p.playerId !== playerId)
+        .map(p => ({
+            id: p.playerId,
+            gameState: p.gameState
+        }));
+
     ws.send(JSON.stringify({
         type: 'join_success',
         playerId,
@@ -5657,73 +5629,93 @@ function handleJoin(ws, data, roomId) {
         otherPlayers,
         streamlineTiles: room.streamlineTiles,
         reverseTiles: room.reverseTiles,
-        flowTiles: room.flowTiles,
-        cardTypes: Object.values(CARD_TYPES).map(t => ({
-            id: t.id,
-            name: t.name,
-            icon: t.icon,
-            color: t.color
-        }))
+        flowTiles: room.flowTiles
     }));
-    
+
+    // Broadcast to others
     broadcastToRoom(roomId, {
         type: 'player_joined',
         player: {
             id: playerId,
-            name: playerName,
-            gameState
+            gameState: gameState
         }
     }, ws);
-    
-    console.log(`👤 玩家加入: ${playerName} (${professionData.name}), 房间: ${roomId}, 当前人数: ${room.players.size}`);
+
+    console.log(`👤 玩家加入: ${playerName}, 房间人数: ${room.players.size}, 当前回合: ${room.currentTurnPlayer}`);
+}
+
+// Improved end turn
+function handleEndTurn(ws, data, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+
+    const player = room.players.get(ws);
+    if (!player) return;
+
+    player.gameState.isMyTurn = false;
+
+    // Cycle to next player
+    const playersArray = Array.from(room.players.values());
+    const currentIndex = playersArray.findIndex(p => p.playerId === player.playerId);
+    const nextIndex = (currentIndex + 1) % playersArray.length;
+    const nextPlayer = playersArray[nextIndex];
+
+    nextPlayer.gameState.isMyTurn = true;
+    room.currentTurnPlayer = nextPlayer.playerName;
+
+    // Broadcast turn end
+    broadcastToRoom(roomId, {
+        type: 'turn_ended',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+
+    // Broadcast new turn state to all
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: nextPlayer.playerId,
+        gameState: nextPlayer.gameState
+    });
+
+    console.log(`⏭️ 回合结束: ${player.playerName} → ${nextPlayer.playerName}`);
 }
 
 function handleEndTurn(ws, data, roomId) {
     const room = rooms.get(roomId);
     if (!room) return;
-    
+
     const player = room.players.get(ws);
     if (!player) return;
-    
-    // ==================== 檢查是否有額外回合 ====================
-    if (player.gameState.extraTurn) {
-        player.gameState.extraTurn = false;
-        
-        // 通知玩家獲得額外回合
-        ws.send(JSON.stringify({
-            type: 'notification',
-            message: '⏰ 時間管理生效！你獲得一個額外回合！'
-        }));
-        
-        broadcastToRoom(roomId, {
-            type: 'notification',
-            message: `⏰ ${player.playerName} 獲得了額外回合！`
-        }, ws);
-        
-        // 不結束回合，讓玩家再次行動
-        console.log(`⏰ 玩家 ${player.playerName} 獲得額外回合，繼續行動`);
-        return;
-    }
-    // ============================================================
-    
+
+    // Restore energy
     player.gameState.energy = Math.min(player.gameState.maxEnergy, player.gameState.energy + 1);
-    player.gameState.usedSilverWing = false;
-    player.gameState.luck = Math.max(0, player.gameState.luck - 0.5);
-    
-    // 更新月现金流
-    player.gameState.monthlyCashFlow = calculateMonthlyCashFlow(player.gameState);
-    
-    const result = {
+
+    // Cycle turn to next player
+    const playersArray = Array.from(room.players.values());
+    const currentIndex = playersArray.findIndex(p => p.playerId === player.playerId);
+    const nextIndex = (currentIndex + 1) % playersArray.length;
+    const nextPlayer = playersArray[nextIndex];
+
+    // Update turn state
+    player.gameState.isMyTurn = false;
+    nextPlayer.gameState.isMyTurn = true;
+    room.currentTurnPlayer = nextPlayer.playerName;
+
+    // Broadcast to all
+    broadcastToRoom(roomId, {
         type: 'turn_ended',
         playerId: player.playerId,
-        playerName: player.playerName,
         gameState: player.gameState
-    };
-    
-    ws.send(JSON.stringify(result));
-    broadcastToRoom(roomId, result, ws);
-    
-    console.log(`⏭️ 玩家 ${player.playerName} 结束回合，精力恢复1点`);
+    });
+
+    // Send new turn info
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: nextPlayer.playerId,
+        gameState: nextPlayer.gameState
+    });
+
+    console.log(`⏭️ 回合结束: ${player.playerName} → ${nextPlayer.playerName}`);
 }
 
 // ==================== WebSocket 连接处理 ====================
