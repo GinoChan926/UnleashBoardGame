@@ -1,61 +1,81 @@
 "use strict";
 
-import { PROFESSIONS } from './constants/Tiles.js';
-import { ConnectionManager }    from './managers/ConnectionManager.js';
-import { ModalManager }         from './managers/ModalManager.js';
-import { CardModalManager }     from './managers/CardModalManager.js';
-import { BoardRenderer }        from './managers/BoardRenderer.js';
-import { PlayerPanelRenderer }  from './managers/PlayerPanelRenderer.js';
-import { MessageRouter }        from './managers/MessageRouter.js';
-import { LogManager }           from './managers/LogManager.js';
-import { TurnManager }          from './managers/TurnManager.js';
-import { GameStateManager }     from './managers/GameStateManager.js';
+import { PROFESSIONS }           from './constants/Professions.js';
+import { ConnectionManager }     from './managers/ConnectionManager.js';
+import { ModalManager }          from './managers/ModalManager.js';
+import { LogManager }            from './managers/LogManager.js';
+import { BoardRenderer }         from './managers/BoardRenderer.js';
+import { PlayerPanelRenderer }   from './managers/PlayerPanelRenderer.js';
+import { CardModalManager }      from './managers/CardModalManager.js';
+import { MessageRouter }         from './managers/MessageRouter.js';
+
+import { GameLifecycleManager }  from './managers/lifecycle/GameLifecycleManager.js';
+import { PlayerActionSender }    from './managers/actions/PlayerActionSender.js';
+
+import { JoinHandler }           from './managers/handlers/JoinHandler.js';
+import { TurnHandler }           from './managers/handlers/TurnHandler.js';
+import { CardHandler }           from './managers/handlers/CardHandler.js';
+import { FinanceHandler }        from './managers/handlers/FinanceHandler.js';
+import { ItemHandler }           from './managers/handlers/ItemHandler.js';
+import { MarketHandler }         from './managers/handlers/MarketHandler.js';
 
 class GameClient {
     constructor() {
         console.log('🎮 GameClient constructor starting...');
 
-        // ── Core infrastructure ──────────────────────────────────────────
-        this.connection    = new ConnectionManager();
-        this.modalManager  = new ModalManager();
-        this.logManager    = new LogManager(this.modalManager);
+        // ── Infrastructure ────────────────────────────────────────────────
+        this.connection   = new ConnectionManager();
+        this.modalManager = new ModalManager();
+        this.logManager   = new LogManager(this.modalManager);
 
-        // ── Renderers ────────────────────────────────────────────────────
+        // ── Renderers ─────────────────────────────────────────────────────
         this.boardRenderer = new BoardRenderer();
         this.playerPanel   = new PlayerPanelRenderer(this);
         this.cardModal     = new CardModalManager(this.modalManager, this);
 
-        // ── Domain managers ──────────────────────────────────────────────
-        this.turnManager      = new TurnManager(this);
-        this.gameStateManager = new GameStateManager(this);
-        this.router           = new MessageRouter(this);
+        // Expose ButtonStateManager so lifecycle/handlers can call it directly
+        this.buttonState = this.playerPanel.buttons;
 
-        // ── State ────────────────────────────────────────────────────────
-        this.playerId          = '';
-        this.playerName        = '';
+        // ── Domain handlers ───────────────────────────────────────────────
+        this.joinHandler    = new JoinHandler(this);
+        this.turnHandler    = new TurnHandler(this);
+        this.cardHandler    = new CardHandler(this);
+        this.financeHandler = new FinanceHandler(this);
+        this.itemHandler    = new ItemHandler(this);
+        this.marketHandler  = new MarketHandler(this);
+
+        // ── Actions & lifecycle ───────────────────────────────────────────
+        this.actions   = new PlayerActionSender(this);
+        this.lifecycle = new GameLifecycleManager(this);
+
+        // ── Router (must be last - references all handlers above) ─────────
+        this.router = new MessageRouter(this);
+
+        // ── State ─────────────────────────────────────────────────────────
+        this.playerId           = '';
+        this.playerName         = '';
         this.selectedProfession = null;
-        this.gameState         = null;
-        this.otherPlayers      = new Map();
-        this.isConnected       = false;
-        this.gameOver          = false;
-        this.currentAuctionId  = null;
-        this.isMyTurn          = false;
+        this.gameState          = null;
+        this.otherPlayers       = new Map();
+        this.isConnected        = false;
+        this.gameOver           = false;
+        this.isMyTurn           = false;
 
-        this.bindGlobalEvents();
-        this.gameStateManager.setupMusicMonitor();
+        // ── Boot ──────────────────────────────────────────────────────────
+        this._bindEvents();
+        this.lifecycle.setupMusicMonitor();
 
         console.log('🎮 GameClient 初始化完成！');
     }
 
-    // ── Convenience passthrough ──────────────────────────────────────────
+    // ── WebSocket passthrough ─────────────────────────────────────────────
     get ws() { return this.connection.ws; }
 
-    // ==================== Utility ====================
+    // ==================== Utilities ====================
 
     escapeHtml(str) {
-        if (str === null || str === undefined) return '';
-        if (typeof str !== 'string') str = String(str);
-        return str
+        if (str == null) return '';
+        return String(str)
             .replace(/&/g,  '&amp;')
             .replace(/</g,  '&lt;')
             .replace(/>/g,  '&gt;')
@@ -63,152 +83,28 @@ class GameClient {
             .replace(/'/g,  '&#39;');
     }
 
-    /** Delegated to LogManager */
-    showNotification(message, type = 'info') {
-        this.logManager.showNotification(message, type);
-    }
-
-    /** Delegated to LogManager */
-    addLog(msg, type = 'default') {
-        this.logManager.addLog(msg, type);
-    }
+    showNotification(message, type = 'info') { this.logManager.showNotification(message, type); }
+    addLog(msg, type = 'default')            { this.logManager.addLog(msg, type); }
 
     getElement(id) { return document.getElementById(id); }
     getButton(id)  { return document.getElementById(id); }
     getInput(id)   { return document.getElementById(id); }
 
-    // ==================== Network Status ====================
+    // ==================== Network status bar ====================
 
     updateNetworkStatus(connected) {
-        const statusDiv = this.getElement('networkStatus');
-        if (!statusDiv) return;
-
+        const bar = this.getElement('networkStatus');
+        if (!bar) return;
         if (connected) {
-            statusDiv.className = 'network-status connected';
-            statusDiv.textContent = '🟢 已連接 | 遊戲進行中';
+            bar.className   = 'network-status connected';
+            bar.textContent = '🟢 已連接 | 遊戲進行中';
         } else {
-            statusDiv.className = 'network-status';
-            statusDiv.textContent = '⚪ 未連接 | 請選擇職業後連接';
+            bar.className   = 'network-status';
+            bar.textContent = '⚪ 未連接 | 請選擇職業後連接';
         }
     }
 
-    // ==================== Button Control ====================
-
-    disableGameControls() {
-        const controls = [
-            'btnRoll', 'btnEndTurn', 'btnLoan',
-            'btnRepayLoan', 'btnUseClover', 'btnUseLuckyStar'
-        ];
-        controls.forEach(id => {
-            const btn = this.getButton(id);
-            if (btn) {
-                btn.disabled = true;
-                btn.style.opacity = '0.4';
-                btn.style.filter = 'grayscale(70%)';
-                btn.style.cursor = 'not-allowed';
-            }
-        });
-    }
-
-    enableGameControls() {
-        // Lock the connect UI
-        const nameInput  = this.getInput('playerName');
-        const connectBtn = this.getButton('btnConnect');
-        if (nameInput)  nameInput.disabled  = true;
-        if (connectBtn) connectBtn.disabled = true;
-
-        // Game buttons are controlled by updateTurnStatus / updateUI
-        this.disableGameControls();
-    }
-
-    enableAllControls() {
-        const buttons = [
-            'btnRoll', 'btnEndTurn', 'btnLoan',
-            'btnRepayLoan', 'btnUseClover', 'btnUseLuckyStar'
-        ];
-        buttons.forEach(id => {
-            const btn = this.getButton(id);
-            if (btn) {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.filter = 'none';
-                btn.style.cursor = 'pointer';
-            }
-        });
-    }
-
-    // ==================== Global Event Binding ====================
-
-    bindGlobalEvents() {
-        window.gameClient = this;
-
-        const bind = (id, fn) => {
-            const el = document.getElementById(id);
-            if (el) el.onclick = fn;
-        };
-
-        bind('btnConnect',    () => this.showProfessionModal());
-        bind('btnRoll',       () => this.rollDice());
-        bind('btnEndTurn',    () => this.endTurn());
-        bind('btnLoan',       () => this.applyLoan());
-        bind('btnRepayLoan',  () => this.repayLoan());
-        bind('btnDisconnect', () => this.disconnect());
-        bind('btnUseClover',  () => this.useFourLeafClover());
-        bind('btnUseLuckyStar', () => this.useLuckyStar());
-    }
-
-    // ==================== Profession / Connection ====================
-
-    showProfessionModal() {
-        this.modalManager.showProfessionModal(PROFESSIONS, this);
-    }
-
-    /** Called by ModalManager after profession is chosen */
-    connect() {
-        this.gameStateManager.doConnect();
-    }
-
-    /** Legacy alias kept for any internal callers */
-    doConnect() {
-        this.gameStateManager.doConnect();
-    }
-
-    disconnect() {
-        this.gameStateManager.disconnect();
-    }
-
-    closeProfessionModal() {
-        const modal = document.getElementById('professionModal');
-        if (modal) modal.classList.remove('show');
-    }
-
-    // ==================== Game Actions (thin wrappers) ====================
-
-    rollDice() {
-        this.gameStateManager.rollDice();
-    }
-
-    endTurn() {
-        this.gameStateManager.endTurn();
-    }
-
-    applyLoan() {
-        this.gameStateManager.applyLoan();
-    }
-
-    repayLoan() {
-        this.gameStateManager.repayLoan();
-    }
-
-    useFourLeafClover() {
-        this.gameStateManager.useFourLeafClover();
-    }
-
-    useLuckyStar() {
-        this.gameStateManager.useLuckyStar();
-    }
-
-    // ==================== UI Updates ====================
+    // ==================== UI delegates ====================
 
     updateUI() {
         this.playerPanel.updateUI(this.gameState);
@@ -219,161 +115,55 @@ class GameClient {
     }
 
     updateTurnStatus() {
-        this.turnManager.updateTurnStatus();
+        this.turnHandler.updateTurnStatus();
     }
 
+    // ✅ Always pass both gameState AND otherPlayers - no global reads
     renderAllTiles() {
-        this.boardRenderer.renderAllTiles(this.gameState);
+        this.boardRenderer.renderAllTiles(this.gameState, this.otherPlayers);
     }
 
-    // ==================== Message Handlers (thin delegation) ====================
+    // ==================== Connect / disconnect ====================
 
-    handleJoinSuccess(message) {
-        this.gameStateManager.handleJoinSuccess(message);
+    showProfessionModal() {
+        this.modalManager.showProfessionModal(PROFESSIONS, this);
     }
 
-    handlePlayerJoined(message) {
-        this.gameStateManager.handlePlayerJoined(message);
-    }
+    doConnect()  { this.lifecycle.doConnect(); }
+    connect()    { this.lifecycle.doConnect(); }
+    disconnect() { this.lifecycle.disconnect(); }
 
-    handleDiceResult(message) {
-        this.gameStateManager.handleDiceResult(message);
-    }
+    // ==================== Player actions ====================
 
-    handleTurnEnded(message) {
-        this.turnManager.handleTurnEnded(message);
-    }
+    rollDice()          { this.actions.rollDice(); }
+    endTurn()           { this.actions.endTurn(); }
+    applyLoan()         { this.actions.applyLoan(); }
+    repayLoan()         { this.actions.repayLoan(); }
+    useFourLeafClover() { this.actions.useFourLeafClover(); }
+    useLuckyStar()      { this.actions.useLuckyStar(); }
 
-    handleStateUpdated(message) {
-        this.turnManager.handleStateUpdated(message);
-    }
+    // ==================== Private ====================
 
-    handleTurnStatus(message) {
-        this.turnManager.handleTurnStatus(message);
-    }
+    _bindEvents() {
+        window.gameClient = this;
 
-    handleTurnSkipped(message) {
-        this.turnManager.handleTurnSkipped(message);
-    }
+        const on = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.onclick = fn;
+        };
 
-    handlePlayerDisconnected(message) {
-        this.gameStateManager.handlePlayerDisconnected(message);
-    }
-
-    handleCardTypeSelection(message) {
-        this.gameStateManager.handleCardTypeSelection(message);
-    }
-
-    handleOpportunityCardDraw(message) {
-        this.gameStateManager.handleOpportunityCardDraw(message);
-    }
-
-    handleCardPurchased(message) {
-        this.gameStateManager.handleCardPurchased(message);
-    }
-
-    handleCardDecisionResult(message) {
-        this.gameStateManager.handleCardDecisionResult(message);
-    }
-
-    handleLoanApproved(message) {
-        this.gameStateManager.handleLoanApproved(message);
-    }
-
-    handleLoanRepaid(message) {
-        this.gameStateManager.handleLoanRepaid(message);
-    }
-
-    handleLoanRejected(message) {
-        this.gameStateManager.handleLoanRejected(message);
-    }
-
-    handleForcedRepayment(message) {
-        this.gameStateManager.handleForcedRepayment(message);
-    }
-
-    handleSettlementReminder(message) {
-        this.gameStateManager.handleSettlementReminder(message);
-    }
-
-    handleSettlement(message) {
-        this.gameStateManager.handleSettlement(message);
-    }
-
-    handleFourLeafCloverUsed(message) {
-        this.gameStateManager.handleFourLeafCloverUsed(message);
-    }
-
-    handleLuckyStarUsed(message) {
-        this.gameStateManager.handleLuckyStarUsed(message);
-    }
-
-    handleCardExecuted(message) {
-        this.gameStateManager.handleCardExecuted(message);
-    }
-
-    handleCardSkipped(message) {
-        this.gameStateManager.handleCardSkipped(message);
-    }
-
-    handlePurchaseFailed(message) {
-        this.gameStateManager.handlePurchaseFailed(message);
-    }
-
-    showPropertySellChoices(message) {
-        this.gameStateManager.showPropertySellChoices(message);
-    }
-
-    // ==================== Legacy Modal Setup Stubs ====================
-    // Kept so any external code that calls these does not break.
-
-    setupProfessionModal()      { /* handled by ModalManager */ }
-    setupCardTypeModal()        { /* handled by CardModalManager */ }
-    setupPurchaseConfirmModal() { /* handled by CardModalManager */ }
-    setupEffectConfirmModal()   { /* handled by CardModalManager */ }
-    setupNotificationContainer() { this.logManager.setupNotificationContainer(); }
-
-    // ==================== Card Modal Passthroughs ====================
-
-    showCardTypeSelection(cardTypes, canAfford) {
-        this.cardModal.showCardTypeSelection(cardTypes, canAfford);
-    }
-
-    showOpportunityCard(card, canAfford) {
-        this.cardModal.showPurchaseConfirm(card, canAfford);
-    }
-
-    showEffectConfirm(card, effectPreview) {
-        this.cardModal.showEffectConfirm(card, effectPreview);
-    }
-
-    // ==================== Misc ====================
-
-    showModal(title, body) {
-        this.logManager.addLog(`${title}: ${body}`, 'info');
-    }
-
-    closeModal() {
-        console.log('Modal closed');
-    }
-
-    checkMusicAndGameOver() {
-        return this.gameStateManager.checkMusicAndGameOver();
-    }
-
-    // ── Kept so BoardRenderer / Tiles can reach path helpers if needed ──
-    getDreamImagePath(position, tileName) {
-        return this.boardRenderer.getDreamImagePath(position, tileName);
-    }
-
-    getTileImagePath(layerType, tileType) {
-        return this.boardRenderer.getTileImagePath(layerType, tileType);
+        on('btnConnect',      () => this.showProfessionModal());
+        on('btnRoll',         () => this.rollDice());
+        on('btnEndTurn',      () => this.endTurn());
+        on('btnLoan',         () => this.applyLoan());
+        on('btnRepayLoan',    () => this.repayLoan());
+        on('btnDisconnect',   () => this.disconnect());
+        on('btnUseClover',    () => this.useFourLeafClover());
+        on('btnUseLuckyStar', () => this.useLuckyStar());
     }
 }
 
-// ── Bootstrap ──────────────────────────────────────────────────────────────
-let gameClient;
+// ── Bootstrap ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    gameClient = new GameClient();
-    window.gameClient = gameClient;
+    window.gameClient = new GameClient();
 });

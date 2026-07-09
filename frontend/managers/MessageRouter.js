@@ -1,117 +1,122 @@
+"use strict";
+
 export class MessageRouter {
     constructor(gameClient) {
-        this.gameClient = gameClient;
+        this.client   = gameClient;
         this.handlers = new Map();
-        this.unknownMessageHandler = null;
-        this.errorHandler = null;
-        this._registerHandlers();
-        this._setupDefaultHandlers();
-    }
-
-    _registerHandlers() {
-        this.register('join_success', 'handleJoinSuccess');
-        this.register('player_joined', 'handlePlayerJoined');
-        this.register('dice_result', 'handleDiceResult');
-        this.register('turn_ended', 'handleTurnEnded');
-        this.register('state_updated', 'handleStateUpdated');
-        this.register('player_disconnected', 'handlePlayerDisconnected');
-
-        this.register('loan_approved', 'handleLoanApproved');
-        this.register('loan_repaid', 'handleLoanRepaid');
-        this.register('loan_rejected', 'handleLoanRejected');
-        this.register('forced_repayment', 'handleForcedRepayment');
-        this.register('settlement_reminder', 'handleSettlementReminder');
-        this.register('settlement', 'handleSettlement');
-
-        this.register('card_type_selection', 'handleCardTypeSelection');
-        this.register('opportunity_card_draw', 'handleOpportunityCardDraw');
-        this.register('card_purchased', 'handleCardPurchased');
-        this.register('card_decision_result', 'handleCardDecisionResult');
-
-        this.register('four_leaf_clover_used', 'handleFourLeafCloverUsed');
-        this.register('lucky_star_used', 'handleLuckyStarUsed');
-
-        this.register('lier_card_auto_execute', 'handleLierCardAutoExecute');
-        this.register('lier_card_draw', 'handleLierCardDraw');
-        this.register('lier_card_result', 'handleLierCardResult');
-
-        this.register('police_card_execute', 'handlePoliceCardExecute');
-
-        this.register('volunteer_card_execute', 'handleVolunteerCardExecute');
-        this.register('volunteer_card_draw', 'handleVolunteerCardDraw');
-        this.register('volunteer_card_choice', 'handleVolunteerCardChoice');
-
-        this.register('revelation_type_selection', 'handleRevelationTypeSelection');
-        this.register('revelation_card_draw', 'handleRevelationCardDraw');
-        this.register('revelation_card_purchased', 'handleRevelationCardPurchased');
-
-        this.register('market_news_choices', 'showMarketNewsChoices');
-        this.register('property_sell_choices', 'showPropertySellChoices');
-        this.register('market_news_result', 'handleMarketNewsResult');
-
-        this.register('auction_start', 'handleAuctionStart');
-        this.register('auction_update', 'handleAuctionUpdate');
-        this.register('auction_end', 'handleAuctionEnd');
-
-        this.register('hardship_card_execute', 'handleHardshipCardExecute');
-        this.register('flow_layer_choice', 'handleFlowLayerChoice');
-        this.register('social_service_prompt', 'handleSocialServicePrompt');
-
-        this.register('notification', this._handleNotification.bind(this));
-        this.register('error', this._handleError.bind(this));
-    }
-
-    _setupDefaultHandlers() {
-        this.setUnknownMessageHandler((message) => {
-            console.warn(`Unknown message type: ${message.type}`);
-            this.gameClient.addLog(`⚠️ 未知消息类型: ${message.type}`, 'warning');
-        });
-    }
-
-    register(type, handler) {
-        if (typeof handler === 'string') {
-            this.handlers.set(type, { methodName: handler });
-        } else if (typeof handler === 'function') {
-            this.handlers.set(type, { fn: handler });
-        }
-    }
-
-    setUnknownMessageHandler(handler) {
-        this.unknownMessageHandler = handler;
+        this._register();
+        this._setupDefaultHandler();
     }
 
     route(message) {
         const entry = this.handlers.get(message.type);
         if (!entry) {
-            if (this.unknownMessageHandler) this.unknownMessageHandler(message);
+            console.warn(`Unknown message type: ${message.type}`);
+            this.client.logManager.addLog(`⚠️ 未知消息類型: ${message.type}`, 'warning');
             return;
         }
-
         try {
-            if (entry.methodName) {
-                const handler = this.gameClient[entry.methodName];
-                if (typeof handler === 'function') {
-                    handler.call(this.gameClient, message);
+            entry(message);
+        } catch (err) {
+            console.error(`Error handling "${message.type}":`, err);
+        }
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────
+
+    _register() {
+        const c  = this.client;
+        const jh = () => c.joinHandler;
+        const th = () => c.turnHandler;
+        const ch = () => c.cardHandler;
+        const fh = () => c.financeHandler;
+        const ih = () => c.itemHandler;
+        const mh = () => c.marketHandler;
+
+        const map = {
+            // ── Join / presence
+            'join_success':          m => jh().handleJoinSuccess(m),
+            'player_joined':         m => jh().handlePlayerJoined(m),
+            'player_disconnected':   m => jh().handlePlayerDisconnected(m),
+
+            // ── Turn flow
+            'dice_result':           m => th().handleDiceResult(m),
+            'turn_ended':            m => th().handleTurnEnded(m),
+            'state_updated':         m => th().handleStateUpdated(m),
+            'turn_status':           m => th().handleTurnStatus(m),
+            'turn_skipped':          m => th().handleTurnSkipped(m),
+
+            // ── Opportunity cards
+            'card_type_selection':   m => ch().handleCardTypeSelection(m),
+            'opportunity_card_draw': m => ch().handleOpportunityCardDraw(m),
+            'card_purchased':        m => ch().handleCardPurchased(m),
+            'card_decision_result':  m => ch().handleCardDecisionResult(m),
+            'card_executed':         m => ch().handleCardExecuted(m),
+            'card_skipped':          m => ch().handleCardSkipped(m),
+            'purchase_failed':       m => ch().handlePurchaseFailed(m),
+
+            // ── Revelation cards
+            'revelation_type_selection':  m => ch().handleRevelationTypeSelection(m),
+            'revelation_card_draw':       m => ch().handleRevelationCardDraw(m),
+            'revelation_card_purchased':  m => ch().handleRevelationCardPurchased(m),
+
+            // ── Volunteer cards
+            'volunteer_card_execute': m => ch().handleVolunteerCardExecute(m),
+            'volunteer_card_draw':    m => ch().handleVolunteerCardDraw(m),
+            'volunteer_card_choice':  m => ch().handleVolunteerCardChoice(m),
+
+            // ── Special cards
+            'lier_card_auto_execute': m => ch().handleLierCardAutoExecute(m),
+            'lier_card_draw':         m => ch().handleLierCardDraw(m),
+            'lier_card_result':       m => ch().handleLierCardResult(m),
+            'police_card_execute':    m => ch().handlePoliceCardExecute(m),
+            'hardship_card_execute':  m => ch().handleHardshipCardExecute(m),
+
+            // ── Flow / social
+            'flow_layer_choice':      m => ch().handleFlowLayerChoice(m),
+            'social_service_prompt':  m => ch().handleSocialServicePrompt(m),
+
+            // ── Finance
+            'loan_approved':          m => fh().handleLoanApproved(m),
+            'loan_repaid':            m => fh().handleLoanRepaid(m),
+            'loan_rejected':          m => fh().handleLoanRejected(m),
+            'forced_repayment':       m => fh().handleForcedRepayment(m),
+            'settlement_reminder':    m => fh().handleSettlementReminder(m),
+            'settlement':             m => fh().handleSettlement(m),
+
+            // ── Items
+            'four_leaf_clover_used':  m => ih().handleFourLeafCloverUsed(m),
+            'lucky_star_used':        m => ih().handleLuckyStarUsed(m),
+
+            // ── Market / auction
+            'market_news_choices':    m => mh().showMarketNewsChoices(m),
+            'property_sell_choices':  m => mh().showPropertySellChoices(m),
+            'market_news_result':     m => mh().handleMarketNewsResult(m),
+            'auction_start':          m => mh().handleAuctionStart(m),
+            'auction_update':         m => mh().handleAuctionUpdate(m),
+            'auction_end':            m => mh().handleAuctionEnd(m),
+
+            // ── System
+            'notification': m => {
+                if (m.message) {
+                    c.logManager.addLog(m.message, 'success');
+                    c.logManager.showNotification(m.message, 'info');
                 }
-            } else if (entry.fn) {
-                entry.fn(message);
+            },
+            'error': m => {
+                if (m.message) {
+                    c.logManager.addLog(`❌ ${m.message}`, 'error');
+                    c.logManager.showNotification(m.message, 'error');
+                }
             }
-        } catch (error) {
-            console.error(`Error handling message type ${message.type}:`, error);
+        };
+
+        for (const [type, fn] of Object.entries(map)) {
+            this.handlers.set(type, fn);
         }
     }
 
-    _handleNotification(message) {
-        if (message.message) {
-            this.gameClient.addLog(message.message, 'success');
-            this.gameClient.showNotification(message.message, 'info');
-        }
-    }
-
-    _handleError(message) {
-        if (message.message) {
-            this.gameClient.addLog(`❌ ${message.message}`, 'error');
-            this.gameClient.showNotification(message.message, 'error');
-        }
+    _setupDefaultHandler() {
+        // already handled inline in route()
     }
 }

@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "1783578814064_9z4nya",
+    "timestamp": "9/7/2026 下午2:33:34",
+    "playerName": "Player_1783578797019",
+    "cardType": "general",
+    "cardName": "朋友借貸",
+    "action": "逆境自強卡",
+    "amountChange": -4000,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "🤝 朋友借貸！損失 $4,000 元，幸運值 +1（善有善報）"
+  }
+]
