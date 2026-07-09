@@ -1,0 +1,400 @@
+"use strict";
+
+const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+
+const CARD_TYPES_META = {
+    part_time: { id: 'part_time', name: '兼职类', icon: '💼', color: '#4caf50' },
+    finance:   { id: 'finance',   name: '财务类', icon: '📈', color: '#2196f3' },
+    business:  { id: 'business',  name: '创业类', icon: '🚀', color: '#ff9800' },
+    property:  { id: 'property',  name: '地产类', icon: '🏠', color: '#9c27b0' }
+};
+
+function showCardTypeSelection(ws, state, roomId, player, CARD_TYPES, room) {
+    const cardTypes = Object.values(CARD_TYPES).map(t => ({
+        id:    t.id,
+        name:  t.name,
+        icon:  t.icon,
+        color: t.color,
+        count: t.cards.length
+    }));
+
+    ws.send(JSON.stringify({
+        type:      'card_type_selection',
+        cardTypes,
+        canAfford: state.cash >= 500
+    }));
+
+    if (!room.pendingTypeSelections) room.pendingTypeSelections = new Map();
+    room.pendingTypeSelections.set(ws, {
+        playerId:  player.playerId,
+        timestamp: Date.now()
+    });
+}
+
+function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
+    const room   = rooms.get(roomId);
+    const player = room?.players.get(ws);
+    if (!room || !player) return;
+
+    // ── Find the card type ────────────────────────────────────────────────────
+    const cardTypeData = Object.values(CARD_TYPES).find(t => t.id === data.cardType);
+    if (!cardTypeData) {
+        ws.send(JSON.stringify({ type: 'error', message: '无效的卡片类型' }));
+        return;
+    }
+
+    if (!cardTypeData.cards || cardTypeData.cards.length === 0) {
+        ws.send(JSON.stringify({ type: 'error', message: '暫無卡片資料' }));
+        return;
+    }
+
+    room.pendingTypeSelections?.delete(ws);
+
+    // ── Pick a random card ────────────────────────────────────────────────────
+    const originalCard = cardTypeData.cards[Math.floor(Math.random() * cardTypeData.cards.length)];
+
+    // ✅ Use Object.create to preserve prototype chain, then set extra props
+    // This keeps all methods (including non-enumerable ones) intact
+    const card = Object.create(originalCard);
+    card.cardType     = cardTypeData.id;
+    card.cardTypeName = cardTypeData.name;
+    card.cardTypeIcon = cardTypeData.icon;
+
+    // ── Build serializable version for frontend ───────────────────────────────
+    const serializableCard = {
+        id:           originalCard.id,
+        name:         originalCard.name,
+        description:  originalCard.description,
+        image:        originalCard.image,
+        cost:         originalCard.cost,
+        investmentCost: originalCard.investmentCost || 0,
+        energyCost:   originalCard.energyCost || 0,
+        cardType:     cardTypeData.id,
+        cardTypeName: cardTypeData.name,
+        cardTypeIcon: cardTypeData.icon,
+        // Finance card specific fields
+        pricePerUnit:  originalCard.pricePerUnit,
+        monthlyReturn: originalCard.monthlyReturn,
+        minUnits:      originalCard.minUnits,
+        maxUnits:      originalCard.maxUnits,
+        stockCode:     originalCard.stockCode,
+        currentPrice:  originalCard.currentPrice,
+        cryptoCode:    originalCard.cryptoCode,
+        type:          originalCard.type
+    };
+
+    // ── Save to pending events ────────────────────────────────────────────────
+    if (!room.pendingEvents) room.pendingEvents = new Map();
+    room.pendingEvents.set(ws, {
+        type:      'opportunity_card',
+        card,                           // ← the Object.create version keeps all methods
+        cardType:  cardTypeData,
+        playerId:  player.playerId,
+        purchased: false,
+        timestamp: Date.now()
+    });
+
+    ws.send(JSON.stringify({
+        type:      'opportunity_card_draw',
+        card:      serializableCard,
+        canAfford: player.gameState.cash >= 500
+    }));
+
+    console.log(`🎴 ${player.playerName} 选择${cardTypeData.name}，抽到: ${originalCard.name} (ID: ${originalCard.id})`);
+}
+
+function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
+    const room   = rooms.get(roomId);
+    const player = room?.players.get(ws);
+    if (!room || !player) return;
+
+    const pendingEvent = room.pendingEvents?.get(ws);
+    if (!pendingEvent || pendingEvent.type !== 'opportunity_card') {
+        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的机会卡' }));
+        return;
+    }
+
+    if (player.gameState.cash < 500) {
+        ws.send(JSON.stringify({ type: 'purchase_failed', message: '现金不足 500 元' }));
+        room.pendingEvents.delete(ws);
+        return;
+    }
+
+    player.gameState.cash -= 500;
+    pendingEvent.purchased    = true;
+    pendingEvent.purchaseTime = Date.now();
+
+    const card          = pendingEvent.card;
+    const effectPreview = _getCardEffectPreview(card, player.gameState);
+
+    const serializableCard = {
+        id: card.id, name: card.name, description: card.description, image: card.image,
+        investmentCost: card.investmentCost || 0, energyCost: card.energyCost || 0,
+        cardType:     pendingEvent.cardType?.id   || 'general',
+        cardTypeName: pendingEvent.cardType?.name || '机会卡',
+        cardTypeIcon: pendingEvent.cardType?.icon || '🎴'
+    };
+
+    ws.send(JSON.stringify({
+        type: 'card_purchased', card: serializableCard, effectPreview,
+        message: `已支付 500 元购买「${card.name}」`
+    }));
+    broadcastToRoom(roomId, {
+        type: 'player_purchased_card', playerId: player.playerId, playerName: player.playerName,
+        cardName: card.name, message: `${player.playerName} 花费 500 元购买了「${card.name}」`
+    }, ws);
+}
+
+function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom) {
+    const room   = rooms.get(roomId);
+    const player = room?.players.get(ws);
+    if (!room || !player) return;
+
+    const pendingEvent = room.pendingEvents?.get(ws);
+    if (!pendingEvent || pendingEvent.type !== 'opportunity_card' || !pendingEvent.purchased) {
+        ws.send(JSON.stringify({ type: 'error', message: '没有已购买的机会卡' }));
+        return;
+    }
+
+    const card        = pendingEvent.card;
+    const execute     = data.execute;
+    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    let   effectResult = '';
+    let   resultMessage = '';
+
+    if (execute) {
+        effectResult = _executeCardLogic(card, data, player, room, ws, roomId);
+        if (effectResult === null) return; // waiting for async menu input
+
+        resultMessage = `✨ 执行「${card.name}」成功！${effectResult}`;
+
+        addTransactionRecord(player.playerName, card, '执行',
+            player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
+
+        broadcastToRoom(roomId, {
+            type: 'card_executed', playerId: player.playerId, playerName: player.playerName,
+            cardName: card.name, cardType: pendingEvent.cardType?.name || '机会卡',
+            effectMessage: effectResult, gameState: player.gameState
+        });
+    } else {
+        resultMessage = `❌ 你决定不执行「${card.name}」，500 元不退还。`;
+        addTransactionRecord(player.playerName, card, '放弃', -500, '放弃执行', stateBefore, player.gameState);
+        broadcastToRoom(roomId, {
+            type: 'card_skipped', playerId: player.playerId, playerName: player.playerName,
+            cardName: card.name, message: resultMessage
+        });
+    }
+
+    ws.send(JSON.stringify({
+        type: 'card_decision_result', execute, message: resultMessage,
+        gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+    }));
+
+    room.pendingEvents.delete(ws);
+    broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
+}
+
+// ── Private ───────────────────────────────────────────────────────────────────
+
+function _executeCardLogic(card, data, player, room, ws, roomId) {
+    const state    = player.gameState;
+    const cardId   = card.id || '';
+    const isStock  = !!(card.stockCode  || /^F0[6-9]|^F1[0-7]/.test(cardId));
+    const isCrypto = !!(card.cryptoCode || cardId === 'F03' || cardId === 'F04');
+    const isFund   = !!(cardId === 'F02' || (card.type === 'finance' && card.pricePerUnit && card.monthlyReturn > 0));
+    const isP2P    = !!(cardId === 'F05');
+    const isParty  = !!(cardId === 'C03' && card.name === '派對房間');
+    const isFood   = !!(cardId === 'C04' && card.name === '外賣店');
+
+    // Party room
+    if (isParty) return _handlePartyRoom(card, data, player, room, ws, roomId);
+    // Food delivery
+    if (isFood)  return _handleFoodDelivery(card, data, player, room, ws, roomId);
+    // Stock
+    if (isStock  && card.getCurrentPrice && card.buy && card.sell)
+        return _handleStock(card, data, player, ws, room);
+    // Crypto
+    if (isCrypto && card.getCurrentPrice && card.buy && card.sell)
+        return _handleCrypto(card, data, player, ws);
+    // Fund
+    if (isFund)  return _handleFund(card, data, player, ws);
+    // P2P
+    if (isP2P)   return _handleP2P(card, data, player, ws);
+
+    // Generic card
+    return _handleGeneric(card, state, ws);
+}
+
+function _handleGeneric(card, state, ws) {
+    const investmentCost = card.investmentCost || 0;
+    const energyCost     = card.energyCost     || 0;
+
+    if (investmentCost > 0 && state.cash < investmentCost) {
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 现金不足 ${investmentCost.toLocaleString()} 元` }));
+        return '';
+    }
+    if (energyCost > 0 && state.energy < energyCost) {
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 精力不足 ${energyCost} 点` }));
+        return '';
+    }
+    return card.effect(state);
+}
+
+function _handlePartyRoom(card, data, player, room, ws, roomId) {
+    const state          = player.gameState;
+    const investmentCost = card.investmentCost || 250000;
+    const energyCost     = card.energyCost     || 3;
+    const selfEnergy     = card.selfEnergyGain  || 7;
+    const otherEnergy    = card.otherEnergyGain || 2;
+
+    if (state.cash < investmentCost || state.energy < energyCost) {
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 条件不足，无法执行「${card.name}」` }));
+        return '';
+    }
+
+    const result = card.effect(state);
+    state.energy = Math.min(state.maxEnergy, state.energy + selfEnergy);
+
+    room.players.forEach((otherPlayer, otherWs) => {
+        if (otherWs !== ws) {
+            otherPlayer.gameState.energy = Math.min(otherPlayer.gameState.maxEnergy, otherPlayer.gameState.energy + otherEnergy);
+            otherWs.send(JSON.stringify({ type: 'notification', message: `🎉 ${player.playerName} 開設了派對房間！你獲得 ${otherEnergy} 精力！` }));
+        }
+    });
+
+    return `${result} 所有玩家獲得精力獎勵！`;
+}
+
+function _handleFoodDelivery(card, data, player, room, ws, roomId) {
+    const state      = player.gameState;
+    const userAction = data.userAction || data.action;
+
+    if (!userAction) {
+        ws.send(JSON.stringify({
+            type: 'food_delivery_menu', cardId: card.id, cardName: card.name,
+            investmentCost: card.investmentCost, monthlyReturn: card.monthlyReturn,
+            energyCost: card.energyCost, exchangeCost: card.exchangeCost, exchangeEnergy: card.exchangeEnergy
+        }));
+        return null; // wait for menu response
+    }
+
+    if (userAction === 'invest') {
+        if (state.cash < (card.investmentCost || 0) || state.energy < (card.energyCost || 0)) {
+            ws.send(JSON.stringify({ type: 'notification', message: `❌ 条件不足，无法开设外賣店` }));
+            return '';
+        }
+        return card.effect(state, 'invest');
+    }
+    if (userAction === 'exchange') {
+        const units     = data.units || 1;
+        const totalCost = units * (card.exchangeCost || 0);
+        if (state.cash < totalCost) {
+            ws.send(JSON.stringify({ type: 'notification', message: `❌ 现金不足 ${totalCost.toLocaleString()} 元` }));
+            return '';
+        }
+        return card.effect(state, 'exchange', units);
+    }
+    return '';
+}
+
+function _handleStock(card, data, player, ws, room) {
+    const state       = player.gameState;
+    const stockAction = data.stockAction;
+    const shares      = data.shares;
+
+    if (!stockAction) {
+        const currentPrice = card.getCurrentPrice(state);
+        const holding      = card.getHoldingsInfo?.(state);
+        ws.send(JSON.stringify({
+            type: 'stock_menu', cardId: card.id, cardName: card.name,
+            holding, currentPrice,
+            minShares: card.minShares || 100, shareMultiple: card.shareMultiple || 100
+        }));
+        return null;
+    }
+
+    const minShares    = card.minShares    || 100;
+    const shareMultiple = card.shareMultiple || 100;
+
+    if (stockAction === 'buy') {
+        if (!shares || shares < minShares || shares % shareMultiple !== 0) return '';
+        const totalCost = shares * card.getCurrentPrice(state);
+        if (state.cash < totalCost) return '';
+        return card.buy(state, shares).message;
+    }
+    if (stockAction === 'sell') {
+        const holding = card.getHoldingsInfo?.(state);
+        if (!shares || !holding || holding.shares < shares) return '';
+        return card.sell(state, shares).message;
+    }
+    return '';
+}
+
+function _handleCrypto(card, data, player, ws) {
+    const state        = player.gameState;
+    const cryptoAction = data.cryptoAction;
+    const units        = data.units;
+
+    if (!cryptoAction) {
+        ws.send(JSON.stringify({
+            type: 'crypto_menu', cardId: card.id, cardName: card.name,
+            currentPrice: card.getCurrentPrice(state),
+            holding: card.getHoldingsInfo?.(state),
+            minUnits: card.minUnits || 1, cryptoCode: card.cryptoCode
+        }));
+        return null;
+    }
+
+    const minUnits = card.minUnits || 1;
+    if (cryptoAction === 'buy') {
+        if (!units || units < minUnits) return '';
+        if (state.cash < units * card.getCurrentPrice(state)) return '';
+        return card.buy(state, units).message;
+    }
+    if (cryptoAction === 'sell') {
+        const holding = card.getHoldingsInfo(state);
+        if (!units || !holding || holding.units < units) return '';
+        return card.sell(state, units).message;
+    }
+    return '';
+}
+
+function _handleFund(card, data, player, ws) {
+    const state     = player.gameState;
+    const fundUnits = data.units || card.minUnits || 1;
+    const totalCost = fundUnits * card.pricePerUnit;
+    if (state.cash < totalCost) { ws.send(JSON.stringify({ type: 'notification', message: `❌ 现金不足` })); return ''; }
+    return card.effect(state, fundUnits);
+}
+
+function _handleP2P(card, data, player, ws) {
+    const state     = player.gameState;
+    const p2pUnits  = data.units || 100;
+    const totalCost = p2pUnits * card.pricePerUnit;
+    if (state.cash < totalCost) { ws.send(JSON.stringify({ type: 'notification', message: `❌ 现金不足` })); return ''; }
+    return card.effect(state, p2pUnits);
+}
+
+function _getCardEffectPreview(card, state) {
+    const tempState = JSON.parse(JSON.stringify(state));
+    let effectResult = `执行「${card.name}」`;
+    try {
+        if (card.effect && !card.getCurrentPrice) effectResult = card.effect(tempState) || effectResult;
+    } catch (e) { /* ignore */ }
+    if (typeof effectResult !== 'string') effectResult = String(effectResult);
+
+    return {
+        description:  effectResult,
+        changes: {
+            cashChange:           tempState.cash         - state.cash,
+            passiveIncomeChange:  tempState.passiveIncome - state.passiveIncome,
+            salaryChange:         tempState.salary        - state.salary,
+            energyChange:         tempState.energy        - state.energy,
+            sideIncomeChange:     tempState.sideIncome    - state.sideIncome
+        },
+        canAfford:     (card.investmentCost || 0) === 0 || state.cash >= (card.investmentCost || 0),
+        investmentCost: card.investmentCost || 0
+    };
+}
+
+module.exports = { showCardTypeSelection, handleCardTypeChoice, handlePurchaseCard, handleExecuteCard };

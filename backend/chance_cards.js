@@ -3095,7 +3095,7 @@ const businessCards = [
         maxUnits: 3,
         effect: (state, units = 1) => {
             // 检查已有投资数量
-            const existingInvestment = state.businessInvestments?.find(inv => inv.id === "C01");
+            const existingInvestment = state.businessInvestments?.find(inv => inv.id === "C02");
             const existingUnits = existingInvestment?.units || 0;
             const newUnits = Math.min(units, 3 - existingUnits);
             

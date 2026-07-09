@@ -1,10 +1,5 @@
 "use strict";
 
-/**
- * Owns all turn-flow logic. Replaces the old TurnManager.
- * Directly manages button states via ButtonStateManager
- * instead of duplicating logic in PlayerPanelRenderer.
- */
 export class TurnHandler {
     constructor(client) {
         this.client          = client;
@@ -12,8 +7,6 @@ export class TurnHandler {
         this.turnNumber      = 1;
         this.currentTurnPlayer = null;
     }
-
-    // ── Public API ────────────────────────────────────────────────────────
 
     updateTurnStatus() {
         const { client } = this;
@@ -32,8 +25,6 @@ export class TurnHandler {
 
         this.lastTurnWasMine = isMyTurn;
     }
-
-    // ── Incoming message handlers ─────────────────────────────────────────
 
     handleTurnStatus(message) {
         const { client } = this;
@@ -70,7 +61,8 @@ export class TurnHandler {
             console.log(`⚡ Other player ${message.playerId} energy: ${message.gameState.energy}`);
         }
 
-        client.boardRenderer.renderAllTiles(client.gameState);
+        // ✅ Pass otherPlayers so tokens render correctly
+        client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
     }
@@ -89,7 +81,8 @@ export class TurnHandler {
             console.log(`👤 Other player ${message.playerId} state updated`);
         }
 
-        client.boardRenderer.renderAllTiles(client.gameState);
+        // ✅ Pass otherPlayers so tokens render correctly
+        client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
     }
@@ -104,9 +97,8 @@ export class TurnHandler {
         }
 
         client.updateUI();
-        client.boardRenderer.renderAllTiles(client.gameState);
-        client.boardRenderer.updatePlayerToken(client.gameState);
-        client.boardRenderer.updateAllOtherPlayerTokens(client.otherPlayers);
+        // ✅ Pass otherPlayers so tokens render correctly
+        client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
     }
@@ -119,7 +111,7 @@ export class TurnHandler {
         this.updateTurnStatus();
     }
 
-    // ── Private ───────────────────────────────────────────────────────────
+    // ── Private ───────────────────────────────────────────────────────
 
     _updateStatusBar(isMyTurn) {
         const { client } = this;

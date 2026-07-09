@@ -17,12 +17,12 @@ export class JoinHandler {
             );
         }
 
-        // Lock connect UI, disable game buttons until turn status arrives
         this._lockConnectUI();
         client.buttonState.disableAll();
 
         client.updateUI();
-        client.boardRenderer.renderAllTiles(client.gameState);
+        // ✅ Pass otherPlayers
+        client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         client.turnHandler.updateTurnStatus();
         client.logManager.addLog('🎉 成功加入遊戲！', 'success');
