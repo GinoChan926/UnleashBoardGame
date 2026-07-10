@@ -1,6 +1,6 @@
 "use strict";
 
-// ── Cash-flow helpers ─────────────────────────────────────────────────────────
+// ── 現金流助手 ─────────────────────────────────────────────────────────
 
 function calculateMonthlyCashFlow(state) {
     const totalIncome  = (state.salary || 0) + (state.sideIncome || 0) + (state.passiveIncome || 0);
@@ -24,7 +24,7 @@ function calculateReducedExpense(state) {
     return { totalExpense, savedAmount, reductionPercent };
 }
 
-// ── Room helpers ──────────────────────────────────────────────────────────────
+// ── 房間助手 ──────────────────────────────────────────────────────────────
 
 function broadcastToRoom(rooms, roomId, message, excludeWs = null) {
     const WebSocket = require('ws');
@@ -55,12 +55,12 @@ function getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles
             reverseTiles,
             flowTiles
         });
-        console.log(`📦 创建房间: ${roomId}`);
+        console.log(`📦 創建房間: ${roomId}`);
     }
     return rooms.get(roomId);
 }
 
-// ── Private ───────────────────────────────────────────────────────────────────
+// ── 私有 ───────────────────────────────────────────────────────────────────
 
 function _rawExpense(state) {
     return (state.livingExpense || 0)

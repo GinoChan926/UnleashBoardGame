@@ -1,4 +1,4 @@
-// investment_cards.js - 项目投资卡数据（顺流层专用）
+// investment_cards.js - 項目投資卡数据（顺流层专用）
 
 const investmentCards = [
     {
@@ -8,7 +8,7 @@ const investmentCards = [
         image: "../cards/investment/K01.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 5000000,   // 500万
         monthlyReturn: 300000,      // 30万/月
         energyCost: 3,
@@ -18,11 +18,11 @@ const investmentCards = [
             const monthlyIncome = 300000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资旅遊集團`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資旅遊集團`;
             }
             
             if (state.energy < 3) {
-                return `❌ 精力不足 3 点，无法投资旅遊集團`;
+                return `❌ 精力不足 3 点，無法投資旅遊集團`;
             }
             
             state.cash -= cost;
@@ -30,7 +30,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets += cost;
             
-            // 记录项目投资
+            // 记录項目投資
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K01",
@@ -42,7 +42,7 @@ const investmentCards = [
                 purchasedAt: Date.now()
             });
             
-            return `✅ 投资旅遊集團成功！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -3。預計 17 個月回本！`;
+            return `✅ 投資旅遊集團成功！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -3。預計 17 個月回本！`;
         },
         getEffectDescription: () => "投資 5,000,000 元，被動收入 +300,000/月，精力 -3"
     },
@@ -53,7 +53,7 @@ const investmentCards = [
         image: "../cards/investment/K02.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 700000,    // 70万
         monthlyReturn: 0,           // 無被動收入
         energyCost: 0,              // 無精力消耗
@@ -68,7 +68,7 @@ const investmentCards = [
             const maxEnergyGain = 5;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法参与身心靈健康海外禪修團`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法参與身心靈健康海外禪修團`;
             }
             
             // 扣除費用
@@ -123,7 +123,7 @@ const investmentCards = [
         image: "../cards/investment/K03.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 700000,  // 底价70万
         energyCost: 0,
         monthlyReturn: 0,
@@ -149,7 +149,7 @@ const investmentCards = [
         image: "../cards/investment/K04.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 30000000,   // 3000万
         monthlyReturn: 3000000,      // 300万/月
         energyCost: 5,
@@ -159,11 +159,11 @@ const investmentCards = [
             const monthlyIncome = 3000000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资醫學研究所`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資醫學研究所`;
             }
             
             if (state.energy < 5) {
-                return `❌ 精力不足 5 点，无法投资醫學研究所`;
+                return `❌ 精力不足 5 点，無法投資醫學研究所`;
             }
             
             state.cash -= cost;
@@ -213,7 +213,7 @@ const investmentCards = [
         image: "../cards/investment/K05.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 5000000,    // 500万
         monthlyReturn: 500000,       // 50万/月
         energyCost: 3,
@@ -223,11 +223,11 @@ const investmentCards = [
             const monthlyIncome = 500000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资教育集團`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資教育集團`;
             }
             
             if (state.energy < 3) {
-                return `❌ 精力不足 3 点，无法投资教育集團`;
+                return `❌ 精力不足 3 点，無法投資教育集團`;
             }
             
             state.cash -= cost;
@@ -277,7 +277,7 @@ const investmentCards = [
         image: "../cards/investment/K06.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 5000000,    // 500万
         monthlyReturn: 400000,       // 40万/月
         energyCost: 2,
@@ -287,11 +287,11 @@ const investmentCards = [
             const monthlyIncome = 400000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资文創生活用品連鎖店`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資文創生活用品連鎖店`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法投资文創生活用品連鎖店`;
+                return `❌ 精力不足 2 点，無法投資文創生活用品連鎖店`;
             }
             
             state.cash -= cost;
@@ -341,7 +341,7 @@ const investmentCards = [
         image: "../cards/investment/K07.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 1000000,     // 100万
         monthlyReturn: 60000,         // 6万/月
         energyCost: 2,
@@ -353,11 +353,11 @@ const investmentCards = [
             const healthGain = 20;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资物流集團`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資物流集團`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法投资物流集團`;
+                return `❌ 精力不足 2 点，無法投資物流集團`;
             }
             
             state.cash -= cost;
@@ -408,15 +408,15 @@ const investmentCards = [
      {
         id: "K08",
         name: "網上醫療平台",
-        description: "投資網上醫療平台，擲一粒骰，點數=6則得到1仟萬，否則損失所有本金。高風險高回報！",
+        description: "投資網上醫療平台，擲一粒骰，點數=6則得到1千萬，否則損失所有本金。高風險高回報！",
         image: "../cards/investment/K08.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 1000000,    // 100万
         monthlyReturn: 0,
         energyCost: 0,
-        isGamble: true,             // 标记为赌博型投资
+        isGamble: true,             // 标记为赌博型投資
         gambleDetails: {
             successNumber: 6,       // 成功点数
             winAmount: 10000000,    // 赢取金额 1000万
@@ -428,7 +428,7 @@ const investmentCards = [
             const winAmount = 10000000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资網上醫療平台`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資網上醫療平台`;
             }
             
             // 擲骰決定結果
@@ -484,7 +484,7 @@ const investmentCards = [
                 );
             }
             
-            // 记录投资（无论成功失败）
+            // 记录投資（無论成功失败）
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K08",
@@ -507,7 +507,7 @@ const investmentCards = [
         image: "../cards/investment/K09.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 30000000,    // 3000万
         monthlyReturn: 2000000,       // 200万/月
         energyCost: 4,
@@ -519,11 +519,11 @@ const investmentCards = [
             const healthGain = 20;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资國際品牌服裝公司`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資國際品牌服裝公司`;
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，无法投资國際品牌服裝公司`;
+                return `❌ 精力不足 4 点，無法投資國際品牌服裝公司`;
             }
             
             state.cash -= cost;
@@ -577,7 +577,7 @@ const investmentCards = [
         image: "../cards/investment/K10.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 10000000,    // 1000万
         monthlyReturn: 1000000,       // 100万/月
         energyCost: 0,               // 無精力消耗
@@ -591,7 +591,7 @@ const investmentCards = [
             const luckGain = 1;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资米芝蓮星級餐廳`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資米芝蓮星級餐廳`;
             }
             
             state.cash -= cost;
@@ -644,7 +644,7 @@ const investmentCards = [
         image: "../cards/investment/K11.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 40000000,    // 4000万
         monthlyReturn: 0,
         energyCost: 3,
@@ -659,11 +659,11 @@ const investmentCards = [
             const multiplier = 10000000;  // 每點 = 1千萬
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资藥業集團`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資藥業集團`;
             }
             
             if (state.energy < 3) {
-                return `❌ 精力不足 3 点，无法投资藥業集團`;
+                return `❌ 精力不足 3 点，無法投資藥業集團`;
             }
             
             // 扣除投資金額和精力
@@ -750,7 +750,7 @@ const investmentCards = [
         image: "../cards/investment/K12.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 2000000,     // 200万
         monthlyReturn: 180000,        // 18万/月
         energyCost: 2,
@@ -760,11 +760,11 @@ const investmentCards = [
             const monthlyIncome = 180000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资太陽能發電公司`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資太陽能發電公司`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法投资太陽能發電公司`;
+                return `❌ 精力不足 2 点，無法投資太陽能發電公司`;
             }
             
             state.cash -= cost;
@@ -815,7 +815,7 @@ const investmentCards = [
         image: "../cards/investment/K13.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 10000000,    // 1000万
         monthlyReturn: 700000,        // 70万/月
         energyCost: 4,
@@ -825,11 +825,11 @@ const investmentCards = [
             const monthlyIncome = 700000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资研發AI軟件`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資研發AI軟件`;
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，无法投资研發AI軟件`;
+                return `❌ 精力不足 4 点，無法投資研發AI軟件`;
             }
             
             state.cash -= cost;
@@ -884,7 +884,7 @@ const investmentCards = [
         image: "../cards/investment/K14.png",
         cost: 500,
         type: "investment",
-        category: "项目投资",
+        category: "項目投資",
         investmentCost: 15000000,    // 1500万
         monthlyReturn: 1000000,       // 100万/月
         energyCost: 0,               // 無精力消耗
@@ -898,7 +898,7 @@ const investmentCards = [
             const luckGain = 1;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法投资國際快餐品牌`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資國際快餐品牌`;
             }
             
             state.cash -= cost;

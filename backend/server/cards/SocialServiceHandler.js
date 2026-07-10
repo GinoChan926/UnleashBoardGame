@@ -5,12 +5,12 @@ const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 function processSocialServiceTile(state, ws, roomId, player, tile, room) {
     const cost = 10000;
     if (state.cash < cost) {
-        ws.send(JSON.stringify({ type: 'notification', message: `❌ 现金不足 ${cost.toLocaleString()} 元` }));
-        return `❌ 现金不足`;
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足 ${cost.toLocaleString()} 元` }));
+        return `❌ 現金不足`;
     }
     if (room.pendingSocialService?.has(ws)) {
-        ws.send(JSON.stringify({ type: 'notification', message: `⏳ 你已有进行中的社会服务选择` }));
-        return `⏳ 已有进行中的选择`;
+        ws.send(JSON.stringify({ type: 'notification', message: `⏳ 你已有進行中的社會服務選擇` }));
+        return `⏳ 已有進行中的選擇`;
     }
 
     if (!room.pendingSocialService) room.pendingSocialService = new Map();
@@ -21,11 +21,11 @@ function processSocialServiceTile(state, ws, roomId, player, tile, room) {
 
     ws.send(JSON.stringify({
         type: 'social_service_prompt',
-        message: `🏛️ 社会服务中心\n支付 ${cost.toLocaleString()} 元，抽 2 张「项目投资卡」或「服务社会卡」！`,
+        message: `🏛️ 社會服務中心\n支付 ${cost.toLocaleString()} 元，抽 2 張「項目投資卡」或「服務社會卡」！`,
         cost, tileName: tile.name
     }));
 
-    console.log(`🏛️ ${player.playerName} 触发社会服务中心，等待选择...`);
+    console.log(`🏛️ ${player.playerName} 觸發社會服務中心，等待選擇...`);
     return null;
 }
 
@@ -36,7 +36,7 @@ function handleSocialServiceChoice(ws, data, roomId, rooms, broadcastToRoom, inv
 
     const pending = room.pendingSocialService?.get(ws);
     if (!pending) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的社会服务选择' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的社會服務選擇' }));
         return;
     }
 
@@ -44,7 +44,7 @@ function handleSocialServiceChoice(ws, data, roomId, rooms, broadcastToRoom, inv
     const cost   = 10000;
 
     if (player.gameState.cash < cost) {
-        ws.send(JSON.stringify({ type: 'error', message: `❌ 现金不足 ${cost.toLocaleString()} 元` }));
+        ws.send(JSON.stringify({ type: 'error', message: `❌ 現金不足 ${cost.toLocaleString()} 元` }));
         room.pendingSocialService.delete(ws);
         return;
     }
@@ -52,15 +52,15 @@ function handleSocialServiceChoice(ws, data, roomId, rooms, broadcastToRoom, inv
     player.gameState.cash -= cost;
 
     addTransactionRecord(player.playerName,
-        { name: `社会服务中心 (${pending.tileName})`, type: "social_service", id: "SS01" },
-        "社会服务", -cost,
-        `支付 ${cost.toLocaleString()} 元，抽取 ${choice === 'investment' ? '项目投资卡' : '服务社会卡'} x2`,
+        { name: `社會服務中心 (${pending.tileName})`, type: "social_service", id: "SS01" },
+        "社會服務", -cost,
+        `支付 ${cost.toLocaleString()} 元，抽取 ${choice === 'investment' ? '項目投資卡' : '服務社會卡'} x2`,
         null, player.gameState);
 
     const cards        = choice === 'investment'
         ? _drawMultiple(investmentCards, 2)
         : _drawMultiple(socialCards, 2);
-    const cardTypeName = choice === 'investment' ? '项目投资卡' : '服务社会卡';
+    const cardTypeName = choice === 'investment' ? '項目投資卡' : '服務社會卡';
     const cardTypeIcon = choice === 'investment' ? '🏗️' : '🤝';
 
     room.pendingSocialService.delete(ws);
@@ -90,13 +90,13 @@ function handleSocialServiceChoice(ws, data, roomId, rooms, broadcastToRoom, inv
                 investmentCost: card.investmentCost || 0, energyCost: card.energyCost || 0,
                 monthlyReturn: card.monthlyReturn || 0, cardType: choice, cardTypeName, cardTypeIcon
             },
-            canAfford, message: `📋 第 ${index + 1} 张 ${cardTypeName}：${card.name}`
+            canAfford, message: `📋 第 ${index + 1} 張 ${cardTypeName}：${card.name}`
         }));
     });
 
     broadcastToRoom(roomId, {
         type: 'notification',
-        message: `🏛️ ${player.playerName} 在社会服务中心抽取了 2 张${cardTypeName}！`
+        message: `🏛️ ${player.playerName} 在社會服務中心抽取了 2 張${cardTypeName}！`
     }, ws);
     broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
 }

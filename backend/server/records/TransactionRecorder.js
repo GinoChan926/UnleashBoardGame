@@ -32,10 +32,10 @@ function getCardTypeFromCard(card) {
     }
 
     const categoryMap = {
-        '财务': 'finance', '兼职': 'part_time', '创业': 'business',
-        '地产': 'property', '骗子卡': 'lier', '警察卡': 'police',
-        '市场消息卡': 'market_news', '锦囊卡': 'tip',
-        '项目投资': 'investment', '貢獻社會': 'social'
+        '財務': 'finance', '兼職': 'part_time', '創業': 'business',
+        '地產': 'property', '騙子卡': 'lier', '警察卡': 'police',
+        '市場消息卡': 'market_news', '錦囊卡': 'tip',
+        '項目投資': 'investment', '貢獻社會': 'social'
     };
     if (card.category && categoryMap[card.category]) {
         return categoryMap[card.category];
@@ -103,11 +103,11 @@ function loadFromFile() {
             const saved = JSON.parse(fs.readFileSync(p, 'utf8'));
             if (Array.isArray(saved) && saved.length > 0) {
                 transactions = saved;
-                console.log(`📚 加载了 ${transactions.length} 条历史交易记录`);
+                console.log(`📚 載入了 ${transactions.length} 條歷史交易記錄`);
             }
         }
     } catch (e) {
-        console.log('加载交易记录失败:', e.message);
+        console.log('載入交易記錄失敗:', e.message);
     }
 }
 
@@ -121,7 +121,7 @@ function _persist() {
         const p = path.join(__dirname, '..', '..', 'transactions.json');
         fs.writeFileSync(p, JSON.stringify(transactions.slice(0, 200), null, 2));
     } catch (e) {
-        console.log('保存交易记录失败:', e.message);
+        console.log('保存交易記錄失敗:', e.message);
     }
 }
 

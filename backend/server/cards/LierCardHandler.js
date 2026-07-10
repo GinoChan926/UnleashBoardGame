@@ -34,7 +34,7 @@ function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastT
     }
 
     const card        = lierCards[Math.floor(Math.random() * lierCards.length)];
-    const isFraudCard = card.type === 'lier' || card.category === '骗子卡' ||
+    const isFraudCard = card.type === 'lier' || card.category === '騙子卡' ||
         /加密貨幣|P2P|信用卡/.test(card.name || '');
 
     const damageAmount = isFraudCard ? _estimateDamage(card, player.gameState) : 0;
@@ -101,7 +101,7 @@ function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastT
         const stateBefore  = JSON.parse(JSON.stringify(player.gameState));
         const effectResult = card.effect(player.gameState);
 
-        addTransactionRecord(player.playerName, card, '骗子卡',
+        addTransactionRecord(player.playerName, card, '騙子卡',
             player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
 
         const serializableCard = _serializable(card);
@@ -121,7 +121,7 @@ function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastT
             type: 'state_updated', playerId: player.playerId, gameState: player.gameState
         });
 
-        console.log(`✅ ${player.playerName} 自动执行了骗子卡: ${card.name}`);
+        console.log(`✅ ${player.playerName} 自動執行了騙子卡: ${card.name}`);
     }
 }
 
@@ -140,7 +140,7 @@ function drawLierCard(ws, state, roomId, player, lierCards, room) {
     room.pendingEvents.set(ws, { type: 'lier_card', card: fullCard, playerId: player.playerId, timestamp: Date.now() });
 
     ws.send(JSON.stringify({ type: 'lier_card_draw', card: _serializable(card) }));
-    console.log(`🎭 ${player.playerName} 抽到骗子卡: ${card.name}`);
+    console.log(`🎭 ${player.playerName} 抽到騙子卡: ${card.name}`);
 }
 
 function executeLierCard(ws, data, roomId, rooms, broadcastToRoom) {
@@ -150,7 +150,7 @@ function executeLierCard(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingEvent = room.pendingEvents?.get(ws);
     if (!pendingEvent || pendingEvent.type !== 'lier_card') {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的骗子卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的騙子卡' }));
         return;
     }
 
@@ -158,7 +158,7 @@ function executeLierCard(ws, data, roomId, rooms, broadcastToRoom) {
     const stateBefore = JSON.parse(JSON.stringify(player.gameState));
     const effectResult = card.effect(player.gameState);
 
-    addTransactionRecord(player.playerName, card, '骗子卡',
+    addTransactionRecord(player.playerName, card, '騙子卡',
         player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
 
     broadcastToRoom(roomId, {

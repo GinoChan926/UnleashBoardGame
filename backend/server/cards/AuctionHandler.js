@@ -35,7 +35,7 @@ function startAuction(roomId, card, player, ws, broadcastToRoom) {
         initiator:       player.playerName
     });
 
-    console.log(`🔨 竞拍开始: ${card.name} (ID: ${auctionId})`);
+    console.log(`🔨 競拍開始: ${card.name} (ID: ${auctionId})`);
     return auctionId;
 }
 
@@ -46,7 +46,7 @@ function handleAuctionBid(ws, data, roomId, rooms, broadcastToRoom) {
 
     const auction = activeAuctions.get(data.auctionId);
     if (!auction) {
-        ws.send(JSON.stringify({ type: 'error', message: '竞拍不存在或已结束' }));
+        ws.send(JSON.stringify({ type: 'error', message: '競拍不存在或已結束' }));
         return;
     }
 
@@ -55,7 +55,7 @@ function handleAuctionBid(ws, data, roomId, rooms, broadcastToRoom) {
     if (player.gameState.cash < newPrice) {
         ws.send(JSON.stringify({
             type:    'error',
-            message: `❌ 现金不足！出价需要 ${newPrice.toLocaleString()} 元`
+            message: `❌ 现金不足！出價需要 ${newPrice.toLocaleString()} 元`
         }));
         return;
     }
@@ -71,7 +71,7 @@ function handleAuctionBid(ws, data, roomId, rooms, broadcastToRoom) {
         currentBidder:  auction.currentBidder
     });
 
-    console.log(`💰 ${player.playerName} 出价 ${newPrice.toLocaleString()} 元`);
+    console.log(`💰 ${player.playerName} 出價 ${newPrice.toLocaleString()} 元`);
 }
 
 function handleAuctionPass(ws, data, roomId, rooms, broadcastToRoom) {
@@ -107,7 +107,7 @@ function _endAuction(auction, roomId, rooms, broadcastToRoom) {
             type:    'auction_end',
             auctionId: auction.auctionId,
             winner:  null,
-            message: `🔨 竞拍结束，无人出价，「${auction.card.name}」流拍。`
+            message: `🔨 競拍結束，無人出價，「${auction.card.name}」流拍。`
         });
         return;
     }
@@ -144,7 +144,7 @@ function _endAuction(auction, roomId, rooms, broadcastToRoom) {
         });
     }
 
-    console.log(`🏆 竞拍结束: ${auction.currentBidder} 赢得 ${auction.card.name}`);
+    console.log(`🏆 競拍結束: ${auction.currentBidder} 赢得 ${auction.card.name}`);
 }
 
 module.exports = { startAuction, handleAuctionBid, handleAuctionPass };

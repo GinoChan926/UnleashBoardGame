@@ -26,7 +26,7 @@ function handleLoan(ws, data, roomId, rooms, broadcastToRoom) {
     if (loanRecord.principal > 0) {
         ws.send(JSON.stringify({
             type:    'error',
-            message: `❌ 你还有 ${loanRecord.principal.toLocaleString()} 元贷款未还清，请先还清再申请！`
+            message: `❌ 你還有 ${loanRecord.principal.toLocaleString()} 元貸款未還清，請先還清再申請！`
         }));
         return;
     }
@@ -58,9 +58,9 @@ function handleLoan(ws, data, roomId, rooms, broadcastToRoom) {
         ws.send(JSON.stringify(result));
         broadcastToRoom(roomId, result, ws);
 
-        console.log(`🏦 ${player.playerName} 贷款 ${amount.toLocaleString()} 元`);
+        console.log(`🏦 ${player.playerName} 貸款 ${amount.toLocaleString()} 元`);
     } else {
-        ws.send(JSON.stringify({ type: 'loan_rejected', reason: '贷款金额无效或超出上限' }));
+        ws.send(JSON.stringify({ type: 'loan_rejected', reason: '貸款金額無效或超出上限' }));
     }
 }
 
@@ -73,7 +73,7 @@ function handleRepayLoan(ws, data, roomId, rooms, broadcastToRoom) {
     const principal   = loanRecord.principal;
 
     if (principal === 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '💰 没有未偿还的贷款' }));
+        ws.send(JSON.stringify({ type: 'error', message: '💰 沒有未償還的貸款' }));
         return;
     }
 
@@ -83,7 +83,7 @@ function handleRepayLoan(ws, data, roomId, rooms, broadcastToRoom) {
     if (player.gameState.cash < totalToRepay) {
         ws.send(JSON.stringify({
             type:    'error',
-            message: `💰 现金不足！需要 ${totalToRepay.toLocaleString()} 元 (本金 ${principal.toLocaleString()} + 利息 ${interest.toLocaleString()})`
+            message: `💰 現金不足！需要 ${totalToRepay.toLocaleString()} 元 (本金 ${principal.toLocaleString()} + 利息 ${interest.toLocaleString()})`
         }));
         return;
     }
@@ -104,7 +104,7 @@ function handleRepayLoan(ws, data, roomId, rooms, broadcastToRoom) {
     ws.send(JSON.stringify(result));
     broadcastToRoom(roomId, result, ws);
 
-    console.log(`💰 ${player.playerName} 还款 ${totalToRepay.toLocaleString()} 元`);
+    console.log(`💰 ${player.playerName} 還款 ${totalToRepay.toLocaleString()} 元`);
 }
 
 function processSettlementRepayment(player, ws, roomId, broadcastToRoom) {
@@ -124,7 +124,7 @@ function processSettlementRepayment(player, ws, roomId, broadcastToRoom) {
             const result = {
                 type:    'forced_repayment',
                 playerId: player.playerId, playerName: player.playerName,
-                message: `⚠️ 强制还款！扣除 ${totalToRepay.toLocaleString()} 元`,
+                message: `⚠️ 強制還款！扣除 ${totalToRepay.toLocaleString()} 元`,
                 deductedAmount: totalToRepay, remainingCash: player.gameState.cash,
                 gameState: player.gameState
             };
@@ -145,7 +145,7 @@ function processSettlementRepayment(player, ws, roomId, broadcastToRoom) {
             return {
                 type:    'forced_repayment_partial',
                 playerId: player.playerId, playerName: player.playerName,
-                message: `⚠️ 强制部分还款！扣除 ${deducted.toLocaleString()} 元，剩余欠款 ${remainingDebt.toLocaleString()} 元`,
+                message: `⚠️ 強制部分還款！扣除 ${deducted.toLocaleString()} 元，剩餘欠款 ${remainingDebt.toLocaleString()} 元`,
                 deductedAmount: deducted, remainingDebt, remainingCash: 0,
                 gameState: player.gameState
             };
@@ -155,7 +155,7 @@ function processSettlementRepayment(player, ws, roomId, broadcastToRoom) {
     return {
         type:    'settlement_reminder',
         playerId: player.playerId, playerName: player.playerName,
-        message: `⚠️ 贷款提醒！本金 ${loanRecord.principal.toLocaleString()} 元，已过 ${loanRecord.settlementCount}/12 次结算日`,
+        message: `⚠️ 貸款提醒！本金 ${loanRecord.principal.toLocaleString()} 元，已過 ${loanRecord.settlementCount}/12 次結算日`,
         principal: loanRecord.principal, totalToRepay, interest,
         settlementCount:     loanRecord.settlementCount,
         remainingSettlements: 12 - loanRecord.settlementCount,

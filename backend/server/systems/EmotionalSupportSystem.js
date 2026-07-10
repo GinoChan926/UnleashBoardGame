@@ -55,18 +55,18 @@ function handleUseEmotionalSupport(ws, data, roomId, rooms, broadcastToRoom) {
     }
 
     if (!targetPlayer) {
-        ws.send(JSON.stringify({ type: 'error', message: '找不到目标玩家' }));
+        ws.send(JSON.stringify({ type: 'error', message: '找不到目標玩家' }));
         return;
     }
 
     const pending = pendingEmotionalSupport.get(targetName);
     if (!pending) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的伤害事件' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的傷害事件' }));
         return;
     }
 
     if (!player.gameState.emotionalSupportShield || player.gameState.emotionalSupportShield <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '你没有情绪支援护盾可用' }));
+        ws.send(JSON.stringify({ type: 'error', message: '你沒有情緒支援護盾可用' }));
         return;
     }
 

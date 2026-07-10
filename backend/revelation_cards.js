@@ -1,6 +1,6 @@
-// revelation_cards.js - 启示卡数据（市场消息卡 + 锦囊卡）
+// revelation_cards.js - 启示卡数据（市場消息卡 + 锦囊卡）
 
-// ==================== 市场消息卡 ====================
+// ==================== 市場消息卡 ====================
 const marketNewsCards = [
 
     {
@@ -10,19 +10,19 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M01.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否持有 F02 基金
+                // 檢查玩家是否持有 F02 基金
                 const hasFundF02 = p.gameState.financeInvestments && 
                                   p.gameState.financeInvestments.some(inv => inv.id === "F02");
                 
                 if (hasFundF02) {
-                    // 找到 F02 基金投资
+                    // 找到 F02 基金投資
                     const fundInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F02");
                     const oldMonthlyReturn = fundInvestment.monthlyReturn;
                     const newMonthlyReturn = oldMonthlyReturn + 500;
@@ -98,19 +98,19 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M02.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否持有 F02 基金
+                // 檢查玩家是否持有 F02 基金
                 const hasFundF02 = p.gameState.financeInvestments && 
                                   p.gameState.financeInvestments.some(inv => inv.id === "F02");
                 
                 if (hasFundF02) {
-                    // 找到 F02 基金投资
+                    // 找到 F02 基金投資
                     const fundInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F02");
                     const oldMonthlyReturn = fundInvestment.monthlyReturn;
                     const newMonthlyReturn = Math.max(0, oldMonthlyReturn - 500); // 最低为0，不会变成负数
@@ -187,15 +187,15 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M03.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             const newInterestRate = 5; // 新利率 5%
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否有贷款
+                // 檢查玩家是否有貸款
                 if (p.gameState.loanAmount > 0) {
                     const oldLoanAmount = p.gameState.loanAmount;
                     const oldInterestRate = 10; // 原利率 10%
@@ -203,7 +203,7 @@ const marketNewsCards = [
                     const newInterestAmount = Math.round(oldLoanAmount * newInterestRate / 100);
                     const interestSaved = oldInterestAmount - newInterestAmount;
                     
-                    // 更新贷款利率
+                    // 更新貸款利率
                     p.gameState.loanInterestRate = newInterestRate;
                     p.gameState.loanInterest = newInterestAmount;
                     
@@ -272,22 +272,22 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M04.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             let totalLoss = 0;
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否持有加密货币 (C01)
+                // 檢查玩家是否持有加密货币 (C01)
                 let cryptoLoss = 0;
                 let cryptoDetails = [];
                 
                 if (p.gameState.cryptoHoldings) {
-                    // 遍历所有加密货币持仓
+                    // 遍歷所有加密货币持仓
                     for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
-                        // 检查是否是 C01 相关加密货币
+                        // 檢查是否是 C01 相关加密货币
                         if (cryptoId === 'F03' || cryptoId === 'F04' || 
                             (holding.code === 'C01') || 
                             (holding.name && holding.name.includes('C01'))) {
@@ -307,7 +307,7 @@ const marketNewsCards = [
                     affectedPlayers.push(p.playerName);
                     changes.push(`${p.playerName}: 損失 $${cryptoLoss.toLocaleString()} (${cryptoDetails.join(', ')})`);
                     
-                    // 更新总资产（减去损失）
+                    // 更新总資产（减去损失）
                     p.gameState.totalAssets = Math.max(0, p.gameState.totalAssets - cryptoLoss);
                     
                     // 幸运值下降（被骗影响心情）
@@ -376,20 +376,20 @@ const marketNewsCards = [
     image: "../cards/revelation/market/M05.png",
     cost: 500,
     type: "market_news",
-    category: "市场消息卡",
+    category: "市場消息卡",
     effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
         let affectedPlayers = [];
         let changes = [];
         const priceIncrease = 10;
         
-        // 遍历所有玩家
+        // 遍歷所有玩家
         for (let [pWs, p] of room.players) {
-            // 检查玩家是否持有 P2P N02 投资 (id 为 "F05")
+            // 檢查玩家是否持有 P2P N02 投資 (id 为 "F05")
             const hasP2PInvestment = p.gameState.financeInvestments && 
                                      p.gameState.financeInvestments.some(inv => inv.id === "F05");
             
             if (hasP2PInvestment) {
-                // 找到 P2P 投资
+                // 找到 P2P 投資
                 const p2pInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F05");
                 const oldPricePerUnit = p2pInvestment.pricePerUnit;
                 const newPricePerUnit = oldPricePerUnit + priceIncrease;
@@ -400,7 +400,7 @@ const marketNewsCards = [
                 p2pInvestment.valueIncreased = true;
                 p2pInvestment.increaseAmount = priceIncrease;
                 
-                // 更新总资产价值（增加）
+                // 更新总資产价值（增加）
                 p.gameState.totalAssets = (p.gameState.totalAssets || 0) + valueIncrease;
                 
                 affectedPlayers.push(p.playerName);
@@ -467,7 +467,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M06.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             // 收集所有持有 C01 加密货币的玩家
             const playersWithCrypto = [];
@@ -479,7 +479,7 @@ const marketNewsCards = [
                 
                 if (p.gameState.cryptoHoldings) {
                     for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
-                        // 检查是否是 C01 相关加密货币
+                        // 檢查是否是 C01 相关加密货币
                         if (cryptoId === 'F03' || cryptoId === 'F04' || 
                             (holding.code === 'C01') || 
                             (holding.name && holding.name.includes('C01'))) {
@@ -654,20 +654,20 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M07.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             let totalLoss = 0;
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否持有 P2P N02 投资 (id 为 "N02")
+                // 檢查玩家是否持有 P2P N02 投資 (id 为 "N02")
                 let p2pLoss = 0;
                 let p2pDetails = [];
                 
                 if (p.gameState.financeInvestments) {
-                    // 找到 P2P 投资索引
+                    // 找到 P2P 投資索引
                     const p2pIndex = p.gameState.financeInvestments.findIndex(inv => inv.id === "N02");
                     
                     if (p2pIndex !== -1) {
@@ -676,13 +676,13 @@ const marketNewsCards = [
                         totalLoss += p2pLoss;
                         p2pDetails.push(`${p2pInvestment.name}: ${p2pInvestment.units}股，成本 $${p2pLoss.toLocaleString()}`);
                         
-                        // 从投资列表中删除
+                        // 从投資列表中删除
                         p.gameState.financeInvestments.splice(p2pIndex, 1);
                         
-                        // 更新总资产（减去损失）
+                        // 更新总資产（减去损失）
                         p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - p2pLoss);
                         
-                        // 幸运值下降（投资失败）
+                        // 幸运值下降（投資失败）
                         p.gameState.luck = Math.max(0, p.gameState.luck - 2);
                         
                         affectedPlayers.push(p.playerName);
@@ -752,7 +752,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M08.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             // 收集所有持有股票的玩家
             const playersWithStocks = [];
@@ -931,12 +931,12 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M09.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
                 let playerChanges = [];
                 let hasStock = false;
@@ -1037,7 +1037,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M10.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const stockPrices = {
                 "B01": { name: "股票交易 - B01金融公司", price: 10, originalRange: "5-30" },
@@ -1172,7 +1172,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M11.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const stockPrices = {
                 "B01": { name: "股票交易 - B01金融公司", price: 30, originalRange: "5-30" },
@@ -1307,7 +1307,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M12.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const stockPrices = {
                 "B01": { name: "股票交易 - B01金融公司", price: 5, originalRange: "5-30" },
@@ -1442,7 +1442,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M13.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const stockPrices = {
                 "B01": { name: "股票交易 - B01金融公司", price: 15, originalRange: "5-30" },
@@ -1577,20 +1577,20 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M14.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
             const compensationAmount = 5000000; // 500萬
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
-                // 检查玩家是否持有 H01 陳年唐樓
+                // 檢查玩家是否持有 H01 陳年唐樓
                 let hasProperty = false;
                 let propertyDetails = [];
                 let compensationReceived = 0;
                 
-                // 检查 propertyInvestments
+                // 檢查 propertyInvestments
                 if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
                     const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === "H01");
                     
@@ -1601,13 +1601,13 @@ const marketNewsCards = [
                         
                         propertyDetails.push(`${property.name}: 原價 $${property.totalPrice?.toLocaleString() || property.cost?.toLocaleString() || '?'} 元`);
                         
-                        // 从地产投资中删除（已被收購）
+                        // 从地产投資中删除（已被收購）
                         p.gameState.propertyInvestments.splice(propertyIndex, 1);
                         
                         // 增加现金（補償金）
                         p.gameState.cash += compensationReceived;
                         
-                        // 更新总资产
+                        // 更新总資产
                         p.gameState.totalAssets = (p.gameState.totalAssets || 0) + compensationReceived;
                         
                         affectedPlayers.push(p.playerName);
@@ -1676,7 +1676,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M15.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const marketPrice = 12000000; // 1200萬
             const targetPropertyId = "H02"; // 香港中西區住宅的 ID
@@ -1773,7 +1773,7 @@ const marketNewsCards = [
                 playerObj.gameState.cash += profit;
                 totalPaid += profit;
                 
-                // 从地产投资中删除
+                // 从地产投資中删除
                 playerObj.gameState.propertyInvestments.splice(propertyIndex, 1);
                 
                 // 如果有按揭貸款，需要清除相關的每月供款
@@ -1846,7 +1846,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M16.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const marketPrice = 8000000; // 800萬
             const targetPropertyId = "H03"; // 香港油尖旺區住宅的 ID
@@ -1943,7 +1943,7 @@ const marketNewsCards = [
                 playerObj.gameState.cash += profit;
                 totalPaid += profit;
                 
-                // 从地产投资中删除
+                // 从地产投資中删除
                 playerObj.gameState.propertyInvestments.splice(propertyIndex, 1);
                 
                 // 如果有按揭貸款，需要清除相關的每月供款
@@ -2016,7 +2016,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M17.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const marketPrice = 5000000; // 500萬
             const targetPropertyId = "H04"; // 香港新界北區住宅的 ID
@@ -2175,7 +2175,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M18.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const rentIncrease = 30000; // 租金增加 $30,000
             const passiveIncomeIncrease = 6000; // 被動收入增加 $6,000
@@ -2226,7 +2226,7 @@ const marketNewsCards = [
                 // 更新玩家的被動收入
                 p.gameState.passiveIncome = (p.gameState.passiveIncome || 0) + passiveIncomeIncrease;
                 
-                // 更新总资产（租金收入增加提升物業價值）
+                // 更新总資产（租金收入增加提升物業價值）
                 p.gameState.totalAssets = (p.gameState.totalAssets || 0) + (passiveIncomeIncrease * 12 * 10); // 簡單估值：年收入 × 10
                 
                 affectedPlayers.push(p.playerName);
@@ -2285,7 +2285,7 @@ const marketNewsCards = [
         image: "../cards/revelation/market/M19.png",
         cost: 500,
         type: "market_news",
-        category: "市场消息卡",
+        category: "市場消息卡",
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             let affectedPlayers = [];
             let changes = [];
@@ -2295,7 +2295,7 @@ const marketNewsCards = [
             // 住宅物業 ID 列表 (H01, H02, H03, H04)
             const residentialPropertyIds = ["H01", "H02", "H03", "H04"];
             
-            // 遍历所有玩家
+            // 遍歷所有玩家
             for (let [pWs, p] of room.players) {
                 let playerChanges = [];
                 let totalValueDecrease = 0;
@@ -2303,7 +2303,7 @@ const marketNewsCards = [
                 let hasResidentialProperty = false;
                 
                 if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    // 遍历所有住宅物業
+                    // 遍歷所有住宅物業
                     for (let i = 0; i < p.gameState.propertyInvestments.length; i++) {
                         const property = p.gameState.propertyInvestments[i];
                         
@@ -2579,9 +2579,9 @@ const tipCards = [
                     playerObj.gameState.cash -= investmentCost;
                     playerObj.gameState.energy -= energyCost;
                     
-                    // 永久降低贷款利率至2%
+                    // 永久降低貸款利率至2%
                     playerObj.gameState.permanentLoanRate = 2;
-                    // 提高贷款额度至月现金流40倍
+                    // 提高貸款额度至月现金流40倍
                     playerObj.gameState.loanMultiplier = 40;
                     // 人脈加成提升
                     playerObj.gameState.sideIncomeBonus = (playerObj.gameState.sideIncomeBonus || 0) + 0.1;
@@ -2762,12 +2762,12 @@ const tipCards = [
             const monthlyCost = 2000;  // 每月支出 $2,000
             const energyBonus = 1;     // 每月精力 +1
             
-            // 检查是否已经投资
+            // 檢查是否已经投資
             if (state.healthSupplementInvestment && state.healthSupplementInvestment.active) {
                 return `⚠️ 你已經在進行保健品投資了，無需重複投資。`;
             }
             
-            // 检查现金是否足够支付首月费用
+            // 檢查现金是否足够支付首月费用
             if (state.cash < monthlyCost) {
                 return `❌ 現金不足 $${monthlyCost.toLocaleString()} 元，無法開始保健品投資。`;
             }
@@ -2778,7 +2778,7 @@ const tipCards = [
             // 立即获得本月精力奖励
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
             
-            // 记录健康保健品投资状态（每月自动生效）
+            // 记录健康保健品投資状态（每月自动生效）
             state.healthSupplementInvestment = {
                 active: true,
                 monthlyCost: monthlyCost,
@@ -2846,7 +2846,7 @@ const tipCards = [
                 return `❌ 你決定不學習「${card.name}」，已支付的 500 元無法退還。`;
             }
             
-            // 检查现金是否足够
+            // 檢查现金是否足够
             if (state.cash < investmentCost) {
                 return `❌ 現金不足 $${investmentCost.toLocaleString()} 元，無法學習釋放情緒。`;
             }
@@ -2987,7 +2987,7 @@ const tipCards = [
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const energyBonus = 2;
             
-            // 个人锦囊，直接询问是否执行
+            // 个人锦囊，直接询问是否執行
             const userChoice = confirm(
                 `🦁 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 精力 +${energyBonus}\n   • 抽取一張逆境卡（勇敢面對）\n\n你是否願意執行？（已支付 500 元）`
             );
@@ -3058,7 +3058,7 @@ const tipCards = [
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const fourLeafCloverReward = 2;  // 獲得2個四葉草
             
-            // 个人锦囊，直接询问是否执行
+            // 个人锦囊，直接询问是否執行
             const userChoice = confirm(
                 `🙏 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 四葉草 x${fourLeafCloverReward}\n   • 感恩的心帶來奇蹟！\n\n你是否願意執行？（已支付 500 元）`
             );
@@ -3125,7 +3125,7 @@ const tipCards = [
         category: "锦囊卡",
         scope: "personal",  // 个人锦囊
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 个人锦囊，直接询问是否执行
+            // 个人锦囊，直接询问是否執行
             const userChoice = confirm(
                 `🛡️ ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 取消下一張騙子卡\n   • 保持警惕，遠離詐騙！\n\n你是否願意執行？（已支付 500 元）`
             );
@@ -3192,7 +3192,7 @@ const tipCards = [
         category: "锦囊卡",
         scope: "personal",  // 个人锦囊
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 个人锦囊，直接询问是否执行
+            // 个人锦囊，直接询问是否執行
             const userChoice = confirm(
                 `👮 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 獲得 1 次義工資格（可幫助其他玩家防範騙子卡）\n   • 打擊詐騙，維護正義！\n\n你是否願意執行？（已支付 500 元）`
             );
@@ -3265,7 +3265,7 @@ const tipCards = [
         effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
             const energyBonus = 3;
             
-            // 个人锦囊，直接询问是否执行
+            // 个人锦囊，直接询问是否執行
             const userChoice = confirm(
                 `✨ ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 精力 +${energyBonus}\n   • 抽取一張逆境卡（滿有恩典）\n\n你是否願意執行？（已支付 500 元）`
             );
@@ -3369,7 +3369,7 @@ const tipCards = [
                 return `❌ 沒有其他玩家在線，無法贈送機會卡。`;
             }
             
-            // 检查现金是否足够购买机会卡（500元）
+            // 檢查现金是否足够购买机会卡（500元）
             if (state.cash < 500) {
                 return `❌ 現金不足 500 元，無法購買機會卡送給其他玩家。`;
             }
@@ -3400,7 +3400,7 @@ const tipCards = [
             // 幸运值提升（善有善報）
             state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
             
-            // 记录交易（执行者）
+            // 记录交易（執行者）
             addTransactionRecord(
                 currentPlayer.playerName,
                 { name: card.name, type: "tip", id: card.id },
@@ -3411,7 +3411,7 @@ const tipCards = [
                 state
             );
             
-            // 通知执行者
+            // 通知執行者
             if (ws) {
                 ws.send(JSON.stringify({
                     type: 'notification',
@@ -3516,7 +3516,7 @@ const tipCards = [
             let passedSettlement = false;
             let settlementMessage = '';
             
-            // 遍历每一步，检查是否经过结算日
+            // 遍歷每一步，檢查是否经过结算日
             for (let i = 1; i <= steps; i++) {
                 let tempPos = (oldPos + i) % room.streamlineTiles.length;
                 let tileAtPos = room.streamlineTiles[tempPos];
@@ -3542,7 +3542,7 @@ const tipCards = [
                     
                     settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
                     
-                    // 处理贷款还款
+                    // 处理貸款还款
                     const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
                     if (repaymentResult) {
                         ws.send(JSON.stringify(repaymentResult));
@@ -3555,11 +3555,11 @@ const tipCards = [
             state.streamlinePos = newPos;
             tile = room.streamlineTiles[state.streamlinePos];
             
-            // 执行格子行动（如果不是结算日）
+            // 執行格子行动（如果不是结算日）
             if (tile.type !== 'settlement') {
                 const isExactLanding = false;
                 
-                // 根据格子类型执行行动
+                // 根据格子类型執行行动
                 if (tile.type === 'lier') {
                     drawAndExecuteLierCard(ws, state, roomId, currentPlayer);
                     eventMessage = `踩中「${tile.name}」，執行騙子卡效果！`;
@@ -3679,7 +3679,7 @@ const tipCards = [
             let passedSettlement = false;
             let settlementMessage = '';
             
-            // 遍历每一步，检查是否经过结算日
+            // 遍歷每一步，檢查是否经过结算日
             for (let i = 1; i <= steps; i++) {
                 let tempPos = (oldPos + i) % room.streamlineTiles.length;
                 let tileAtPos = room.streamlineTiles[tempPos];
@@ -3705,7 +3705,7 @@ const tipCards = [
                     
                     settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
                     
-                    // 处理贷款还款
+                    // 处理貸款还款
                     const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
                     if (repaymentResult) {
                         ws.send(JSON.stringify(repaymentResult));
@@ -3718,11 +3718,11 @@ const tipCards = [
             state.streamlinePos = newPos;
             tile = room.streamlineTiles[state.streamlinePos];
             
-            // 执行格子行动（如果不是结算日）
+            // 執行格子行动（如果不是结算日）
             if (tile.type !== 'settlement') {
                 const isExactLanding = false;
                 
-                // 根据格子类型执行行动
+                // 根据格子类型執行行动
                 if (tile.type === 'lier') {
                     drawAndExecuteLierCard(ws, state, roomId, currentPlayer);
                     eventMessage = `踩中「${tile.name}」，執行騙子卡效果！`;
@@ -3870,7 +3870,7 @@ const tipCards = [
             let passedSettlement = false;
             let settlementMessage = '';
             
-            // 遍历每一步，检查是否经过结算日
+            // 遍歷每一步，檢查是否经过结算日
             for (let i = 1; i <= steps; i++) {
                 let tempPos = (oldPos + i) % room.streamlineTiles.length;
                 let tileAtPos = room.streamlineTiles[tempPos];
@@ -3896,7 +3896,7 @@ const tipCards = [
                     
                     settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
                     
-                    // 处理贷款还款
+                    // 处理貸款还款
                     const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
                     if (repaymentResult) {
                         ws.send(JSON.stringify(repaymentResult));
@@ -3908,7 +3908,7 @@ const tipCards = [
             // 更新位置到月收入格
             state.streamlinePos = targetIndex;
             
-            // 执行月收入格的效果
+            // 執行月收入格的效果
             const isExactLanding = false;
             eventMessage = processStreamlineTile(state, targetTile, ws, roomId, currentPlayer, isExactLanding);
             
@@ -4059,7 +4059,7 @@ const tipCards = [
             let passedSettlement = false;
             let settlementMessage = '';
             
-            // 遍历每一步，检查是否经过结算日
+            // 遍歷每一步，檢查是否经过结算日
             for (let i = 1; i <= steps; i++) {
                 let tempPos = (oldPos + i) % room.streamlineTiles.length;
                 let tileAtPos = room.streamlineTiles[tempPos];
@@ -4085,7 +4085,7 @@ const tipCards = [
                     
                     settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
                     
-                    // 处理贷款还款
+                    // 处理貸款还款
                     const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
                     if (repaymentResult) {
                         ws.send(JSON.stringify(repaymentResult));
@@ -4094,11 +4094,11 @@ const tipCards = [
                 }
             }
             
-            // 更新位置到目标玩家的格子
+            // 更新位置到目標玩家的格子
             state.streamlinePos = targetPos;
             const targetTile = room.streamlineTiles[targetPos];
             
-            // 执行格子行动
+            // 執行格子行动
             const isExactLanding = false;
             
             if (targetTile.type === 'lier') {
@@ -4226,7 +4226,7 @@ function getDiceResultMessage(diceRoll) {
     }
 }
 
-// 辅助函数：执行慢活结果
+// 辅助函数：執行慢活结果
 function executeSlowLifeResults(room, allPlayers, diceResults, currentPlayer, ws, roomId, card, playerChoices = {}) {
     let results = [];
     let totalLoss = 0;

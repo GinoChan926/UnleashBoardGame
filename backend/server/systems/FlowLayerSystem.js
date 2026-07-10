@@ -10,21 +10,21 @@ function canEnterFlowLayer(state, ws, sendMessage = true) {
     if (state.energy <= 0) {
         if (sendMessage) ws.send(JSON.stringify({
             type: 'notification',
-            message: `❌ 无法进入顺流层！精力不足 (当前 ${state.energy})`
+            message: `❌ 無法進入順流層！精力不足 (當前 ${state.energy})`
         }));
         return false;
     }
     if (state.loanAmount > 0) {
         if (sendMessage) ws.send(JSON.stringify({
             type: 'notification',
-            message: `❌ 无法进入顺流层！还有贷款 ${state.loanAmount.toLocaleString()} 元未还清`
+            message: `❌ 無法進入順流層！還有貸款 ${state.loanAmount.toLocaleString()} 元未還清`
         }));
         return false;
     }
     if (state.passiveIncome < totalExpense) {
         if (sendMessage) ws.send(JSON.stringify({
             type: 'notification',
-            message: `❌ 无法进入顺流层！被動收入 ${state.passiveIncome.toLocaleString()} < 总支出 ${totalExpense.toLocaleString()}`
+            message: `❌ 無法進入順流層！被動收入 ${state.passiveIncome.toLocaleString()} < 總支出 ${totalExpense.toLocaleString()}`
         }));
         return false;
     }
@@ -80,7 +80,7 @@ function handleFlowLayerChoice(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingChoice = room.pendingFlowChoices?.get(ws);
     if (!pendingChoice) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的顺流层选择' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的順流層選擇' }));
         return;
     }
 
@@ -103,29 +103,29 @@ function handleFlowLayerChoice(ws, data, roomId, rooms, broadcastToRoom) {
 
         ws.send(JSON.stringify({
             type: 'notification',
-            message: `🎉 你选择进入顺流层！被動收入 × 100 倍！原: ${incomeBoost.original.toLocaleString()} → ${incomeBoost.multiplied.toLocaleString()} 元/月`
+            message: `🎉 你選擇進入順流層！被動收入 × 100 倍！原: ${incomeBoost.original.toLocaleString()} → ${incomeBoost.multiplied.toLocaleString()} 元/月`
         }));
         broadcastToRoom(roomId, {
             type: 'notification',
-            message: `🎉 ${player.playerName} 进入顺流层！被動收入放大100倍！`
+            message: `🎉 ${player.playerName} 進入順流層！被動收入放大100倍！`
         }, ws);
         broadcastToRoom(roomId, {
             type: 'state_updated', playerId: player.playerId, gameState: state
         });
 
         addTransactionRecord(player.playerName,
-            { name: "进入顺流层", type: "flow", id: "FLOW_ENTER" },
-            "进入顺流层", 0,
-            `被動收入从 ${incomeBoost.original.toLocaleString()} 放大到 ${incomeBoost.multiplied.toLocaleString()} 元/月`,
+            { name: "進入順流層", type: "flow", id: "FLOW_ENTER" },
+            "進入順流層", 0,
+            `被動收入從 ${incomeBoost.original.toLocaleString()} 放大到 ${incomeBoost.multiplied.toLocaleString()} 元/月`,
             stateBefore, state);
     } else {
         ws.send(JSON.stringify({
             type: 'notification',
-            message: `📌 你选择留在平流层继续积累。`
+            message: `📌 你選擇留在平流層繼續積累。`
         }));
         broadcastToRoom(roomId, {
             type: 'notification',
-            message: `📌 ${player.playerName} 选择暂时留在平流层。`
+            message: `📌 ${player.playerName} 選擇暫時留在平流層。`
         }, ws);
     }
 

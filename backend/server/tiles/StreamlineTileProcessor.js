@@ -12,11 +12,11 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
     switch (tile.type) {
         case 'lucky_star':
             state.luckyStarCount = (state.luckyStarCount || 0) + 1;
-            return `⭐ 获得幸运星！当前共有 ${state.luckyStarCount} 颗！`;
+            return `⭐ 獲得幸運星！當前共有 ${state.luckyStarCount} 顆！`;
 
         case 'four_leaf_clover':
             state.fourLeafClover = (state.fourLeafClover || 0) + 1;
-            return `🍀 获得四叶草！下次掷骰步数 x2 倍！`;
+            return `🍀 獲得四葉草！下次擲骰步數 x2 倍！`;
 
         case 'lier':
             drawAndExecuteLierCard(ws, state, roomId, player);
@@ -69,7 +69,7 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
         totalIncome   = state.salary + state.sideIncome;
         state.cash   += totalIncome;
         state.totalAssets += Math.floor(totalIncome * 0.2);
-        incomeMessage = `获得 ${totalIncome.toLocaleString()} 元现金流`;
+        incomeMessage = `獲得 ${totalIncome.toLocaleString()} 元現金流`;
     } else {
         incomeMessage = `⚠️ 你身處逆流層，本次結算日沒有收入！`;
     }
@@ -102,8 +102,8 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     broadcastToRoom(roomId, settlementMsg, ws);
 
     return isExactLanding
-        ? `💰 结算日！正好踩中！${incomeMessage}${expenseReductionMessage}，额外获得一次掷骰机会！`
-        : `💰 结算日！${incomeMessage}${expenseReductionMessage}`;
+        ? `💰 結算日！正好踩中！${incomeMessage}${expenseReductionMessage}，額外獲得一次擲骰機會！`
+        : `💰 結算日！${incomeMessage}${expenseReductionMessage}`;
 }
 
 module.exports = { processStreamlineTile };

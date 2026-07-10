@@ -21,11 +21,11 @@ const socialCards = [
             const cost = 500000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法设立殘疾人士就業基金`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法設立殘疾人士就業基金`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法设立殘疾人士就業基金`;
+                return `❌ 精力不足 2 点，無法設立殘疾人士就業基金`;
             }
             
             // 扣除费用
@@ -92,11 +92,11 @@ const socialCards = [
             const monthlyIncome = 15000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法建立社區圖書館`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法建立社區圖書館`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法建立社區圖書館`;
+                return `❌ 精力不足 2 点，無法建立社區圖書館`;
             }
             
             state.cash -= cost;
@@ -153,11 +153,11 @@ const socialCards = [
             const monthlyIncome = 20000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法建立長者關懷計劃`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法建立長者關懷計劃`;
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，无法建立長者關懷計劃`;
+                return `❌ 精力不足 4 点，無法建立長者關懷計劃`;
             }
             
             state.cash -= cost;
@@ -214,11 +214,11 @@ const socialCards = [
             const monthlyIncome = 25000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法成为青年創業導師`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法成為青年創業導師`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法成为青年創業導師`;
+                return `❌ 精力不足 2 点，無法成為青年創業導師`;
             }
             
             state.cash -= cost;
@@ -275,11 +275,11 @@ const socialCards = [
             const monthlyIncome = 22000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法建立社區健康中心`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法建立社區健康中心`;
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，无法建立社區健康中心`;
+                return `❌ 精力不足 4 点，無法建立社區健康中心`;
             }
             
             state.cash -= cost;
@@ -336,11 +336,11 @@ const socialCards = [
             const monthlyIncome = 12000;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法設立文化藝術基金`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法設立文化藝術基金`;
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，无法設立文化藝術基金`;
+                return `❌ 精力不足 2 点，無法設立文化藝術基金`;
             }
             
             state.cash -= cost;

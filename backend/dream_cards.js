@@ -1,4 +1,4 @@
-// dream_cards.js - 梦想卡数据（顺流层专用）
+// dream_cards.js - 夢想卡数据（顺流层专用）
 
 const dreamCards = {
     // 格2: 訂制夢想跑車
@@ -9,7 +9,7 @@ const dreamCards = {
         image: "../cards/dream/D01.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 20000000,   // 2000万
         energyCost: 50,             // 50精力
         luckGain: 3,
@@ -18,11 +18,11 @@ const dreamCards = {
             const energyCost = 50;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法訂制夢想跑車`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法訂制夢想跑車`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法訂制夢想跑車`;
+                return `❌ 精力不足 ${energyCost} 点，無法訂制夢想跑車`;
             }
             
             state.cash -= cost;
@@ -57,13 +57,13 @@ const dreamCards = {
         image: "../cards/dream/D02.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 40000000,   // 3000万
         luckGain: 4,
         effect: (state) => {
             const cost = 40000000; 
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法購買名畫`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法購買名畫`;
             }
             
             state.cash -= cost;
@@ -97,7 +97,7 @@ const dreamCards = {
         image: "../cards/dream/D03.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 200000,      // 20万
         energyCost: 30,              // 30精力
         luckGain: 2,
@@ -109,11 +109,11 @@ const dreamCards = {
             const healthGain = 10;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法登頂富士山`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法登頂富士山`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法登頂富士山`;
+                return `❌ 精力不足 ${energyCost} 点，無法登頂富士山`;
             }
             
             state.cash -= cost;
@@ -151,7 +151,7 @@ const dreamCards = {
         image: "../cards/dream/D04.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 25000000,   // 2500万
         energyCost: 35,
         luckGain: 3,
@@ -160,11 +160,11 @@ const dreamCards = {
             const energyCost = 35;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法建立藝術收藏`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法建立藝術收藏`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法建立藝術收藏`;
+                return `❌ 精力不足 ${energyCost} 点，無法建立藝術收藏`;
             }
             
             state.cash -= cost;
@@ -199,7 +199,7 @@ const dreamCards = {
         image: "../cards/dream/D05.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 40000000,   // 4000万
         energyCost: 60,
         luckGain: 5,
@@ -208,11 +208,11 @@ const dreamCards = {
             const energyCost = 60;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法進行太空旅行`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法進行太空旅行`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法進行太空旅行`;
+                return `❌ 精力不足 ${energyCost} 点，無法進行太空旅行`;
             }
             
             state.cash -= cost;
@@ -247,7 +247,7 @@ const dreamCards = {
         image: "../cards/dream/D06.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 50000000,   // 5000万
         energyCost: 70,
         luckGain: 6,
@@ -256,11 +256,11 @@ const dreamCards = {
             const energyCost = 70;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法達成終極成就`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法達成終極成就`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法達成終極成就`;
+                return `❌ 精力不足 ${energyCost} 点，無法達成終極成就`;
             }
             
             state.cash -= cost;
@@ -295,7 +295,7 @@ const dreamCards = {
         image: "../cards/dream/D07.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 20000000,   // 2000万
         energyCost: 25,
         luckGain: 4,
@@ -304,11 +304,11 @@ const dreamCards = {
             const energyCost = 25;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法成立慈善基金`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法成立慈善基金`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法成立慈善基金`;
+                return `❌ 精力不足 ${energyCost} 点，無法成立慈善基金`;
             }
             
             state.cash -= cost;
@@ -343,7 +343,7 @@ const dreamCards = {
         image: "../cards/dream/D08.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 35000000,   // 3500万
         energyCost: 30,
         luckGain: 3,
@@ -352,11 +352,11 @@ const dreamCards = {
             const energyCost = 30;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法購買豪宅`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法購買豪宅`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法購買豪宅`;
+                return `❌ 精力不足 ${energyCost} 点，無法購買豪宅`;
             }
             
             state.cash -= cost;
@@ -391,7 +391,7 @@ const dreamCards = {
         image: "../cards/dream/D09.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 28000000,   // 2800万
         energyCost: 35,
         luckGain: 3,
@@ -400,11 +400,11 @@ const dreamCards = {
             const energyCost = 35;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法購買私人遊艇`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法購買私人遊艇`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法購買私人遊艇`;
+                return `❌ 精力不足 ${energyCost} 点，無法購買私人遊艇`;
             }
             
             state.cash -= cost;
@@ -439,7 +439,7 @@ const dreamCards = {
         image: "../cards/dream/D10.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 60000000,   // 6000万
         energyCost: 80,
         luckGain: 7,
@@ -448,11 +448,11 @@ const dreamCards = {
             const energyCost = 80;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法實現終極夢想`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法實現終極夢想`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法實現終極夢想`;
+                return `❌ 精力不足 ${energyCost} 点，無法實現終極夢想`;
             }
             
             state.cash -= cost;
@@ -487,7 +487,7 @@ const dreamCards = {
         image: "../cards/dream/D11.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 22000000,   // 2200万
         energyCost: 25,
         luckGain: 2,
@@ -496,11 +496,11 @@ const dreamCards = {
             const energyCost = 25;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法購買葡萄酒莊園`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法購買葡萄酒莊園`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法購買葡萄酒莊園`;
+                return `❌ 精力不足 ${energyCost} 点，無法購買葡萄酒莊園`;
             }
             
             state.cash -= cost;
@@ -535,7 +535,7 @@ const dreamCards = {
         image: "../cards/dream/D12.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 45000000,   // 4500万
         energyCost: 45,
         luckGain: 4,
@@ -544,11 +544,11 @@ const dreamCards = {
             const energyCost = 45;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法購買私人飛機`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法購買私人飛機`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法購買私人飛機`;
+                return `❌ 精力不足 ${energyCost} 点，無法購買私人飛機`;
             }
             
             state.cash -= cost;
@@ -583,7 +583,7 @@ const dreamCards = {
         image: "../cards/dream/D13.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 30000000,   // 3000万
         energyCost: 20,
         luckGain: 5,
@@ -592,11 +592,11 @@ const dreamCards = {
             const energyCost = 20;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法達成財務自由`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法達成財務自由`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法達成財務自由`;
+                return `❌ 精力不足 ${energyCost} 点，無法達成財務自由`;
             }
             
             state.cash -= cost;
@@ -631,7 +631,7 @@ const dreamCards = {
         image: "../cards/dream/D14.png",
         cost: 500,
         type: "dream",
-        category: "梦想",
+        category: "夢想",
         investmentCost: 100000000,  // 1亿
         energyCost: 100,
         luckGain: 10,
@@ -640,11 +640,11 @@ const dreamCards = {
             const energyCost = 100;
             
             if (state.cash < cost) {
-                return `❌ 现金不足 ${cost.toLocaleString()} 元，无法達成終極成就`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法達成終極成就`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 点，无法達成終極成就`;
+                return `❌ 精力不足 ${energyCost} 点，無法達成終極成就`;
             }
             
             state.cash -= cost;
@@ -674,7 +674,7 @@ const dreamCards = {
     }
 };
 
-// 获取梦想卡
+// 获取夢想卡
 function getDreamCard(position) {
     return dreamCards[position] || null;
 }

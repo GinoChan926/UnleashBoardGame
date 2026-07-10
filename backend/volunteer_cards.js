@@ -1,4 +1,4 @@
-// volunteer_cards.js - 义工卡数据
+// volunteer_cards.js - 義工卡数据
 
 const volunteerCards = [
     {
@@ -8,7 +8,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V01.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationAmount: 5000,
         effect: (state, room, currentPlayer, ws, roomId) => {
@@ -93,7 +93,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V02.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationAmount: 2000,
         effect: (state, room, currentPlayer, ws, roomId, donationResponses) => {
@@ -222,7 +222,7 @@ const volunteerCards = [
                 minCashPlayer.player.gameState
             );
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             currentPlayer.gameState.volunteerCount = (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.volunteerShield = (currentPlayer.gameState.volunteerShield || 0) + 1;
             currentPlayer.gameState.energy = Math.max(0, currentPlayer.gameState.energy - 1);
@@ -257,7 +257,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V03.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationAmount: 3000,
         effect: (state, room, currentPlayer, ws, roomId, donationResponses) => {
@@ -344,7 +344,7 @@ const volunteerCards = [
                 return `💰 沒有玩家願意捐款。`;
             }
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             currentPlayer.gameState.volunteerCount = (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.volunteerShield = (currentPlayer.gameState.volunteerShield || 0) + 1;
             currentPlayer.gameState.energy = Math.max(0, currentPlayer.gameState.energy - 1);
@@ -369,7 +369,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V04.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationAmount: 2000,
         effect: (state, room, currentPlayer, ws, roomId, donationResponses) => {
@@ -483,7 +483,7 @@ const volunteerCards = [
                 targetPlayer.player.gameState
             );
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             currentPlayer.gameState.volunteerCount = (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.volunteerShield = (currentPlayer.gameState.volunteerShield || 0) + 1;
             currentPlayer.gameState.energy = Math.max(0, currentPlayer.gameState.energy - 1);
@@ -516,7 +516,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V05.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationType: "energy",
         donationAmount: 2,
@@ -646,7 +646,7 @@ const volunteerCards = [
                 targetPlayer.player.gameState
             );
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             currentPlayer.gameState.volunteerCount = (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.volunteerShield = (currentPlayer.gameState.volunteerShield || 0) + 1;
             
@@ -685,7 +685,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V06.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         requiresDonation: true,
         donationType: "energy",
         donationAmount: 2,
@@ -786,7 +786,7 @@ const volunteerCards = [
                 return `⚡ 沒有玩家願意捐贈精力。`;
             }
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             currentPlayer.gameState.volunteerCount = (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.volunteerShield = (currentPlayer.gameState.volunteerShield || 0) + 1;
             
@@ -819,7 +819,7 @@ const volunteerCards = [
         image: "../cards/volunteer/V07.png",
         cost: 0,
         type: "volunteer",
-        category: "义工卡",
+        category: "義工卡",
         isShieldCard: true,
         shieldType: "emotional_support",
         effect: (state, room, currentPlayer, ws, roomId) => {
@@ -829,7 +829,7 @@ const volunteerCards = [
             // 获得情绪支援护盾次数
             state.emotionalSupportShield = (state.emotionalSupportShield || 0) + 1;
             
-            // 执行者获得义工次数
+            // 执行者获得義工次数
             state.volunteerCount = (state.volunteerCount || 0) + 1;
             state.volunteerShield = (state.volunteerShield || 0) + 1;
             

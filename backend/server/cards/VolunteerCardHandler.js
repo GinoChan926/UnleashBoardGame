@@ -9,7 +9,7 @@ function drawVolunteerCard(ws, state, roomId, player, volunteerCards, room, broa
     }
 
     const card = volunteerCards[Math.floor(Math.random() * volunteerCards.length)];
-    console.log(`🤝 ${player.playerName} 抽到义工卡: ${card.name}`);
+    console.log(`🤝 ${player.playerName} 抽到義工卡: ${card.name}`);
 
     const serializableCard = _serializable(card);
 
@@ -71,7 +71,7 @@ function executeVolunteerDonation(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingEvent = room.pendingVolunteerEvents?.get(ws);
     if (!pendingEvent?.card?.requiresDonation) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的义工卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的義工卡' }));
         return;
     }
 
@@ -109,7 +109,7 @@ function executeVolunteerChoice(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingEvent = room.pendingVolunteerEvents?.get(ws);
     if (!pendingEvent?.card?.requiresChoice) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的义工卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的義工卡' }));
         return;
     }
 
@@ -117,7 +117,7 @@ function executeVolunteerChoice(ws, data, roomId, rooms, broadcastToRoom) {
     const choice = data.choice;
 
     if (!choice || !['cash', 'volunteer'].includes(choice)) {
-        ws.send(JSON.stringify({ type: 'error', message: '无效的选择' }));
+        ws.send(JSON.stringify({ type: 'error', message: '無效的選擇' }));
         return;
     }
 

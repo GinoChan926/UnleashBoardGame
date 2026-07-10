@@ -20,10 +20,10 @@ const { marketNewsCards, tipCards } = _loadRevelation('./revelation_cards.js');
 const { dreamCards, getDreamCard } = _loadDream('./dream_cards.js');
 
 const CARD_TYPES = {
-    PART_TIME: { id: 'part_time', name: '兼职类', icon: '💼', color: '#4caf50', cards: partTimeCards },
-    FINANCE:   { id: 'finance',   name: '财务类', icon: '📈', color: '#2196f3', cards: financeCards },
-    BUSINESS:  { id: 'business',  name: '创业类', icon: '🚀', color: '#ff9800', cards: businessCards },
-    PROPERTY:  { id: 'property',  name: '地产类', icon: '🏠', color: '#9c27b0', cards: propertyCards }
+    PART_TIME: { id: 'part_time', name: '兼職類', icon: '💼', color: '#4caf50', cards: partTimeCards },
+    FINANCE:   { id: 'finance',   name: '財務類', icon: '📈', color: '#2196f3', cards: financeCards },
+    BUSINESS:  { id: 'business',  name: '創業類', icon: '🚀', color: '#ff9800', cards: businessCards },
+    PROPERTY:  { id: 'property',  name: '地產類', icon: '🏠', color: '#9c27b0', cards: propertyCards }
 };
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
@@ -110,7 +110,7 @@ const wss    = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
     let playerRoomId = 'default_room';
     let deps = null;
-    console.log('🔌 新客户端连接');
+    console.log('🔌 新客戶端連接');
 
     ws.on('message', (message) => {
         try {
@@ -199,11 +199,11 @@ wss.on('connection', (ws) => {
                     handleSocialServiceChoice(ws, data, playerRoomId, rooms, broadcast, investmentCards, socialCards);
                     break;
                 default:
-                    ws.send(JSON.stringify({ type: 'error', message: '未知消息类型' }));
+                    ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));
             }
         } catch (e) {
-            console.error('消息处理错误:', e);
-            ws.send(JSON.stringify({ type: 'error', message: '消息格式错误' }));
+            console.error('消息處理錯誤:', e);
+            ws.send(JSON.stringify({ type: 'error', message: '消息格式錯誤' }));
         }
     });
 
@@ -211,7 +211,7 @@ wss.on('connection', (ws) => {
         const room = rooms.get(playerRoomId);
         if (room?.players.has(ws)) {
             const player = room.players.get(ws);
-            console.log(`👋 玩家断开: ${player.playerName}`);
+            console.log(`👋 玩家斷開: ${player.playerName}`);
             room.players.delete(ws);
             if (room.pendingEvents)         room.pendingEvents.delete(ws);
             if (room.pendingTypeSelections) room.pendingTypeSelections.delete(ws);
@@ -220,7 +220,7 @@ wss.on('connection', (ws) => {
             });
             if (room.players.size === 0) {
                 rooms.delete(playerRoomId);
-                console.log(`🗑️ 房间已删除: ${playerRoomId}`);
+                console.log(`🗑️ 房間已刪除: ${playerRoomId}`);
             }
         }
     });
@@ -229,22 +229,22 @@ wss.on('connection', (ws) => {
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = 8080;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🎲 财富流沙盘 WebSocket 服务器运行在端口 ${PORT}`);
+    console.log(`🎲 財富流沙盤 WebSocket 伺服器運行在連接埠 ${PORT}`);
 });
 
 // ── Card loader helpers ───────────────────────────────────────────────────────
 
 function _loadCards(file, defaults) {
     try { return { ...defaults, ...require(file) }; }
-    catch (e) { console.log(`⚠️ 无法加载 ${file}`); return defaults; }
+    catch (e) { console.log(`⚠️ 無法載入 ${file}`); return defaults; }
 }
 
 function _loadArray(file, key) {
     try {
         const data = require(file);
-        console.log(`📚 加载 ${key}: ${(data[key] || []).length} 张`);
+        console.log(`📚 載入 ${key}: ${(data[key] || []).length} 張`);
         return data[key] || [];
-    } catch (e) { console.log(`⚠️ 无法加载 ${file}`); return []; }
+    } catch (e) { console.log(`⚠️ 無法載入 ${file}`); return []; }
 }
 
 function _loadRevelation(file) {

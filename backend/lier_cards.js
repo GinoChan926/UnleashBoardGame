@@ -1,4 +1,4 @@
-// lier_cards.js - 骗子卡数据
+// lier_cards.js - 騙子卡数据
 
 const lierCards = [
     {
@@ -8,7 +8,7 @@ const lierCards = [
         image: "../cards/lier/SC01.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const loss = 3000;
             state.cash = Math.max(0, state.cash - loss);
@@ -25,7 +25,7 @@ const lierCards = [
         image: "../cards/lier/SC02.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             // 計算投資金額（現金的10%）
             const investmentPercent = 0.1;
@@ -77,7 +77,7 @@ const lierCards = [
         image: "../cards/lier/SC03.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const loss = 1000;
             state.cash = Math.max(0, state.cash - loss);
@@ -94,7 +94,7 @@ const lierCards = [
         image: "../cards/lier/SC04.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const loss = 30000;
             
@@ -121,7 +121,7 @@ const lierCards = [
         image: "../cards/lier/SC05.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             let message = '';
             
@@ -157,7 +157,7 @@ const lierCards = [
         image: "../cards/lier/SC06.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             let message = '';
             
@@ -198,7 +198,7 @@ const lierCards = [
         image: "../cards/lier/SC07.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const investment = 20000;
             let message = '';
@@ -245,7 +245,7 @@ const lierCards = [
         image: "../cards/lier/SC08.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const loss = Math.floor(Math.random() * 20000) + 10000;
             state.cash = Math.max(0, state.cash - loss);
@@ -262,7 +262,7 @@ const lierCards = [
         image: "../cards/lier/SC08.png",
         cost: 0,
         type: "lier",
-        category: "骗子卡",
+        category: "騙子卡",
         effect: (state) => {
             const loss = Math.floor(state.cash / 2);  // 损失一半现金
             let message = '';

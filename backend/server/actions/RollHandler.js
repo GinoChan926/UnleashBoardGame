@@ -37,7 +37,7 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
     // ── Energy check ──────────────────────────────────────────────────────────
     if (state.energy <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '精力不足，无法掷骰' }));
+        ws.send(JSON.stringify({ type: 'error', message: '精力不足，無法擲骰' }));
         return;
     }
     state.energy = Math.max(0, state.energy - 1);
@@ -50,8 +50,8 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     if (state.diceMultiplierActive) {
         steps = originalSteps * (state.diceMultiplier || 1);
         multiplierMessage = state.diceMultiplier === 2
-            ? `🍀 四叶草生效！${originalSteps} x2 = ${steps} 步！`
-            : `⭐ 幸运星生效！${originalSteps} x3 = ${steps} 步！`;
+            ? `🍀 四葉草生效！${originalSteps} x2 = ${steps} 步！`
+            : `⭐ 幸運星生效！${originalSteps} x3 = ${steps} 步！`;
         state.diceMultiplierActive = false;
         state.diceMultiplier       = 1;
         ws.send(JSON.stringify({ type: 'notification', message: multiplierMessage }));
@@ -151,17 +151,17 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             if (state.energy <= 0) {
                 ws.send(JSON.stringify({
                     type: 'notification',
-                    message: `❌ 无法进入顺流层！精力不足 (当前 ${state.energy})`
+                    message: `❌ 無法進入順流層！精力不足 (當前 ${state.energy})`
                 }));
             } else if (state.loanAmount > 0) {
                 ws.send(JSON.stringify({
                     type: 'notification',
-                    message: `❌ 无法进入顺流层！还有贷款 ${state.loanAmount.toLocaleString()} 元`
+                    message: `❌ 無法進入順流層！還有貸款 ${state.loanAmount.toLocaleString()} 元`
                 }));
             } else {
                 ws.send(JSON.stringify({
                     type: 'flow_layer_choice',
-                    message: `🎉 恭喜！你已满足进入顺流层的条件！\n被動收入: ${state.passiveIncome.toLocaleString()} 元/月\n总支出: ${totalExpense.toLocaleString()} 元/月\n\n你是否愿意进入顺流层？`,
+                    message: `🎉 恭喜！你已滿足進入順流層的條件！\n被動收入: ${state.passiveIncome.toLocaleString()} 元/月\n總支出: ${totalExpense.toLocaleString()} 元/月\n\n你是否願意進入順流層？`,
                     canEnter: true, passiveIncome: state.passiveIncome, totalExpense,
                     energy: state.energy, maxEnergy: state.maxEnergy, loanAmount: state.loanAmount
                 }));
@@ -192,7 +192,7 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         broadcastToRoom(roomId, result, ws);
     }
 
-    console.log(`🎲 ${player.playerName} 掷出 ${originalSteps} 步，移动到 ${tile?.name || '未知'}`);
+    console.log(`🎲 ${player.playerName} 擲出 ${originalSteps} 步，移動到 ${tile?.name || '未知'}`);
 }
 
 // ── Private ───────────────────────────────────────────────────────────────────

@@ -37,7 +37,7 @@ function drawHardshipCard(ws, state, roomId, player, hardshipCards, broadcastToR
         type: 'state_updated', playerId: player.playerId, gameState: player.gameState
     });
 
-    console.log(`✅ ${player.playerName} 执行了逆境自强卡: ${card.name}`);
+    console.log(`✅ ${player.playerName} 執行了逆境自強卡: ${card.name}`);
 }
 
 function _buildDiceResult(player, tile) {

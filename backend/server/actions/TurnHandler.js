@@ -27,7 +27,7 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
         type: 'state_updated', playerId: nextPlayer.playerId, gameState: nextPlayer.gameState
     });
 
-    console.log(`⏭️ 回合结束: ${player.playerName} → ${nextPlayer.playerName}`);
+    console.log(`⏭️ 回合結束: ${player.playerName} → ${nextPlayer.playerName}`);
 }
 
 module.exports = { handleEndTurn };

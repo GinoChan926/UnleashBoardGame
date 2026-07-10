@@ -6,7 +6,7 @@ function handleUseFourLeafClover(ws, data, roomId, rooms, broadcastToRoom) {
     if (!room || !player) return;
 
     if (!player.gameState.fourLeafClover || player.gameState.fourLeafClover <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有四叶草可用' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有四葉草可用' }));
         return;
     }
 
@@ -16,16 +16,16 @@ function handleUseFourLeafClover(ws, data, roomId, rooms, broadcastToRoom) {
 
     ws.send(JSON.stringify({
         type: 'four_leaf_clover_used',
-        message: '🍀 你使用了一个四叶草！下一次掷骰步数将 x2 倍！',
+        message: '🍀 你使用了一個四葉草！下一次擲骰步數將 x2 倍！',
         fourLeafClover: player.gameState.fourLeafClover,
         gameState: player.gameState
     }));
     broadcastToRoom(roomId, {
         type: 'notification',
-        message: `${player.playerName} 使用了四叶草！下一次掷骰步数将 x2 倍！`
+        message: `${player.playerName} 使用了四葉草！下一次擲骰步數將 x2 倍！`
     }, ws);
 
-    console.log(`🍀 ${player.playerName} 使用了四叶草，剩余: ${player.gameState.fourLeafClover}`);
+    console.log(`🍀 ${player.playerName} 使用了四葉草，剩餘: ${player.gameState.fourLeafClover}`);
 }
 
 function handleUseLuckyStar(ws, data, roomId, rooms, broadcastToRoom) {
@@ -34,7 +34,7 @@ function handleUseLuckyStar(ws, data, roomId, rooms, broadcastToRoom) {
     if (!room || !player) return;
 
     if (!player.gameState.luckyStarCount || player.gameState.luckyStarCount <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有幸运星可用' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有幸運星可用' }));
         return;
     }
 
@@ -44,16 +44,16 @@ function handleUseLuckyStar(ws, data, roomId, rooms, broadcastToRoom) {
 
     ws.send(JSON.stringify({
         type: 'lucky_star_used',
-        message: `⭐ 你使用了一颗幸运星！剩余 ${player.gameState.luckyStarCount} 颗！下一次掷骰步数将 x3 倍！`,
+        message: `⭐ 你使用了一顆幸運星！剩餘 ${player.gameState.luckyStarCount} 顆！下一次擲骰步數將 x3 倍！`,
         luckyStarCount: player.gameState.luckyStarCount,
         gameState: player.gameState
     }));
     broadcastToRoom(roomId, {
         type: 'notification',
-        message: `${player.playerName} 使用了幸运星！剩余 ${player.gameState.luckyStarCount} 颗！`
+        message: `${player.playerName} 使用了幸運星！剩餘 ${player.gameState.luckyStarCount} 顆！`
     }, ws);
 
-    console.log(`⭐ ${player.playerName} 使用了幸运星，剩余: ${player.gameState.luckyStarCount}`);
+    console.log(`⭐ ${player.playerName} 使用了幸運星！剩餘: ${player.gameState.luckyStarCount}`);
 }
 
 module.exports = { handleUseFourLeafClover, handleUseLuckyStar };

@@ -21,7 +21,7 @@ function handleRevelationCardTypeChoice(ws, data, roomId, rooms, marketNewsCards
 
     const type = data.cardType;
     const cards = type === 'market_news' ? marketNewsCards : type === 'tip' ? tipCards : null;
-    if (!cards) { ws.send(JSON.stringify({ type: 'error', message: '无效的卡片类型' })); return; }
+    if (!cards) { ws.send(JSON.stringify({ type: 'error', message: '無效的卡片類型' })); return; }
     if (cards.length === 0) { ws.send(JSON.stringify({ type: 'error', message: '暫無卡片資料' })); return; }
 
     room.pendingRevelationSelections?.delete(ws);
@@ -47,7 +47,7 @@ function handleRevelationCardTypeChoice(ws, data, roomId, rooms, marketNewsCards
     ws.send(JSON.stringify({
         type: 'revelation_card_draw', card: serializableCard, canAfford: player.gameState.cash >= 500
     }));
-    console.log(`📜 ${player.playerName} 选择${serializableCard.cardTypeName}，抽到: ${card.name}`);
+    console.log(`📜 ${player.playerName} 選擇${serializableCard.cardTypeName}，抽到: ${card.name}`);
 }
 
 function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
@@ -57,12 +57,12 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
 
     const pendingEvent = room.pendingRevelationEvents?.get(ws);
     if (!pendingEvent || pendingEvent.type !== 'revelation_card') {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的启示卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的啟示卡' }));
         return;
     }
 
     if (player.gameState.cash < 500) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: `现金不足 500 元` }));
+        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 500 元` }));
         room.pendingRevelationEvents.delete(ws);
         return;
     }
@@ -82,11 +82,11 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
 
     ws.send(JSON.stringify({
         type: 'revelation_card_purchased', card: serializableCard,
-        message: `已支付 500 元购买「${card.name}」`
+        message: `已支付 500 元購買「${card.name}」`
     }));
     broadcastToRoom(roomId, {
         type: 'player_purchased_card', playerId: player.playerId, playerName: player.playerName,
-        cardName: card.name, message: `${player.playerName} 花费 500 元购买了「${card.name}」`
+        cardName: card.name, message: `${player.playerName} 花費 500 元購買了「${card.name}」`
     }, ws);
 }
 
@@ -97,7 +97,7 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingEvent = room.pendingRevelationEvents?.get(ws);
     if (!pendingEvent || !pendingEvent.purchased) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有已购买的启示卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有已購買的啟示卡' }));
         return;
     }
 
@@ -113,7 +113,7 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
                 ? card.effect(player.gameState, room, player, ws, roomId, data.playerChoices)
                 : card.effect(player.gameState);
         } catch (e) {
-            effectResult = `执行「${card.name}」效果时发生错误`;
+            effectResult = `執行「${card.name}」效果時發生錯誤`;
         }
 
         // Special: time management card IN13
@@ -122,9 +122,9 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
             effectResult = '獲得一個額外回合！';
         }
 
-        resultMessage = `✨ 执行「${card.name}」成功！${effectResult}`;
+        resultMessage = `✨ 執行「${card.name}」成功！${effectResult}`;
 
-        addTransactionRecord(player.playerName, card, '执行',
+        addTransactionRecord(player.playerName, card, '執行',
             player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
 
         broadcastToRoom(roomId, {
@@ -132,8 +132,8 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
             cardName: card.name, effectMessage: effectResult, gameState: player.gameState
         });
     } else {
-        resultMessage = `❌ 你决定不执行「${card.name}」，500 元不退还。`;
-        addTransactionRecord(player.playerName, card, '放弃', -500, '放弃执行', stateBefore, player.gameState);
+        resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;
+        addTransactionRecord(player.playerName, card, '放棄', -500, '放棄執行', stateBefore, player.gameState);
         broadcastToRoom(roomId, {
             type: 'card_skipped', playerId: player.playerId, playerName: player.playerName,
             cardName: card.name, message: resultMessage
@@ -156,7 +156,7 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pendingEvent = room.pendingRevelationEvents?.get(ws);
     if (!pendingEvent?.card) {
-        ws.send(JSON.stringify({ type: 'error', message: '没有待处理的启示卡' }));
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的啟示卡' }));
         return;
     }
 
@@ -165,10 +165,10 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
         effectResult = pendingEvent.card.effect(
             player.gameState, room, player, ws, roomId, data.playerChoices);
     } catch (e) {
-        effectResult = `执行「${pendingEvent.card.name}」效果时发生错误`;
+        effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
     }
 
-    addTransactionRecord(player.playerName, pendingEvent.card, '市场消息', 0, effectResult, null, player.gameState);
+    addTransactionRecord(player.playerName, pendingEvent.card, '市場消息', 0, effectResult, null, player.gameState);
 
     ws.send(JSON.stringify({ type: 'market_news_result', effectMessage: effectResult, gameState: player.gameState }));
     broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });

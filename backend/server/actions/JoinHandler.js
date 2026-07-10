@@ -46,7 +46,7 @@ function handleJoin(ws, data, roomId, rooms) {
     const _broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, excl);
     _broadcast(roomId, { type: 'player_joined', player: { id: playerId, gameState } }, ws);
 
-    console.log(`👤 玩家加入: ${playerName}, 房间人数: ${room.players.size}`);
+    console.log(`👤 玩家加入: ${playerName}, 房間人數: ${room.players.size}`);
 }
 
 module.exports = { handleJoin };

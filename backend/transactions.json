@@ -1,16 +1,30 @@
 [
   {
-    "id": "1783587985048_j9dwhb",
-    "timestamp": "9/7/2026 下午5:06:25",
-    "playerName": "Player_1783587974196",
-    "cardType": "property",
-    "cardName": "陳年唐樓",
-    "action": "执行",
-    "amountChange": -700000,
-    "passiveIncomeChange": 10000,
+    "id": "1783659992721_jh79px",
+    "timestamp": "10/7/2026 下午1:06:32",
+    "playerName": "Player_1783659966797",
+    "cardType": "tip",
+    "cardName": "舉報騙案",
+    "action": "執行",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "✅ 購買陳年唐樓成功！投資 700,000 元，租金收入 +10,000 元/月。"
+    "details": "執行「舉報騙案」效果時發生錯誤"
+  },
+  {
+    "id": "1783659981317_ys01iz",
+    "timestamp": "10/7/2026 下午1:06:21",
+    "playerName": "Player_1783659966797",
+    "cardType": "part_time",
+    "cardName": "海外代購",
+    "action": "執行",
+    "amountChange": -10000,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 5000,
+    "salaryChange": 0,
+    "energyChange": -3,
+    "details": "✅ 投資 10000 元建立代購渠道成功！副業收入增加 5000 元，精力消耗 3 點"
   }
 ]

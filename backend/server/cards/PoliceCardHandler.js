@@ -39,7 +39,7 @@ function drawPoliceCard(ws, state, roomId, player, policeCards, broadcastToRoom)
     }, ws);
     broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
 
-    console.log(`✅ ${player.playerName} 执行了警察卡: ${card.name}`);
+    console.log(`✅ ${player.playerName} 執行了警察卡: ${card.name}`);
 }
 
 module.exports = { drawPoliceCard };
