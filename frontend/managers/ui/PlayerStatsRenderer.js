@@ -30,9 +30,9 @@ export class PlayerStatsRenderer {
 
         const monthlyCF     = (gameState.salary + gameState.sideIncome + effectivePassive) - totalExp;
         const totalLoanRepay = gameState.loanAmount + Math.round(gameState.loanAmount * 0.1);
-        const layerText      = gameState.inFlow    ? '顺流层'
-            : gameState.inReverse ? '逆流层'
-                : '平流层';
+        const layerText      = gameState.inFlow    ? '顺流層'
+            : gameState.inReverse ? '逆流層'
+                : '平流層';
 
         // ── Stat elements ────────────────────────────────────────────────
         this._set('statCash',          gameState.cash.toLocaleString());

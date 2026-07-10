@@ -12,7 +12,7 @@ export class VolunteerCardManager extends BaseCardManager {
                 <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
                     <div class="modal-title" style="color: #4caf50; font-size: 24px; text-align: center;">🤝 義工卡</div>
                     <div id="volunteerCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="volunteerCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                        <img id="volunteerCardImg" src="" alt="義工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
                     </div>
                     <div class="modal-body" id="volunteerCardBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
                     <div style="background: rgba(76,175,80,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
@@ -30,7 +30,7 @@ export class VolunteerCardManager extends BaseCardManager {
                 <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
                     <div class="modal-title" style="color: #4caf50; font-size: 24px;">🤝 幫助傷健人士</div>
                     <div id="donationCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="donationCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                        <img id="donationCardImg" src="" alt="義工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
                     </div>
                     <div class="modal-body" id="donationModalBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
                     <div style="background: rgba(76,175,80,0.2); padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
@@ -49,7 +49,7 @@ export class VolunteerCardManager extends BaseCardManager {
                 <div class="modal-content" style="max-width: 450px; background: linear-gradient(135deg, #2a4a2a, #1a3a1a); border-radius: 24px; text-align: center; border: 2px solid #4caf50;">
                     <div class="modal-title" style="color: #4caf50; font-size: 24px;">🤝 義工卡 - 選擇獎勵</div>
                     <div id="choiceCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="choiceCardImg" src="" alt="义工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
+                        <img id="choiceCardImg" src="" alt="義工卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); border: 3px solid #4caf50;">
                     </div>
                     <div class="modal-body" id="choiceModalBody" style="font-size: 16px; line-height: 1.5; color: #ffefc0; text-align: center;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;" id="choiceButtons">
@@ -141,7 +141,7 @@ export class VolunteerCardManager extends BaseCardManager {
         if (cancelBtn) {
             cancelBtn.onclick = () => {
                 this.modalManager.closeModal('volunteerDonationModal');
-                this.ui.addLog('已取消执行义工卡', 'warning');
+                this.ui.addLog('已取消执行義工卡', 'warning');
             };
         }
     }

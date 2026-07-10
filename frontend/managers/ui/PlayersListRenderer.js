@@ -46,7 +46,7 @@ export class PlayersListRenderer {
                  style="width:24px;height:24px;border-radius:50%;vertical-align:middle;"
                  onerror="this.style.display='none';">
             💰 ${state.cash.toLocaleString()} 元 | ⚡ ${state.energy}/${state.maxEnergy}<br>
-            🍀 四叶草: ${state.fourLeafClover || 0} | ⭐ 幸运星: ${state.luckyStarCount || 0}
+            🍀 四葉草: ${state.fourLeafClover || 0} | ⭐ 幸運星: ${state.luckyStarCount || 0}
         `;
         return item;
     }

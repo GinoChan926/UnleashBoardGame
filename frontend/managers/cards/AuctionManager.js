@@ -15,7 +15,7 @@ export class AuctionManager extends BaseCardManager {
                     <div id="auctionBody" style="color: #ffefc0; text-align: left; font-size: 14px; line-height: 1.8;"></div>
                     <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
                         <button class="btn-secondary" id="auctionPassBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">⏭️ PASS</button>
-                        <button class="btn-primary" id="auctionBidBtn" style="background: #ff6f00; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 出价</button>
+                        <button class="btn-primary" id="auctionBidBtn" style="background: #ff6f00; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 出價</button>
                     </div>
                 </div>
             `);
@@ -35,11 +35,11 @@ export class AuctionManager extends BaseCardManager {
                 <p style="font-size: 12px; color: #aaa; margin-top: 5px;">${message.description}</p>
             </div>
             <div style="background: rgba(255,111,0,0.2); padding: 12px; border-radius: 12px;">
-                <div>💰 当前价格: <strong style="color: #ff6f00; font-size: 18px;">${message.currentPrice.toLocaleString()} 元</strong></div>
-                <div>👤 当前出价: <strong style="color: #ffd966;">${message.currentBidder || '无人出价'}</strong></div>
-                <div>📈 每次加价: ${message.minBidIncrement.toLocaleString()} 元</div>
-                <div>⚡ 奖励: <strong style="color: #4caf50;">+${message.energyReward} 精力</strong></div>
-                <div style="font-size: 12px; color: #888; margin-top: 8px;">发起人: ${message.initiator}</div>
+                <div>💰 當前價格: <strong style="color: #ff6f00; font-size: 18px;">${message.currentPrice.toLocaleString()} 元</strong></div>
+                <div>👤 當前出價: <strong style="color: #ffd966;">${message.currentBidder || '無人出價'}</strong></div>
+                <div>📈 每次加價: ${message.minBidIncrement.toLocaleString()} 元</div>
+                <div>⚡ 獎勵: <strong style="color: #4caf50;">+${message.energyReward} 精力</strong></div>
+                <div style="font-size: 12px; color: #888; margin-top: 8px;">發起人: ${message.initiator}</div>
             </div>
         `;
 
@@ -78,7 +78,7 @@ export class AuctionManager extends BaseCardManager {
             }
             const bidderEl = body.querySelector('div strong[style*="color: #ffd966"]');
             if (bidderEl) {
-                bidderEl.textContent = message.currentBidder || '无人出价';
+                bidderEl.textContent = message.currentBidder || '無人出價';
             }
         }
     }

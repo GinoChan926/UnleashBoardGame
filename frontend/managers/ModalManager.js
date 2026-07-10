@@ -78,7 +78,7 @@ export class ModalManager {
     showProfessionModal(professions, gameClient) {
         const modalHtml = `
             <div class="modal-content" style="max-width: 800px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px;">
-                <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 26px; margin-bottom: 20px;">🎭 选择你的职业</div>
+                <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 26px; margin-bottom: 20px;">🎭 選擇你的職業</div>
                 <div class="modal-body" id="professionBody" style="text-align: center;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; padding: 16px;" id="professionButtons"></div>
                 </div>
@@ -115,14 +115,14 @@ export class ModalManager {
             card.innerHTML = `
                 <div style="font-size: 18px; font-weight: bold; color: #ffd966; margin-bottom: 12px;">${prof.name}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-                    <div>💰 起始现金: ${prof.cash.toLocaleString()}</div>
+                    <div>💰 起始現金: ${prof.cash.toLocaleString()}</div>
                     <div>💼 月薪: ${prof.salary.toLocaleString()}</div>
-                    <div>💪 副业: ${prof.sideIncome.toLocaleString()}</div>
+                    <div>💪 副業: ${prof.sideIncome.toLocaleString()}</div>
                     <div>⚡ 精力: ${prof.energy}/${prof.maxEnergy}</div>
                     <div>🏠 生活支出: ${prof.livingExpense.toLocaleString()}</div>
-                    <div>📑 税务: ${prof.tax.toLocaleString()}</div>
-                    <div>🔄 月现金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}</div>
-                    <div>🍀 幸运值: ${prof.luck}</div>
+                    <div>📑 稅務: ${prof.tax.toLocaleString()}</div>
+                    <div>🔄 月現金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}</div>
+                    <div>🍀 幸運值: ${prof.luck}</div>
                 </div>
             `;
 

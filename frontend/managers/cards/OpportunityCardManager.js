@@ -11,12 +11,12 @@ export class OpportunityCardManager extends BaseCardManager {
         if (!document.getElementById('cardTypeModal')) {
             this.modalManager.createModal('cardTypeModal', `
                 <div class="modal-content" style="max-width: 560px; background: linear-gradient(135deg, #1a472a, #0d2b1a); border-radius: 28px; padding: 20px;">
-                    <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 22px; margin-bottom: 16px;">🎴 选择机会卡类型</div>
+                    <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 22px; margin-bottom: 16px;">🎴 選擇機會卡類型</div>
                     <div class="modal-body" style="text-align: center;">
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 8px;" id="cardTypeButtons"></div>
                     </div>
                     <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 12px; margin: 12px 8px; text-align: center;">
-                        <span style="color: #ffd966; font-size: 13px;">💰 执行机会卡需要花费 500 元，部分机会卡还需消耗精力 ⚡</span>
+                        <span style="color: #ffd966; font-size: 13px;">💰 執行機會卡需要花費 500 元，部分機會卡還需消耗精力 ⚡</span>
                     </div>
                     <div class="modal-buttons" style="justify-content: center; margin: 10px 0 5px 0;">
                         <button class="btn-secondary" id="cancelCardTypeBtn" style="background: #9e9e9e; padding: 10px 32px; border-radius: 30px; cursor: pointer; font-size: 14px;">取消</button>
@@ -29,21 +29,21 @@ export class OpportunityCardManager extends BaseCardManager {
         if (!document.getElementById('purchaseConfirmModal')) {
             this.modalManager.createModal('purchaseConfirmModal', `
                 <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #fff9e6, #fff3d6); border-radius: 20px;">
-                    <div class="modal-title" style="text-align: center; color: #ff9800; font-size: 24px;">💰 购买机会卡</div>
+                    <div class="modal-title" style="text-align: center; color: #ff9800; font-size: 24px;">💰 購買機會卡</div>
                     <div id="purchaseCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="purchaseCardImg" src="" alt="机会卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 3px solid #ffb347;">
+                        <img id="purchaseCardImg" src="" alt="機會卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 3px solid #ffb347;">
                     </div>
                     <div class="modal-body" id="purchaseModalBody" style="font-size: 16px; line-height: 1.5;"></div>
                     <div id="purchaseCardTypeBadge" style="text-align: center; margin: 10px 0;">
                         <span id="purchaseCardTypeSpan" style="display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; color: white;"></span>
                     </div>
                     <div style="background: #ffecb3; padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
-                        <span style="font-size: 18px; font-weight: bold;">💰 购买费用: 500 元</span>
-                        <span id="purchaseAffordWarning" style="color: #d32f2f; display: none; margin-left: 10px;">(现金不足)</span>
+                        <span style="font-size: 18px; font-weight: bold;">💰 購買費用: 500 元</span>
+                        <span id="purchaseAffordWarning" style="color: #d32f2f; display: none; margin-left: 10px;">(現金不足)</span>
                     </div>
                     <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="btn-secondary" id="cancelPurchaseBtn" style="background: #9e9e9e; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">❌ 放弃购买</button>
-                        <button class="btn-primary" id="confirmPurchaseBtn" style="background: #ff9800; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">💰 支付500购买</button>
+                        <button class="btn-secondary" id="cancelPurchaseBtn" style="background: #9e9e9e; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">❌ 放棄購買</button>
+                        <button class="btn-primary" id="confirmPurchaseBtn" style="background: #ff9800; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">💰 支付500購買</button>
                     </div>
                 </div>
             `);
@@ -53,25 +53,25 @@ export class OpportunityCardManager extends BaseCardManager {
         if (!document.getElementById('effectConfirmModal')) {
             this.modalManager.createModal('effectConfirmModal', `
                 <div class="modal-content" style="max-width: 550px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 20px;">
-                    <div class="modal-title" style="text-align: center; color: #2e7d32; font-size: 24px;">✨ 卡片效果预览</div>
+                    <div class="modal-title" style="text-align: center; color: #2e7d32; font-size: 24px;">✨ 卡片效果預覽</div>
                     <div id="effectCardImage" style="text-align: center; margin: 15px 0;">
-                        <img id="effectCardImg" src="" alt="机会卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 3px solid #4caf50;">
+                        <img id="effectCardImg" src="" alt="機會卡" style="max-width: 100%; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); border: 3px solid #4caf50;">
                     </div>
                     <div id="effectCardTypeBadge" style="text-align: center; margin: 10px 0;">
                         <span id="effectCardTypeSpan" style="display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; color: white;"></span>
                     </div>
                     <div class="modal-body" id="effectModalBody" style="font-size: 16px; line-height: 1.5;"></div>
                     <div id="effectChanges" style="background: #ffffff; padding: 15px; border-radius: 12px; margin: 15px 0; font-size: 14px;">
-                        <strong>📊 效果预览:</strong><div id="effectChangesList"></div>
+                        <strong>📊 效果預覽:</strong><div id="effectChangesList"></div>
                     </div>
                     <div style="background: #fff3e0; padding: 12px; border-radius: 12px; margin: 15px 0; text-align: center;">
-                        <span style="font-size: 16px; font-weight: bold;">⚠️ 注意：执行后无法撤销！</span>
+                        <span style="font-size: 16px; font-weight: bold;">⚠️ 注意：執行後無法撤銷！</span>
                     </div>
                     <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="btn-secondary" id="declineExecuteBtn" style="background: #9e9e9e; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">❌ 不执行</button>
-                        <button class="btn-primary" id="confirmExecuteBtn" style="background: #4caf50; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">✅ 确认执行</button>
+                        <button class="btn-secondary" id="declineExecuteBtn" style="background: #9e9e9e; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">❌ 不執行</button>
+                        <button class="btn-primary" id="confirmExecuteBtn" style="background: #4caf50; padding: 12px 24px; font-size: 16px; border-radius: 30px; cursor: pointer;">✅ 確應執行</button>
                     </div>
-                    <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">(已支付 500 元，不执行费用不退还)</div>
+                    <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">(已支付 500 元，不執行費用不退還)</div>
                 </div>
             `);
         }
@@ -91,10 +91,10 @@ export class OpportunityCardManager extends BaseCardManager {
         };
 
         const orderedTypes = [
-            { id: 'part_time', name: '兼职类', icon: '💼', color: '#4caf50' },
-            { id: 'finance', name: '财务类', icon: '📈', color: '#2196f3' },
-            { id: 'business', name: '创业类', icon: '🚀', color: '#ff9800' },
-            { id: 'property', name: '地产类', icon: '🏠', color: '#9c27b0' }
+            { id: 'part_time', name: '兼職類', icon: '💼', color: '#4caf50' },
+            { id: 'finance', name: '財務類', icon: '📈', color: '#2196f3' },
+            { id: 'business', name: '創業類', icon: '🚀', color: '#ff9800' },
+            { id: 'property', name: '地產類', icon: '🏠', color: '#9c27b0' }
         ];
 
         orderedTypes.forEach(type => {
@@ -115,7 +115,7 @@ export class OpportunityCardManager extends BaseCardManager {
             };
             const label = document.createElement('div');
             label.style.cssText = `padding: 10px 6px; font-size: 14px; font-weight: bold; color: #ffd966; background: rgba(0,0,0,0.75); text-align: center;`;
-            label.innerHTML = `${type.icon} ${type.name}<span style="font-size: 10px; margin-left: 6px; color: #ffaa66;">${count}张</span>`;
+            label.innerHTML = `${type.icon} ${type.name}<span style="font-size: 10px; margin-left: 6px; color: #ffaa66;">${count}張</span>`;
             btnContainer.appendChild(img);
             btnContainer.appendChild(label);
             btnContainer.onmouseenter = () => { btnContainer.style.transform = 'scale(1.03)'; };
@@ -123,7 +123,7 @@ export class OpportunityCardManager extends BaseCardManager {
             if (!canAfford) {
                 btnContainer.style.opacity = '0.55';
                 btnContainer.style.cursor = 'not-allowed';
-                btnContainer.title = '现金不足500元，无法执行机会卡';
+                btnContainer.title = '現金不足500元，無法執行機會卡';
             } else {
                 btnContainer.onclick = () => {
                     if (this.ws && this.ws.isReady()) {
@@ -139,7 +139,7 @@ export class OpportunityCardManager extends BaseCardManager {
         if (cancelBtn) {
             cancelBtn.onclick = () => {
                 this.modalManager.closeModal('cardTypeModal');
-                this.ui.addLog('已取消选择机会卡', 'warning');
+                this.ui.addLog('已取消選擇機會卡', 'warning');
             };
         }
     }
@@ -156,10 +156,10 @@ export class OpportunityCardManager extends BaseCardManager {
 
         if (!modal || !modalBody) return;
 
-        let titleText = '💰 购买机会卡';
-        if (card.cardType === 'investment') titleText = '🏗️ 投资项目';
-        else if (card.cardType === 'dream') titleText = '🌟 实现梦想';
-        else if (card.cardType === 'social') titleText = '🤝 贡献社会';
+        let titleText = '💰 購買機會卡';
+        if (card.cardType === 'investment') titleText = '🏗️ 投資项目';
+        else if (card.cardType === 'dream') titleText = '🌟 實現夢想';
+        else if (card.cardType === 'social') titleText = '🤝 貢獻社会';
         if (modalTitle) modalTitle.textContent = titleText;
 
         if (cardTypeSpan && card.cardTypeName) {
@@ -170,16 +170,16 @@ export class OpportunityCardManager extends BaseCardManager {
             };
             const color = typeColors[card.cardType || ''] || '#ffb347';
             cardTypeSpan.style.backgroundColor = color;
-            cardTypeSpan.innerHTML = `${card.cardTypeIcon || '🎴'} ${card.cardTypeName || '机会卡'}`;
+            cardTypeSpan.innerHTML = `${card.cardTypeIcon || '🎴'} ${card.cardTypeName || '機會卡'}`;
         }
 
         modalBody.innerHTML = `
             <div style="text-align: center;">
-                <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 20px;">${this.ui.escapeHtml(card.name || '机会卡')}</h3>
+                <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 20px;">${this.ui.escapeHtml(card.name || '機會卡')}</h3>
                 <p style="color: #555; font-size: 14px; line-height: 1.6;">${this.ui.escapeHtml(card.description || '')}</p>
-                ${card.investmentCost ? `<div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #2e7d32;">💰 需要投资: ${card.investmentCost.toLocaleString()} 元</span></div>` : ''}
+                ${card.investmentCost ? `<div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #2e7d32;">💰 需要投資: ${card.investmentCost.toLocaleString()} 元</span></div>` : ''}
                 <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                    <span style="color: #1565c0;">💡 支付 500 元购买后，可查看详细效果并决定是否执行</span>
+                    <span style="color: #1565c0;">💡 支付 500 元購買後，可查看詳细效果並决定是否執行</span>
                 </div>
             </div>
         `;
@@ -197,7 +197,7 @@ export class OpportunityCardManager extends BaseCardManager {
 
         const handleCancel = () => {
             this.modalManager.closeModal('purchaseConfirmModal');
-            this.ui.addLog('已放弃购买', 'warning');
+            this.ui.addLog('已放棄購買', 'warning');
         };
 
         if (confirmBtn) {
@@ -226,7 +226,7 @@ export class OpportunityCardManager extends BaseCardManager {
         const maxUnits = card.maxUnits === null ? maxUnitsByCash : Math.min(card.maxUnits, maxUnitsByCash);
 
         if (maxUnits === 0) {
-            this.ui.showNotification(`现金不足，无法购买任何份额。需要至少 ${card.pricePerUnit.toLocaleString()} 元`, 'error');
+            this.ui.showNotification(`現金不足，無法購買任何份额。需要至少 ${card.pricePerUnit.toLocaleString()} 元`, 'error');
             this._sendExecuteCard(false);
             return;
         }
@@ -237,7 +237,7 @@ export class OpportunityCardManager extends BaseCardManager {
             `每月利息: +${card.monthlyReturn.toLocaleString()} 元/份\n` +
             `可購買份數: ${card.maxUnits === null ? '不限' : card.maxUnits} 份\n` +
             `最大可購買份數 (按現金): ${maxUnits} 份\n\n` +
-            `請輸入購買份数 (1-${maxUnits}):`;
+            `請輸入購買份數 (1-${maxUnits}):`;
 
         const units = parseInt(prompt(message) || '0');
         if (units > 0 && units <= maxUnits) {
@@ -252,7 +252,7 @@ export class OpportunityCardManager extends BaseCardManager {
                 this._sendExecuteCard(false);
             }
         } else {
-            this.ui.addLog(`❌ 无效的购买数量`, 'error');
+            this.ui.addLog(`❌ 無效的購買數量`, 'error');
             this._sendExecuteCard(false);
         }
     }
@@ -262,14 +262,14 @@ export class OpportunityCardManager extends BaseCardManager {
         const maxAllowed = Math.min(1000, Math.floor(maxUnits / 100) * 100);
 
         if (maxAllowed === 0) {
-            this.ui.showNotification(`现金不足，无法购买。需要至少 ${card.pricePerUnit * 100} 元`, 'error');
+            this.ui.showNotification(`現金不足，無法購買。需要至少 ${card.pricePerUnit * 100} 元`, 'error');
             this._sendExecuteCard(false);
             return;
         }
 
         const message = `📊 ${card.name}\n\n` +
             `今日價格: ${card.pricePerUnit} 元/股\n` +
-            `可購買股數: 100-1000 股 (100的倍数)\n` +
+            `可購買股數: 100-1000 股 (100的倍數)\n` +
             `最大可購買: ${maxAllowed} 股\n\n` +
             `請輸入購買股數 (100, 200, 300... 最大 ${maxAllowed}):`;
 
@@ -283,7 +283,7 @@ export class OpportunityCardManager extends BaseCardManager {
                 this._sendExecuteCard(false);
             }
         } else {
-            this.ui.addLog(`❌ 无效的购买数量，必须是100的倍数且不超过 ${maxAllowed}`, 'error');
+            this.ui.addLog(`❌ 無效的購買數量，必须是100的倍數且不超过 ${maxAllowed}`, 'error');
             this._sendExecuteCard(false);
         }
     }
@@ -303,14 +303,14 @@ export class OpportunityCardManager extends BaseCardManager {
             const typeColors = { 'part_time': '#4caf50', 'finance': '#2196f3', 'business': '#ff9800', 'property': '#9c27b0' };
             const color = typeColors[card.cardType || ''] || '#ffb347';
             cardTypeSpan.style.backgroundColor = color;
-            cardTypeSpan.innerHTML = `${card.cardTypeIcon || '🎴'} ${card.cardTypeName || '机会卡'}`;
+            cardTypeSpan.innerHTML = `${card.cardTypeIcon || '🎴'} ${card.cardTypeName || '機會卡'}`;
         }
 
         modalBody.innerHTML = `
             <div style="text-align: center;">
                 <h3 style="color: #2e7d32; margin-bottom: 10px; font-size: 20px;">${this.ui.escapeHtml(card.name)}</h3>
                 <p style="color: #555; font-size: 14px;">${this.ui.escapeHtml(card.description || '')}</p>
-                ${card.energyCost ? `<div style="background: #fff3e0; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #e65100;">⚡ 执行需要精力: ${card.energyCost}</span></div>` : ''}
+                ${card.energyCost ? `<div style="background: #fff3e0; padding: 8px; border-radius: 8px; margin-top: 10px;"><span style="color: #e65100;">⚡ 執行需要精力: ${card.energyCost}</span></div>` : ''}
             </div>
         `;
 
@@ -321,21 +321,21 @@ export class OpportunityCardManager extends BaseCardManager {
             let changesHtml = '';
             if (changes.cashChange !== undefined && changes.cashChange !== 0) {
                 const sign = changes.cashChange > 0 ? '+' : '';
-                changesHtml += `<div>💰 现金: ${sign}${changes.cashChange.toLocaleString()} 元</div>`;
+                changesHtml += `<div>💰 現金: ${sign}${changes.cashChange.toLocaleString()} 元</div>`;
             }
             if (changes.sideIncomeChange !== undefined && changes.sideIncomeChange !== 0) {
                 const sign = changes.sideIncomeChange > 0 ? '+' : '';
-                changesHtml += `<div>💪 副业收入: ${sign}${changes.sideIncomeChange.toLocaleString()} 元/月</div>`;
+                changesHtml += `<div>💪 副業收入: ${sign}${changes.sideIncomeChange.toLocaleString()} 元/月</div>`;
             }
             if (changes.passiveIncomeChange !== undefined && changes.passiveIncomeChange !== 0) {
                 const sign = changes.passiveIncomeChange > 0 ? '+' : '';
-                changesHtml += `<div>📈 被动收入: ${sign}${changes.passiveIncomeChange.toLocaleString()} 元/月</div>`;
+                changesHtml += `<div>📈 被動收入: ${sign}${changes.passiveIncomeChange.toLocaleString()} 元/月</div>`;
             }
             if (changes.energyChange !== undefined && changes.energyChange !== 0) {
                 const sign = changes.energyChange > 0 ? '+' : '';
                 changesHtml += `<div>⚡ 精力: ${sign}${changes.energyChange}</div>`;
             }
-            if (changesHtml === '') changesHtml = '<div>无数据变化</div>';
+            if (changesHtml === '') changesHtml = '<div>無數據变化</div>';
             effectChangesList.innerHTML = changesHtml;
         }
 

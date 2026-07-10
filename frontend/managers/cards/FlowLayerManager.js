@@ -10,11 +10,11 @@ export class FlowLayerManager extends BaseCardManager {
         if (!document.getElementById('flowLayerChoiceModal')) {
             this.modalManager.createModal('flowLayerChoiceModal', `
                 <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #1a472a, #0d2b1a); border-radius: 28px; text-align: center; border: 2px solid #ffd700;">
-                    <div class="modal-title" style="color: #ffd700; font-size: 24px;">🌟 进入顺流层？</div>
+                    <div class="modal-title" style="color: #ffd700; font-size: 24px;">🌟 進入顺流層？</div>
                     <div class="modal-body" id="flowLayerChoiceBody" style="color: #ffefc0; text-align: left; font-size: 14px; line-height: 1.6;"></div>
                     <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                        <button class="btn-secondary" id="stayInStreamlineBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">📌 留在平流层</button>
-                        <button class="btn-primary" id="enterFlowLayerBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">🚀 进入顺流层</button>
+                        <button class="btn-secondary" id="stayInStreamlineBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">📌 留在平流層</button>
+                        <button class="btn-primary" id="enterFlowLayerBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">🚀 進入顺流層</button>
                     </div>
                 </div>
             `);
@@ -36,7 +36,7 @@ export class FlowLayerManager extends BaseCardManager {
                 this.ws.send({ type: 'flow_layer_choice', willEnter: true });
             }
             this.modalManager.closeModal('flowLayerChoiceModal');
-            this.ui.addLog('🎉 你选择进入顺流层！', 'success');
+            this.ui.addLog('🎉 你選擇進入顺流層！', 'success');
         };
 
         const handleStay = () => {
@@ -44,7 +44,7 @@ export class FlowLayerManager extends BaseCardManager {
                 this.ws.send({ type: 'flow_layer_choice', willEnter: false });
             }
             this.modalManager.closeModal('flowLayerChoiceModal');
-            this.ui.addLog('📌 你选择暂时留在平流层', 'info');
+            this.ui.addLog('📌 你選擇暫时留在平流層', 'info');
         };
 
         if (enterBtn) enterBtn.onclick = handleEnter;

@@ -11,12 +11,12 @@ export class RevelationCardManager extends BaseCardManager {
         if (!document.getElementById('revelationTypeModal')) {
             this.modalManager.createModal('revelationTypeModal', `
                 <div class="modal-content" style="max-width: 560px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 28px; padding: 20px; border: 2px solid #ff9800;">
-                    <div class="modal-title" style="text-align: center; color: #ff9800; font-size: 22px; margin-bottom: 16px;">🧘 察觉卡</div>
+                    <div class="modal-title" style="text-align: center; color: #ff9800; font-size: 22px; margin-bottom: 16px;">🧘 察覺卡</div>
                     <div class="modal-body" style="text-align: center;">
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 8px;" id="revelationTypeButtons"></div>
                     </div>
                     <div style="background: rgba(0,0,0,0.5); padding: 10px; border-radius: 12px; margin: 12px 8px; text-align: center;">
-                        <span style="color: #ff9800; font-size: 13px;">💰 执行察觉卡需要花费 500 元</span>
+                        <span style="color: #ff9800; font-size: 13px;">💰 執行察覺卡需要花費 500 元</span>
                     </div>
                     <div class="modal-buttons" style="justify-content: center; margin: 10px 0 5px 0;">
                         <button class="btn-secondary" id="cancelRevelationTypeBtn" style="background: #9e9e9e; padding: 10px 32px; border-radius: 30px; cursor: pointer;">取消</button>
@@ -29,17 +29,17 @@ export class RevelationCardManager extends BaseCardManager {
         if (!document.getElementById('revelationPurchaseModal')) {
             this.modalManager.createModal('revelationPurchaseModal', `
                 <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 24px; text-align: center; border: 2px solid #ff9800;">
-                    <div class="modal-title" style="color: #ff9800; font-size: 24px;">🧘 察觉卡</div>
+                    <div class="modal-title" style="color: #ff9800; font-size: 24px;">🧘 察覺卡</div>
                     <div style="text-align: center; margin: 15px 0;">
-                        <img id="revelationPurchaseImg" src="" alt="察觉卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
+                        <img id="revelationPurchaseImg" src="" alt="察覺卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
                     </div>
                     <div class="modal-body" id="revelationPurchaseBody" style="font-size: 14px; line-height: 1.5; color: #ffefc0;"></div>
                     <div style="background: #fff3e0; padding: 12px; border-radius: 12px; margin: 15px 0;">
-                        <span style="font-size: 18px; font-weight: bold; color: #e65100;">💰 购买费用: 500 元</span>
+                        <span style="font-size: 18px; font-weight: bold; color: #e65100;">💰 購買費用: 500 元</span>
                     </div>
                     <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="btn-secondary" id="cancelRevelationPurchaseBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 放弃购买</button>
-                        <button class="btn-primary" id="confirmRevelationPurchaseBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 支付500购买</button>
+                        <button class="btn-secondary" id="cancelRevelationPurchaseBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 放棄購買</button>
+                        <button class="btn-primary" id="confirmRevelationPurchaseBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">💰 支付500購買</button>
                     </div>
                 </div>
             `);
@@ -49,17 +49,17 @@ export class RevelationCardManager extends BaseCardManager {
         if (!document.getElementById('revelationEffectModal')) {
             this.modalManager.createModal('revelationEffectModal', `
                 <div class="modal-content" style="max-width: 550px; background: linear-gradient(135deg, #4a2a1a, #3a1a0a); border-radius: 24px; text-align: center; border: 2px solid #ff9800;">
-                    <div class="modal-title" style="color: #ff9800; font-size: 24px;">🧘 察觉卡</div>
+                    <div class="modal-title" style="color: #ff9800; font-size: 24px;">🧘 察覺卡</div>
                     <div style="text-align: center; margin: 15px 0;">
-                        <img id="revelationEffectImg" src="" alt="察觉卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
+                        <img id="revelationEffectImg" src="" alt="察覺卡" style="max-width: 100%; border-radius: 16px; border: 3px solid #ff9800;">
                     </div>
                     <div class="modal-body" id="revelationEffectBody" style="font-size: 14px; line-height: 1.5; color: #ffefc0;"></div>
                     <div style="background: #fff3e0; padding: 12px; border-radius: 12px; margin: 15px 0;">
-                        <span style="font-size: 16px; font-weight: bold; color: #e65100;">⚠️ 执行后无法撤销！</span>
+                        <span style="font-size: 16px; font-weight: bold; color: #e65100;">⚠️ 執行後無法撤销！</span>
                     </div>
                     <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                        <button class="btn-secondary" id="declineRevelationBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 不执行</button>
-                        <button class="btn-primary" id="confirmRevelationBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">✅ 确认执行</button>
+                        <button class="btn-secondary" id="declineRevelationBtn" style="background: #9e9e9e; padding: 12px 24px; border-radius: 30px; cursor: pointer;">❌ 不執行</button>
+                        <button class="btn-primary" id="confirmRevelationBtn" style="background: #ff9800; padding: 12px 24px; border-radius: 30px; cursor: pointer;">✅ 確應執行</button>
                     </div>
                 </div>
             `);
@@ -74,7 +74,7 @@ export class RevelationCardManager extends BaseCardManager {
 
         const typeImages = { 'market_news': '../cards/revelation/market/M00.png', 'tip': '../cards/revelation/tip/IN00.png' };
         const typeConfig = {
-            'market_news': { name: '市场消息卡', icon: '📊', color: '#2196f3' },
+            'market_news': { name: '市場消息卡', icon: '📊', color: '#2196f3' },
             'tip': { name: '锦囊卡', icon: '🎁', color: '#9c27b0' }
         };
 
@@ -106,7 +106,7 @@ export class RevelationCardManager extends BaseCardManager {
             if (!canAfford) {
                 btnContainer.style.opacity = '0.55';
                 btnContainer.style.cursor = 'not-allowed';
-                btnContainer.title = '现金不足500元，无法执行察觉卡';
+                btnContainer.title = '現金不足500元，無法執行察覺卡';
             } else {
                 btnContainer.onclick = () => {
                     if (this.ws && this.ws.isReady()) {
@@ -141,7 +141,7 @@ export class RevelationCardManager extends BaseCardManager {
             modalBody.innerHTML = `
                 <h3 style="color: #ff9800; margin-bottom: 10px;">${this.ui.escapeHtml(card.name)}</h3>
                 <p>${this.ui.escapeHtml(card.description)}</p>
-                ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 团队锦囊 - 所有玩家可参与</p>' : ''}
+                ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 團隊锦囊 - 所有玩家可参與</p>' : ''}
             `;
         }
 
@@ -163,7 +163,7 @@ export class RevelationCardManager extends BaseCardManager {
         if (cancelBtn) {
             cancelBtn.onclick = () => {
                 this.modalManager.closeModal('revelationPurchaseModal');
-                this.ui.addLog('已放弃购买察觉卡', 'warning');
+                this.ui.addLog('已放棄購買察覺卡', 'warning');
             };
         }
     }
@@ -187,7 +187,7 @@ export class RevelationCardManager extends BaseCardManager {
             modalBody.innerHTML = `
                 <h3 style="color: #ff9800; margin-bottom: 10px;">${this.ui.escapeHtml(card.name)}</h3>
                 <p>${this.ui.escapeHtml(card.description)}</p>
-                ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 团队锦囊 - 所有玩家可参与</p>' : ''}
+                ${card.scope === 'team' ? '<p style="color: #ff9800;">🌟 團隊锦囊 - 所有玩家可参與</p>' : ''}
             `;
         }
 
