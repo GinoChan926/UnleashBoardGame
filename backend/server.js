@@ -50,6 +50,7 @@ const { showCardTypeSelection, handleCardTypeChoice,
     handlePurchaseCard, handleExecuteCard } = require('./server/cards/OpportunityCardHandler.js');
 const { processSocialServiceTile, handleSocialServiceChoice } = require('./server/cards/SocialServiceHandler.js');
 const { triggerDreamCard }    = require('./server/cards/DreamCardHandler.js');
+const { handleAuxiliaryPoliceCard, handleAuxiliaryPoliceChoice } = require('./server/cards/AuxiliaryPoliceHandler.js');
 
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
@@ -197,6 +198,9 @@ wss.on('connection', (ws) => {
                 }
                 case 'social_service_choice':
                     handleSocialServiceChoice(ws, data, playerRoomId, rooms, broadcast, investmentCards, socialCards);
+                    break;
+                case 'auxiliary_police_choice':
+                    handleAuxiliaryPoliceChoice(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

@@ -158,6 +158,22 @@ const partTimeCards = [
         getEffectDescription: () => "副業收入 +4000/月，精力 -4"
     },
     {
+        id: "Z10",
+        name: "輔警",
+        description: "經驗豐富的志願輔警，全程協助正規警務，負責安保、巡邏及大型活動支援",
+        image: "../cards/part_time/auxiliary_police.png",
+        cost: 500,
+        type: "part_time",
+        category: "兼職",
+        hasPoliceCardFeature: true,
+        effect: (state) => {
+            state.sideIncome += 4000;
+            state.energy = Math.max(0, state.energy - 5);
+            return "副業收入增加 4000 元，精力消耗 5 點";
+        },
+        getEffectDescription: () => "副業收入 +4000/月，精力 -5\n抽1張警察卡看，你可以自用或強制給一個玩家。"
+    },
+    {
         id: "Z11",
         name: "補習功課導師",
         description: "利用專業知識提供補習服務",

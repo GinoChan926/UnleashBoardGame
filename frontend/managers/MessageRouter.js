@@ -96,6 +96,9 @@ export class MessageRouter {
             'auction_update':         m => mh().handleAuctionUpdate(m),
             'auction_end':            m => mh().handleAuctionEnd(m),
 
+            // ── Part time
+            'auxiliary_police_choice': m => ch().handleAuxiliaryPoliceChoice(m),
+
             // ── System
             'notification': m => {
                 if (m.message) {

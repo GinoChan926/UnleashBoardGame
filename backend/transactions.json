@@ -1,1 +1,105 @@
-[]
+[
+  {
+    "id": "1783916720030_dti0zs",
+    "timestamp": "13/7/2026 下午12:25:20",
+    "playerName": "Player_1783916673244",
+    "cardType": "police",
+    "cardName": "在爭執時報警",
+    "action": "被輔警強制使用",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": {
+      "type": "move_other_player",
+      "steps": 3,
+      "noIncomeOnSettlement": true,
+      "message": "👮 Player_1783916673244 報警處理爭執！你被移動 向後 3 格！"
+    }
+  },
+  {
+    "id": "1783916720029_2ds629",
+    "timestamp": "13/7/2026 下午12:25:20",
+    "playerName": "Player_1783916677693",
+    "cardType": "police",
+    "cardName": "輔警強制給予「在爭執時報警」",
+    "action": "輔警強制給予",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "將警察卡「在爭執時報警」強制給予 Player_1783916673244"
+  },
+  {
+    "id": "1783916714855_tvboro",
+    "timestamp": "13/7/2026 下午12:25:14",
+    "playerName": "Player_1783916677693",
+    "cardType": "part_time",
+    "cardName": "輔警",
+    "action": "執行",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 4000,
+    "salaryChange": 0,
+    "energyChange": -1,
+    "details": "副業收入增加 4000 元，精力消耗 5 點"
+  },
+  {
+    "id": "1783916698992_7wrw4q",
+    "timestamp": "13/7/2026 下午12:24:58",
+    "playerName": "Player_1783916673244",
+    "cardType": "hardship",
+    "cardName": "失業",
+    "action": "失業",
+    "amountChange": -15000,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "失業！損失 15,000 元，月薪歸零，精力 +6"
+  },
+  {
+    "id": "1783916698905_rmtpk7",
+    "timestamp": "13/7/2026 下午12:24:58",
+    "playerName": "Player_1783916673244",
+    "cardType": "hardship",
+    "cardName": "生意失敗",
+    "action": "生意失敗",
+    "amountChange": -999500,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "損失 999,500 元，幸運值 -2"
+  },
+  {
+    "id": "1783916698490_j5plwm",
+    "timestamp": "13/7/2026 下午12:24:58",
+    "playerName": "Player_1783916673244",
+    "cardType": "hardship",
+    "cardName": "天災影響",
+    "action": "逆境自強卡",
+    "amountChange": -8000,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": -1,
+    "details": "🌪️ 天災影響！損失 $8,000 元，精力 -3"
+  },
+  {
+    "id": "1783916681982_2ut3tx",
+    "timestamp": "13/7/2026 下午12:24:41",
+    "playerName": "Player_1783916673244",
+    "cardType": "hardship",
+    "cardName": "投資失利",
+    "action": "逆境自強卡",
+    "amountChange": -8000,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "📉 投資失利！損失 $8,000 元，被動收入 -$1,000/月，幸運值 -1"
+  }
+]

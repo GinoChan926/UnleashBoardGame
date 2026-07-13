@@ -176,8 +176,44 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom) {
             cardName: card.name, cardType: pendingEvent.cardType?.name || '機會卡',
             effectMessage: effectResult, gameState: player.gameState
         });
+
+        // ✅ Check if card triggers auxiliary police feature BEFORE cleanup
+        if (card.hasPoliceCardFeature) {
+            console.log(`👮 輔警功能觸發: ${player.playerName} 即將抽取警察卡`);
+
+            const { handleAuxiliaryPoliceCard } = require('./AuxiliaryPoliceHandler.js');
+
+            // Load police cards - try require, fallback to empty
+            let policeCardsData = [];
+            try {
+                policeCardsData = require('../../police_cards.js').policeCards || [];
+            } catch (e) {
+                console.log('⚠️ 無法載入警察卡資料');
+            }
+
+            // Send the base card result first
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            // Clean up pending event
+            room.pendingEvents.delete(ws);
+
+            // Broadcast state update
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            // Then trigger the police card draw (after a small delay so frontend processes the first result)
+            setTimeout(() => {
+                handleAuxiliaryPoliceCard(ws, roomId, player, policeCardsData, rooms, broadcastToRoom);
+            }, 500);
+
+            return; // ← Important: skip the normal response below since we already sent it
+        }
     } else {
-        resultMessage = `❌ 你决定不執行「${card.name}」，500 元不退還。`;
+        resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;
         addTransactionRecord(player.playerName, card, '放棄', -500, '放棄執行', stateBefore, player.gameState);
         broadcastToRoom(roomId, {
             type: 'card_skipped', playerId: player.playerId, playerName: player.playerName,
@@ -237,6 +273,8 @@ function _handleGeneric(card, state, ws) {
         ws.send(JSON.stringify({ type: 'notification', message: `❌ 精力不足 ${energyCost} 點` }));
         return '';
     }
+
+    // ✅ Just execute the effect - no _pendingPoliceCardDraw flag needed
     return card.effect(state);
 }
 

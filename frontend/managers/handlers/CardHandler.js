@@ -1,5 +1,7 @@
 "use strict";
 
+import { AuxiliaryPoliceTemplate } from '../cards/templates/AuxiliaryPoliceTemplate.js';
+
 export class CardHandler {
     constructor(client) {
         this.client = client;
@@ -169,5 +171,53 @@ export class CardHandler {
 
     handleSocialServicePrompt(message) {
         this.client.cardModal.showSocialServiceModal(message);
+    }
+
+    // ── Part-time ─────────────────────────────────────────────────────
+    handleAuxiliaryPoliceChoice(message) {
+        const { client } = this;
+
+        const card         = message.card;
+        const otherPlayers = message.otherPlayers || [];
+
+        // ── Build and show modal ──────────────────────────────────────────
+        const modalHtml = AuxiliaryPoliceTemplate.build(
+            card,
+            otherPlayers,
+            client.escapeHtml.bind(client)
+        );
+
+        // Remove old modal if exists
+        const oldModal = document.getElementById('auxPoliceModal');
+        if (oldModal) oldModal.remove();
+
+        client.modalManager.createModal('auxPoliceModal', modalHtml);
+        client.modalManager.openModal('auxPoliceModal');
+
+        // ── Bind events (logic only, no HTML) ─────────────────────────────
+        setTimeout(() => {
+            AuxiliaryPoliceTemplate.bindEvents(
+                // On self use
+                () => {
+                    client.connection.send({
+                        type: 'auxiliary_police_choice',
+                        choice: 'self'
+                    });
+                    client.modalManager.closeModal('auxPoliceModal');
+                    client.logManager.addLog('👮 選擇自己使用警察卡', 'success');
+                },
+
+                // On give to other player
+                (playerId, playerName) => {
+                    client.connection.send({
+                        type: 'auxiliary_police_choice',
+                        choice: 'give',
+                        targetPlayerId: playerId
+                    });
+                    client.modalManager.closeModal('auxPoliceModal');
+                    client.logManager.addLog(`👮 將警察卡強制給予 ${playerName}`, 'event');
+                }
+            );
+        }, 100);
     }
 }
