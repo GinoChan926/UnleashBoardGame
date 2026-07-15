@@ -145,7 +145,7 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
     }, ws);
 }
 
-function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom) {
+function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES, tipCards) {
     const room   = rooms.get(roomId);
     const player = room?.players.get(ws);
     if (!room || !player) return;
@@ -177,13 +177,102 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom) {
             effectMessage: effectResult, gameState: player.gameState
         });
 
+        // ✅ C17 - Health share feature (does NOT return - continues to auto draw or normal flow)
+        if (card.hasHealthShareFeature) {
+            console.log(`💚 大學飯堂健康分配觸發: ${player.playerName}`);
+
+            const { distributeHealth } = require('../systems/HealthShareSystem.js');
+            const healthAmount = card.healthToShare || 6;
+
+            const result = distributeHealth(player, room, roomId, healthAmount, broadcastToRoom);
+
+            let healthMsg = '';
+            if (result.recipients.length === 0) {
+                healthMsg = `💚 無其他玩家，你獲得全部 ${healthAmount} 健康`;
+            } else {
+                const recipientList = result.recipients
+                    .map(r => `${r.playerName} +${r.amount}`)
+                    .join('、');
+                healthMsg = `💚 分配 ${result.distributed} 健康給: ${recipientList}`;
+                if (result.remainder > 0) {
+                    healthMsg += `，剩餘 ${result.remainder} 健康自留`;
+                }
+            }
+
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: healthMsg
+            }));
+
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: player.playerId,
+                gameState: player.gameState
+            });
+        }
+
+        // ✅ C20 - Energy trade feature
+        if (card.hasEnergyTradeFeature) {
+            console.log(`💚 精力交易觸發: ${player.playerName}`);
+
+            const { startEnergyTrade } = require('../systems/EnergyTradeSystem.js');
+            const energyAmount = card.energyToSell || 5;
+
+            // Send base card result first
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            room.pendingEvents.delete(ws);
+
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            // Prompt seller to set price after brief delay
+            setTimeout(() => {
+                startEnergyTrade(ws, roomId, player, energyAmount, broadcastToRoom, rooms);
+            }, 500);
+
+            return; // skip normal response
+        }
+
+        // ✅ C17 - Auto draw tip cards feature (player advances through cards)
+        if (card.hasAutoDrawTipCardsFeature) {
+            console.log(`🎁 大學飯堂錦囊抽卡觸發: ${player.playerName}`);
+
+            const { startAutoTipDraw } = require('../systems/AutoTipDrawSystem.js');
+            const drawCount = card.autoDrawTipCount || 2;
+
+            // Send base result first
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            room.pendingEvents.delete(ws);
+
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            // ✅ Capture tipCards in closure
+            const tipCardsRef = tipCards;
+
+            setTimeout(() => {
+                startAutoTipDraw(ws, roomId, player, tipCardsRef, drawCount, broadcastToRoom);
+            }, 1000);
+
+            return; // skip normal response
+        }
+
         // ✅ Check if card triggers auxiliary police feature BEFORE cleanup
         if (card.hasPoliceCardFeature) {
             console.log(`👮 輔警功能觸發: ${player.playerName} 即將抽取警察卡`);
 
             const { handleAuxiliaryPoliceCard } = require('./AuxiliaryPoliceHandler.js');
 
-            // Load police cards - try require, fallback to empty
             let policeCardsData = [];
             try {
                 policeCardsData = require('../../police_cards.js').policeCards || [];
@@ -191,26 +280,72 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom) {
                 console.log('⚠️ 無法載入警察卡資料');
             }
 
-            // Send the base card result first
             ws.send(JSON.stringify({
                 type: 'card_decision_result', execute, message: resultMessage,
                 gameState: player.gameState, cardName: card.name, effectMessage: effectResult
             }));
 
-            // Clean up pending event
             room.pendingEvents.delete(ws);
 
-            // Broadcast state update
             broadcastToRoom(roomId, {
                 type: 'state_updated', playerId: player.playerId, gameState: player.gameState
             });
 
-            // Then trigger the police card draw (after a small delay so frontend processes the first result)
             setTimeout(() => {
                 handleAuxiliaryPoliceCard(ws, roomId, player, policeCardsData, rooms, broadcastToRoom);
             }, 500);
 
-            return; // ← Important: skip the normal response below since we already sent it
+            return;
+        }
+
+        // ✅ Check if card triggers AI無人便利店 draw feature
+        if (card.hasDrawCardsFeature) {
+            const { handleAIStoreDraw } = require('./AIStoreHandler.js');
+
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            room.pendingEvents.delete(ws);
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            setTimeout(() => {
+                handleAIStoreDraw(ws, roomId, player, CARD_TYPES, rooms, broadcastToRoom);
+            }, 500);
+
+            return;
+        }
+
+        // ✅ Check if card triggers tip card draw (C07 無人機快遞)
+        if (card.hasDrawTipCardsFeature) {
+            console.log(`🎁 錦囊卡抽選觸發: ${player.playerName}`);
+
+            const { handleTipCardDraw } = require('./TipCardDrawHandler.js');
+
+            const drawCount = card.drawTipCount || 3;
+            const pickCount = card.pickTipCount || 1;
+
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            room.pendingEvents.delete(ws);
+
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            const tipCardsRef = tipCards;
+
+            setTimeout(() => {
+                handleTipCardDraw(ws, roomId, player, tipCardsRef, drawCount, pickCount, broadcastToRoom);
+            }, 500);
+
+            return;
         }
     } else {
         resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;

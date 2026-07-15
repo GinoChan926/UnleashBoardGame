@@ -290,6 +290,30 @@
             z-index: 200;
         }
 
+        /* ✅ Token overlay - sits on top of all cell layers */
+        #tokenOverlay {
+            z-index: 500;
+            pointer-events: none;
+        }
+
+        /* ✅ Player tokens - positioned absolutely in the overlay */
+        .player-token {
+            position: absolute;
+            border-radius: 50%;
+            overflow: hidden;
+            pointer-events: none;
+            /* Smooth movement between cells */
+            transition: top 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+            left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .player-token img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
         .sidebar {
             width: 340px;
             display: flex;
@@ -507,6 +531,7 @@
                     <div class="cells-layer" id="reverseCellsLayer"></div>
                     <div class="cells-layer" id="streamlineCellsLayer"></div>
                     <div class="cells-layer" id="flowCellsLayer"></div>
+                    <div class="cells-layer" id="tokenOverlay"></div>
                 </div>
             </div>
         </div>
@@ -532,6 +557,7 @@
                 <div class="panel-row"><span>幸運值</span><strong id="statLuck">5.0</strong>/10</div>
                 <div class="panel-row"><span>⭐ 幸運星</span><strong id="statLuckyStar">0</strong></div>
                 <div class="panel-row"><span>🍀 四葉草</span><strong id="statFourLeafClover">0</strong></div>
+                <div class="panel-row"><span>🛡️ 逆境卡抵擋</span><strong id="statHardshipShield">0</strong></div>
                 <div class="panel-row"><span>層級</span><strong id="statLayer">平流層</strong></div>
             </div>
 

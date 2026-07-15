@@ -3030,7 +3030,7 @@ const financeCards = [
 
 // ==================== 創業类机会卡 (Business) ====================
 const businessCards = [
-
+/*
      {
         id: "C01",
         name: "自助咖啡售賣機",
@@ -3261,7 +3261,6 @@ const businessCards = [
         },
         getEffectDescription: () => "投資 100,000 元，被動收入 +8,000/月，精力 -3。另可用 $50,000 兌換 10 精力"
     },
-
     {
         id: "C05",
         name: "人工智能無人便利店",
@@ -3273,6 +3272,7 @@ const businessCards = [
         investmentCost: 200000,
         energyCost: 4,
         monthlyReturn: 20000,
+        hasDrawCardsFeature: true,
         effect: (state) => {
             // 检查是否有生意成本折扣（从短片制作、平面设计等卡片獲得的技能）
             let discount = 0;
@@ -3324,7 +3324,6 @@ const businessCards = [
         },
         getEffectDescription: () => "投資 200,000 元，被動收入 +20,000/月，精力 -4"
     },
-
      {
         id: "C05",
         name: "人工智能無人便利店",
@@ -3450,7 +3449,7 @@ const businessCards = [
     {
         id: "C07",
         name: "無人機快遞",
-        description: "首期投資 $100,000/店 | 約10個月回本 | 被動收入 +$10,000/月 | 精力 -2\n功能:可抽取1張錦囊卡 (開發中)",
+        description: "首期投資 $100,000/店 | 約10個月回本 | 被動收入 +$10,000/月 | 精力 -2\n功能:可抽取1張錦囊卡",
         image: "../cards/business/drone_delivery.png",
         cost: 500,
         type: "business",
@@ -3458,7 +3457,9 @@ const businessCards = [
         investmentCost: 100000,
         energyCost: 2,
         monthlyReturn: 10000,
-        hasJinangCard: true,  // 标记有锦囊卡功能，供未来使用
+        hasDrawTipCardsFeature: true,  // 标记有锦囊卡功能，供未来使用
+        drawTipCount: 3,
+        pickTipCount: 1,
         effect: (state) => {
             // 检查是否有生意成本折扣
             let discount = 0;
@@ -3509,11 +3510,11 @@ const businessCards = [
             let resultMessage = `✅ 開設無人機快遞成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，精力消耗 2 點。無人機科技提升物流效率！`;
 
             // 锦囊卡功能（预留，待未来实现）
-            // resultMessage += `\n📦 你獲得抽取1張錦囊卡的機會！(功能開發中)`;
+            resultMessage += `\n📦 你獲得抽取1張錦囊卡的機會！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 100,000 元，被動收入 +10,000/月，精力 -2。可抽取錦囊卡 (開發中)"
+        getEffectDescription: () => "投資 100,000 元，被動收入 +10,000/月，精力 -2。可抽取錦囊卡"
     },
 
     {
@@ -3582,7 +3583,7 @@ const businessCards = [
     {
     id: "C09",
     name: "洗車店",
-    description: "投資 $120,000 | 約12個月回本 | 被動收入 +$10,000/月 | 精力 -6\n功能：可抽取1張錦囊卡 (開發中)",
+    description: "投資 $120,000 | 約12個月回本 | 被動收入 +$10,000/月 | 精力 -6\n功能：可抽取1張錦囊卡",
     image: "../cards/business/car_wash.png",
     cost: 500,
     type: "business",
@@ -3590,7 +3591,9 @@ const businessCards = [
     investmentCost: 120000,
     energyCost: 6,
     monthlyReturn: 10000,
-    hasJinangCard: true,  // 标记有锦囊卡功能，供未来使用
+    hasDrawTipCardsFeature: true,
+    drawTipCount: 3,
+    pickTipCount: 1,
     effect: (state) => {
         // 检查是否有生意成本折扣
         let discount = 0;
@@ -3641,11 +3644,11 @@ const businessCards = [
         let resultMessage = `✅ 開設洗車店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，精力消耗 6 點。`;
 
         // 锦囊卡功能（预留，待未来实现）
-        // resultMessage += `\n📦 你獲得抽取1張錦囊卡的機會！(功能開發中)`;
+        resultMessage += `\n📦 你獲得抽取1張錦囊卡的機會！`;
 
         return resultMessage;
     },
-    getEffectDescription: () => "投資 120,000 元，被動收入 +10,000/月，精力 -6。可抽取錦囊卡 (開發中)"
+    getEffectDescription: () => "投資 120,000 元，被動收入 +10,000/月，精力 -6。可抽取錦囊卡"
     },
 
     {
@@ -3847,59 +3850,65 @@ const businessCards = [
         getEffectDescription: () => "投資 220,000 元，被動收入 +17,000/月，精力 -5。每月結算時獲得 +1 精力"
     },
 
-    {
-        id: "C13",
-        name: "港式茶餐廳",
-        description: "投資:$350,000 | 約14個月回本 | 被動收入:+$25,000/月 | 精力:-6",
-        image: "../cards/business/tearestaurant.png",
-        cost: 500,
-        type: "business",
-        category: "創業",
-        investmentCost: 350000,
-        energyCost: 6,
-        effect: (state) => {
-            if (state.cash >= 350000) {
-                // 检查是否有生意成本折扣
-                let discount = 0;
-                if (state.businessCostDiscount) {
-                    discount = state.businessCostDiscount;
-                }
-                if (state.hasBusinessDiscount) {
-                    discount = Math.max(discount, state.businessCostDiscount || 0);
-                }
+{
+    id: "C13",
+    name: "港式茶餐廳",
+    description: "投資:$350,000 | 約14個月回本 | 被動收入:+$25,000/月 | 精力:-6\n功能:其他人到達出糧格子時,他要給你 $2,000",
+    image: "../cards/business/tearestaurant.png",
+    cost: 500,
+    type: "business",
+    category: "創業",
+    investmentCost: 350000,
+    energyCost: 6,
+    monthlyReturn: 25000,
+    settlementFeeFromOthers: 2000,  // ← other players pay this on settlement
+    effect: (state) => {
+        let discount = 0;
+        let discountMessage = '';
 
-                let finalCost = 350000;
-                let discountMessage = '';
-                if (discount > 0) {
-                    const saved = Math.round(350000 * discount / 100);
-                    finalCost = 350000 - saved;
-                    discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-                }
+        if (state.businessCostDiscount) discount = state.businessCostDiscount;
+        if (state.hasBusinessDiscount) {
+            discount = Math.max(discount, state.businessCostDiscount || 0);
+        }
 
-                state.cash -= finalCost;
-                state.passiveIncome += 25000;
-                state.energy = Math.max(0, state.energy - 6);
-                state.totalAssets += finalCost;
+        let finalCost = 350000;
+        if (discount > 0) {
+            const saved = Math.round(350000 * discount / 100);
+            finalCost = 350000 - saved;
+            discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
+        }
 
-                // 记录投資
-                state.businessInvestments = state.businessInvestments || [];
-                state.businessInvestments.push({
-                    id: "C13",
-                    name: "港式茶餐廳",
-                    cost: finalCost,
-                    monthlyReturn: 25000,
-                    energyCost: 6
-                });
+        if (state.cash < finalCost) {
+            return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法開設港式茶餐廳。已支付的 500 元無法退還`;
+        }
+        if (state.energy < 6) {
+            return `❌ 精力不足 6 點，無法開設港式茶餐廳`;
+        }
 
-                return `✅ 開設港式茶餐廳成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +25,000 元/月，精力消耗 6 點`;
-            } else {
-                return `❌ 現金不足 350,000 元，無法開設港式茶餐廳。已支付的 500 元無法退還`;
-            }
-        },
-        getEffectDescription: () => "投資 350,000 元，被動收入 +25,000/月，精力 -6"
+        state.cash          -= finalCost;
+        state.passiveIncome += 25000;
+        state.energy         = Math.max(0, state.energy - 6);
+        state.totalAssets   += finalCost;
 
-        // 功能: 其他人到達出糧格子時,他要給你$2000。（预留backend，待未来实现）;
+        state.businessInvestments = state.businessInvestments || [];
+        state.businessInvestments.push({
+            id: "C13",
+            name: "港式茶餐廳",
+            cost: finalCost,
+            monthlyReturn: 25000,
+            energyCost: 6,
+            hasDiscount: discount > 0,
+            settlementFeeFromOthers: 2000  // ← store on the investment record for lookup
+        });
+
+        // ✅ Track total settlement fee this player collects (for fast lookup)
+        state.teaRestaurantCount = (state.teaRestaurantCount || 0) + 1;
+        console.log('☕ C13 EXECUTED. Player teaRestaurantCount =', state.teaRestaurantCount, 'playerName =', state.playerName);
+
+        return `✅ 開設港式茶餐廳成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +25,000 元/月，精力消耗 6 點。從今起,每位其他玩家經過出糧格子時,都要給你 $2,000！`;
     },
+    getEffectDescription: () => "投資 350,000 元，被動收入 +25,000/月，精力 -6。其他玩家到達出糧格子時付你 $2,000"
+},
 
     {
         id: "C14",
@@ -4046,7 +4055,7 @@ const businessCards = [
     {
         id: "C16",
         name: "家族辦公室",
-        description: "投資 $400,000 | 約13個月回本 | 被動收入 +$30,000/月 | 精力 -4\n功能：可抵擋一次逆境卡 (開發中)",
+        description: "投資 $400,000 | 約13個月回本 | 被動收入 +$30,000/月 | 精力 -4\n功能：可抵擋一次逆境卡",
         image: "../cards/business/family_office.png",
         cost: 500,
         type: "business",
@@ -4054,7 +4063,7 @@ const businessCards = [
         investmentCost: 400000,
         energyCost: 4,
         monthlyReturn: 30000,
-        hasShieldFeature: true,  // 标记有抵御功能，供未来使用
+        hasHardshipShield: true,
         effect: (state) => {
             // 检查是否有生意成本折扣
             let discount = 0;
@@ -4103,22 +4112,22 @@ const businessCards = [
             state.hasWealthManagementSkill = true;
 
             // 记录抵御逆境卡的次数（预留）
-            state.adversityShield = (state.adversityShield || 0) + 1;
+            state.hardshipShield = (state.hardshipShield || 0) + 1;
 
             let resultMessage = `✅ 開設家族辦公室成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，精力消耗 4 點。專業財富管理團隊為您服務！`;
 
             // 抵御逆境卡功能（预留，待未来实现）
-            // resultMessage += `\n🛡️ 獲得 1 次抵擋逆境卡的機會！`;
+            resultMessage += `\n🛡️ 獲得 1 次抵擋逆境卡的機會！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 400,000 元，被動收入 +30,000/月，精力 -4。可抵擋一次逆境卡 (開發中)"
+        getEffectDescription: () => "投資 400,000 元，被動收入 +30,000/月，精力 -4。可抵擋一次逆境卡"
     },
 
     {
         id: "C17",
         name: "大學飯堂",
-        description: "投資 $700,000 | 約14個月回本 | 被動收入 +$50,000/月 | 精力 -10\n功能:獲得6健康平均分配給其他玩家,抽2張卡 (開發中)",
+        description: "投資 $700,000 | 約14個月回本 | 被動收入 +$50,000/月 | 精力 -10\n功能:獲得6健康平均分配給其他玩家,抽2張卡",
         image: "../cards/business/university_canteen.png",
         cost: 500,
         type: "business",
@@ -4127,7 +4136,9 @@ const businessCards = [
         energyCost: 10,
         monthlyReturn: 50000,
         hasHealthShareFeature: true,  // 标记有健康分配功能
-        hasDrawCardFeature: true,      // 标记有抽卡功能
+        healthToShare: 6,
+        hasAutoDrawTipCardsFeature: true, // 标记有抽卡功能
+        autoDrawCount: 2,
         effect: (state) => {
             // 检查是否有生意成本折扣
             let discount = 0;
@@ -4179,12 +4190,12 @@ const businessCards = [
             let resultMessage = `✅ 開設大學飯堂成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +50,000 元/月，精力消耗 10 點。大學飯堂為校園注入活力！`;
 
             // 健康分配和抽卡功能（预留，待未来实现）
-            // resultMessage += `\n💚 獲得 6 健康值並平均分配給其他玩家！(功能開發中)`;
-            // resultMessage += `\n🎴 獲得 2 次抽卡機會！(功能開發中)`;
+            resultMessage += `\n💚 獲得 6 健康值並平均分配給其他玩家！`;
+            resultMessage += `\n🎴 獲得 2 次抽卡機會！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 700,000 元，被動收入 +50,000/月，精力 -10。獲得6健康平均分配給其他玩家,抽2張卡 (開發中)"
+        getEffectDescription: () => "投資 700,000 元，被動收入 +50,000/月，精力 -10。獲得6健康平均分配給其他玩家,抽2張卡"
     },
 
     {
@@ -4330,11 +4341,11 @@ const businessCards = [
         },
         getEffectDescription: () => "投資 150,000 元，被動收入 +10,000/月，精力 -5。幸運值 +1,所有行動精力消耗 -2%"
     },
-
+*/
     {
         id: "C20",
         name: "可持續發展碳中和釀酒廠",
-        description: "投資 $190,000 | 約15.8個月回本 | 被動收入 +$12,000/月 | 精力 -6\n功能：環境保護、精力交易 (開發中)",
+        description: "投資 $190,000 | 約15.8個月回本 | 被動收入 +$12,000/月 | 精力 -6\n功能：環境保護、精力交易",
         image: "../cards/business/sustainable_brewery.png",
         cost: 500,
         type: "business",
@@ -4344,6 +4355,7 @@ const businessCards = [
         monthlyReturn: 12000,
         hasGreenFeature: true,      // 标记有环保功能
         hasEnergyTradeFeature: true, // 标记有精力交易功能
+        energyToSell: 5,
         effect: (state) => {
             // 检查是否有生意成本折扣
             let discount = 0;
@@ -4405,18 +4417,18 @@ const businessCards = [
             let resultMessage = `✅ 開設可持續發展碳中和釀酒廠成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +12,000 元/月，精力消耗 6 點。綠色企業形象提升品牌價值！幸運值 +${luckBonus}，所有被動收入 +3%！`;
 
             // 环保和精力交易功能（预留，待未来实现）
-            // resultMessage += `\n🌱 環境保護：減少廢物產生，促進循環經濟！(功能開發中)`;
-            // resultMessage += `\n💚 精力交易：可從銀行提取5精力向其他玩家出售！(功能開發中)`;
+            resultMessage += `\n🌱 環境保護：減少廢物產生，促進循環經濟！`;
+            resultMessage += `\n💚 精力交易：可從銀行提取5精力向其他玩家出售！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，精力 -6。幸運值 +1,所有被動收入 +3%。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能 (開發中)"
+        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，精力 -6。幸運值 +1,所有被動收入 +3%。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能"
     },
-
+/*
     {
         id: "C21",
         name: "可持續發展傷健咖啡店",
-        description: "投資 $140,000 | 約15.6個月回本 | 被動收入 +$9,000/月 | 精力 -6\n功能:知識共享、精力交易 (開發中)",
+        description: "投資 $140,000 | 約15.6個月回本 | 被動收入 +$9,000/月 | 精力 -6\n功能:知識共享、精力交易",
         image: "../cards/business/inclusive_cafe.png",
         cost: 500,
         type: "business",
@@ -4426,6 +4438,7 @@ const businessCards = [
         monthlyReturn: 9000,
         hasEducationFeature: true,    // 标记有教育/知識共享功能
         hasEnergyTradeFeature: true,  // 标记有精力交易功能
+        energyToSell: 5,
         effect: (state) => {
             // 检查是否有生意成本折扣
             let discount = 0;
@@ -4489,13 +4502,14 @@ const businessCards = [
             let resultMessage = `✅ 開設可持續發展傷健咖啡店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +9,000 元/月，精力消耗 6 點。社會企業形象提升品牌價值！幸運值 +${luckBonus}，最大精力值 +${maxEnergyBonus}，精力 +2！`;
 
             // 知識共享和精力交易功能（预留，待未来实现）
-            // resultMessage += `\n📚 知識共享：分享創業知識和傷健共融理念！(功能開發中)`;
-            // resultMessage += `\n💚 精力交易：可從銀行提取5精力向其他玩家出售！(功能開發中)`;
+            resultMessage += `\n📚 知識共享：分享創業知識和傷健共融理念！`;
+            resultMessage += `\n💚 精力交易：可從銀行提取5精力向其他玩家出售！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 140,000 元，被動收入 +9,000/月，精力 -6。幸運值 +1，最大精力值 +3。知識共享及精力交易功能 (開發中)"
+        getEffectDescription: () => "投資 140,000 元，被動收入 +9,000/月，精力 -6。幸運值 +1，最大精力值 +3。知識共享及精力交易功能"
     }
+ */
 ];
 
 // ==================== 地產类机会卡 (Property) ====================

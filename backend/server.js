@@ -51,6 +51,15 @@ const { showCardTypeSelection, handleCardTypeChoice,
 const { processSocialServiceTile, handleSocialServiceChoice } = require('./server/cards/SocialServiceHandler.js');
 const { triggerDreamCard }    = require('./server/cards/DreamCardHandler.js');
 const { handleAuxiliaryPoliceCard, handleAuxiliaryPoliceChoice } = require('./server/cards/AuxiliaryPoliceHandler.js');
+const { handleAIStoreDraw, handleAIStorePick } = require('./server/cards/AIStoreHandler.js');
+const { handleTipCardDraw, handleTipCardPick, handleTipCardCancel } = require('./server/cards/TipCardDrawHandler.js');
+const { handleAutoTipDrawNext } = require('./server/systems/AutoTipDrawSystem.js');
+const {
+    handleEnergyTradeSetPrice,
+    handleEnergyTradeBuy,
+    handleEnergyTradePass,
+    handleEnergyTradeSellerDecide
+} = require('./server/systems/EnergyTradeSystem.js');
 
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
@@ -143,7 +152,7 @@ wss.on('connection', (ws) => {
                     handlePurchaseCard(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 case 'execute_card':
-                    handleExecuteCard(ws, data, playerRoomId, rooms, broadcast);
+                    handleExecuteCard(ws, data, playerRoomId, rooms, broadcast, CARD_TYPES, tipCards);
                     break;
                 case 'use_four_leaf_clover':
                     handleUseFourLeafClover(ws, data, playerRoomId, rooms, broadcast);
@@ -201,6 +210,34 @@ wss.on('connection', (ws) => {
                     break;
                 case 'auxiliary_police_choice':
                     handleAuxiliaryPoliceChoice(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'ai_store_pick':
+                    handleAIStorePick(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'tip_card_pick':
+                    handleTipCardPick(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'tip_card_cancel':
+                    handleTipCardCancel(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'auto_tip_draw_next':
+                    handleAutoTipDrawNext(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'energy_trade_set_price':
+                    handleEnergyTradeSetPrice(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'energy_trade_buy':
+                    handleEnergyTradeBuy(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'energy_trade_pass':
+                    handleEnergyTradePass(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'energy_trade_seller_decide':
+                    handleEnergyTradeSellerDecide(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

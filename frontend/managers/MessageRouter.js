@@ -99,6 +99,30 @@ export class MessageRouter {
             // ── Part time
             'auxiliary_police_choice': m => ch().handleAuxiliaryPoliceChoice(m),
 
+            'ai_store_draw_start':  m => ch().handleAIStoreDrawStart(m),
+            'ai_store_pick_prompt': m => ch().handleAIStorePickPrompt(m),
+            'ai_store_card_taken':  m => ch().handleAIStoreCardTaken(m),
+            'ai_store_draw_end':    m => ch().handleAIStoreDrawEnd(m),
+
+            'tip_card_pick_prompt': m => ch().handleTipCardPickPrompt(m),
+            'tip_card_taken':       m => ch().handleTipCardTaken(m),
+            'tip_card_draw_end':    m => ch().handleTipCardDrawEnd(m),
+
+            'hardship_card_shielded': m => ch().handleHardshipCardShielded(m),
+
+            'auto_tip_card_show':      m => ch().handleAutoTipCardShow(m),
+            'auto_tip_card_executed':  m => ch().handleAutoTipCardExecuted(m),
+            'auto_tip_draw_end':       m => ch().handleAutoTipDrawEnd(m),
+
+            'energy_trade_price_prompt':    m => ch().handleEnergyTradePricePrompt(m),
+            'energy_trade_started_seller':  m => ch().handleEnergyTradeStartedSeller(m),
+            'energy_trade_offer':           m => ch().handleEnergyTradeOffer(m),
+            'energy_trade_sold':            m => ch().handleEnergyTradeSold(m),
+            'energy_trade_bought':          m => ch().handleEnergyTradeBought(m),
+            'energy_trade_seller_decide': m => ch().handleEnergyTradeSellerDecide(m),
+            'energy_trade_self_bought':   m => ch().handleEnergyTradeSelfBought(m),
+            'energy_trade_cancelled':     m => ch().handleEnergyTradeCancelled(m),
+            'energy_trade_closed':          m => ch().handleEnergyTradeClosed(m),
             // ── System
             'notification': m => {
                 if (m.message) {

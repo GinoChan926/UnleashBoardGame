@@ -46,6 +46,7 @@ export class PlayerStatsRenderer {
         this._set('statLuck',          gameState.luck.toFixed(1));
         this._set('statLuckyStar',     gameState.luckyStarCount  || 0);
         this._set('statFourLeafClover',gameState.fourLeafClover  || 0);
+        this._set('statHardshipShield', gameState.hardshipShield || 0);
         this._set('statLayer',         layerText);
         this._set('layerText',         layerText);
 

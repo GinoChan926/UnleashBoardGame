@@ -136,10 +136,9 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         _processStreamlinePassthrough(state, player, ws, roomId, steps, room, broadcastToRoom, deps);
         tile = room.streamlineTiles[state.streamlinePos];
 
-        if (tile.type !== 'settlement') {
-            eventMessage = processStreamlineTile(state, tile, ws, roomId, player,
-                tile.type === 'settlement', deps);
-        }
+        // ✅ Always call processStreamlineTile - the settlement case now handles landing correctly
+        const isExactLanding = (tile.type === 'settlement');
+        eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding, deps);
     }
 
     // ── Flow layer entry check ────────────────────────────────────────────────
@@ -202,8 +201,10 @@ function _processStreamlinePassthrough(state, player, ws, roomId, steps, room, b
         const newPos    = (state.streamlinePos + i) % room.streamlineTiles.length;
         const tileAtPos = room.streamlineTiles[newPos];
 
-        if (tileAtPos.type === 'settlement') {
-            _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, i === steps, deps);
+        const isLandingHere = (i === steps);
+        if (tileAtPos.type === 'settlement' && !isLandingHere) {
+            // Only process passthrough - landing is handled by processStreamlineTile
+            _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, false, deps);
         }
     }
     state.streamlinePos = (state.streamlinePos + steps) % room.streamlineTiles.length;
@@ -215,6 +216,12 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     state.totalAssets += Math.floor(totalIncome * 0.2);
 
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+
+    // ✅ Deduct expense on passthrough too
+    if (totalExpense > 0) {
+        state.cash -= totalExpense;
+    }
+
     const expenseReductionMessage = reductionPercent > 0
         ? ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`
         : '';
@@ -226,6 +233,8 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     processHealthInvestment(state, player, ws);
     processHealthSupplementInvestment(state, player, ws);
 
+    // NO tea restaurant fee on passthrough (only on landing)
+
     const repaymentResult = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
     if (repaymentResult) {
         ws.send(JSON.stringify(repaymentResult));
@@ -233,9 +242,16 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     }
 
     const settlementMsg = {
-        type: 'settlement', playerId: player.playerId, playerName: player.playerName,
-        salary: state.salary, sideIncome: state.sideIncome,
-        totalIncome, totalExpense, expenseReductionMessage, isExactLanding, gameState: state
+        type: 'settlement',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        salary: state.salary,
+        sideIncome: state.sideIncome,
+        totalIncome,
+        totalExpense,
+        expenseReductionMessage,
+        isExactLanding,
+        gameState: state
     };
     ws.send(JSON.stringify(settlementMsg));
     broadcastToRoom(roomId, settlementMsg, ws);

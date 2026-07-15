@@ -4,10 +4,12 @@ const { addTransactionRecord }      = require('../records/TransactionRecorder.js
 const { calculateReducedExpense }   = require('../utils/helpers.js');
 const { processHealthInvestment, processHealthSupplementInvestment } = require('../systems/HealthSystem.js');
 const { processSettlementRepayment } = require('../systems/LoanSystem.js');
+const { processTeaRestaurantFees }  = require('../systems/TeaRestaurantSystem.js');
 
 function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
                                { broadcastToRoom, showCardTypeSelection, showRevelationCardTypeSelection,
-                                   drawAndExecuteLierCard, drawVolunteerCard, drawPoliceCard, drawHardshipCard, rooms }) {
+                                   drawAndExecuteLierCard, drawVolunteerCard, drawPoliceCard,
+                                   drawHardshipCard, rooms }) {
 
     switch (tile.type) {
         case 'lucky_star':
@@ -42,7 +44,11 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
             return `🌀 逆流層出口（目前不在逆流層中）`;
 
         case 'settlement':
-            return _processSettlement(state, tile, ws, roomId, player, isExactLanding, broadcastToRoom);
+            // ✅ Use the destructured `rooms` variable (not `deps`)
+            return _processSettlement(
+                state, tile, ws, roomId, player, isExactLanding,
+                broadcastToRoom, rooms?.get(roomId)
+            );
 
         case 'volunteer':
             drawVolunteerCard(ws, state, roomId, player, isExactLanding);
@@ -61,7 +67,7 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
     }
 }
 
-function _processSettlement(state, tile, ws, roomId, player, isExactLanding, broadcastToRoom) {
+function _processSettlement(state, tile, ws, roomId, player, isExactLanding, broadcastToRoom, room) {
     let totalIncome  = 0;
     let incomeMessage = '';
 
@@ -75,6 +81,13 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     }
 
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+
+    // ✅ Actually deduct the expense
+    if (!state.inReverse && totalExpense > 0) {
+        state.cash -= totalExpense;
+        incomeMessage += `，支出 ${totalExpense.toLocaleString()} 元`;
+    }
+
     let expenseReductionMessage = reductionPercent > 0
         ? ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`
         : '';
@@ -87,6 +100,18 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     processHealthInvestment(state, player, ws);
     processHealthSupplementInvestment(state, player, ws);
 
+    // Tea restaurant fees
+    let teaRestaurantMessage = '';
+    if (room && !state.inReverse) {
+        const { processTeaRestaurantFees } = require('../systems/TeaRestaurantSystem.js');
+        processTeaRestaurantFees(player, room, roomId, broadcastToRoom);
+        if (player._pendingTeaRestaurantMessage) {
+            teaRestaurantMessage = player._pendingTeaRestaurantMessage;
+            incomeMessage += ` | ${teaRestaurantMessage}`;
+            delete player._pendingTeaRestaurantMessage;
+        }
+    }
+
     const repaymentResult = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
     if (repaymentResult) {
         ws.send(JSON.stringify(repaymentResult));
@@ -94,9 +119,17 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     }
 
     const settlementMsg = {
-        type: 'settlement', playerId: player.playerId, playerName: player.playerName,
-        salary: state.salary, sideIncome: state.sideIncome,
-        totalIncome, totalExpense, expenseReductionMessage, isExactLanding, gameState: state
+        type: 'settlement',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        salary: state.salary,
+        sideIncome: state.sideIncome,
+        totalIncome,
+        totalExpense,
+        expenseReductionMessage,
+        teaRestaurantMessage,
+        isExactLanding,
+        gameState: state
     };
     ws.send(JSON.stringify(settlementMsg));
     broadcastToRoom(roomId, settlementMsg, ws);
