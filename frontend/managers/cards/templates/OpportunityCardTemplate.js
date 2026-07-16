@@ -1,5 +1,6 @@
 "use strict";
 
+import { CardVisibility } from './CardVisibility.js';
 // ── Type configuration ────────────────────────────────────────────────────────
 
 const TYPE_COLORS = {
@@ -264,28 +265,56 @@ export class OpportunityCardTemplate {
      * Build the body content for the purchase confirm modal.
      */
     static buildPurchaseBody(card, escapeHtml) {
-        return `
+        const isBlind = CardVisibility.isBlindCard(card);
+
+        if (isBlind) {
+            // Hide actual content, show only card type teaser
+            const label = CardVisibility.getBlindLabel(card.cardType || card.type);
+            const desc  = CardVisibility.getBlindDescription(card.cardType || card.type);
+
+            return `
             <div style="text-align: center;">
-                <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 20px;">
-                    ${escapeHtml(card.name || '機會卡')}
+                <div style="font-size: 60px; margin-bottom: 12px;">🎴</div>
+                <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 22px;">
+                    ${label}
                 </h3>
                 <p style="color: #555; font-size: 14px; line-height: 1.6;">
-                    ${escapeHtml(card.description || '')}
+                    ${escapeHtml(desc)}
                 </p>
-                ${card.investmentCost ? `
-                    <div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;">
-                        <span style="color: #2e7d32;">
-                            💰 需要投資: ${card.investmentCost.toLocaleString()} 元
-                        </span>
-                    </div>
-                ` : ''}
-                <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px;">
-                    <span style="color: #1565c0;">
-                        💡 支付 500 元購買後，可查看詳細效果並決定是否執行
+                <div style="background: #fff3e0; padding: 10px;
+                            border-radius: 8px; margin-top: 12px;
+                            border: 2px dashed #ff9800;">
+                    <span style="color: #e65100; font-size: 13px;">
+                        🔒 內容未揭曉 - 需支付 500 元購買後才能查看詳情
                     </span>
                 </div>
             </div>
         `;
+        }
+
+        // Non-blind cards - show full content as before
+        return `
+        <div style="text-align: center;">
+            <h3 style="color: #ff6f00; margin-bottom: 10px; font-size: 20px;">
+                ${escapeHtml(card.name || '機會卡')}
+            </h3>
+            <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                ${escapeHtml(card.description || '')}
+            </p>
+            ${card.investmentCost ? `
+                <div style="background: #e8f5e9; padding: 8px; border-radius: 8px; margin-top: 10px;">
+                    <span style="color: #2e7d32;">
+                        💰 需要投資: ${card.investmentCost.toLocaleString()} 元
+                    </span>
+                </div>
+            ` : ''}
+            <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                <span style="color: #1565c0;">
+                    💡 支付 500 元購買後，可查看詳細效果並決定是否執行
+                </span>
+            </div>
+        </div>
+    `;
     }
 
     /**
@@ -440,6 +469,54 @@ export class OpportunityCardTemplate {
             declineBtn.onclick = () => onDecline();
             declineBtn.onmouseenter = () => { declineBtn.style.transform = 'scale(1.02)'; };
             declineBtn.onmouseleave = () => { declineBtn.style.transform = 'scale(1)'; };
+        }
+    }
+
+    /**
+     * Apply card image with blind card handling.
+     * For blind cards, shows back cover; for open cards, shows real image.
+     */
+    static applyPurchaseCardImage(imgEl, card) {
+        if (!imgEl) return;
+
+        if (CardVisibility.isBlindCard(card)) {
+            // Show back-of-card image
+            imgEl.src = CardVisibility.getBlindImage(card.cardType || card.type);
+            imgEl.style.filter = 'brightness(0.85)';
+            imgEl.style.border = '3px dashed #ff9800';
+            imgEl.onerror = () => {
+                // If no back image exists, hide the image and show a lock icon
+                imgEl.style.display = 'none';
+                const container = imgEl.parentElement;
+                if (container) {
+                    container.innerHTML = `
+                    <div style="height: 200px; display: flex;
+                                align-items: center; justify-content: center;
+                                background: linear-gradient(135deg, #ffb347, #ff9800);
+                                border-radius: 16px; border: 3px dashed #e65100;">
+                        <div style="text-align: center; color: white;">
+                            <div style="font-size: 60px;">🔒</div>
+                            <div style="font-size: 14px; margin-top: 8px;">
+                                內容未揭曉
+                            </div>
+                        </div>
+                    </div>
+                `;
+                }
+            };
+            return;
+        }
+
+        // Non-blind cards - show real image
+        if (card.image) {
+            let url = card.image;
+            if (url && !url.startsWith('http') && !url.startsWith('/')) {
+                url = '/' + url;
+            }
+            imgEl.src = url;
+            imgEl.style.filter = 'none';
+            imgEl.style.border = '3px solid #ffb347';
+            imgEl.onerror = () => { imgEl.style.display = 'none'; };
         }
     }
 }

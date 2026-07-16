@@ -1,7 +1,6 @@
 "use strict";
 
 const streamlineTiles = [
-    /*
     { name: "義工卡",     type: "volunteer" },
     { name: "騙子卡",     type: "lier" },
     { name: "察覺卡",     type: "awareness" },
@@ -14,18 +13,18 @@ const streamlineTiles = [
     { name: "機會卡",     type: "opportunity" },
     { name: "察覺卡",     type: "awareness" },
     { name: "機會卡",     type: "opportunity" },
-    { name: "結算日",     type: "settlement" },*/
+    { name: "結算日",     type: "settlement" },
     { name: "警察卡",     type: "police" },
     { name: "察覺卡",     type: "awareness" },
     { name: "機會卡",     type: "opportunity" },
     { name: "四葉草",     type: "four_leaf_clover" },
     { name: "機會卡",     type: "opportunity" },
     { name: "逆流層出口", type: "reverse_exit" },
-    { name: "機會卡",     type: "opportunity" },/*
+    { name: "機會卡",     type: "opportunity" },
     { name: "結算日",     type: "settlement" },
     { name: "機會卡",     type: "opportunity" },
     { name: "察覺卡",     type: "awareness" },
-    { name: "機會卡",     type: "opportunity" }*/
+    { name: "機會卡",     type: "opportunity" }
 ];
 
 const reverseTiles = [

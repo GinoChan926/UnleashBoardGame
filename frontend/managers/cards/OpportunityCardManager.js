@@ -57,24 +57,23 @@ export class OpportunityCardManager extends BaseCardManager {
             card, this.ui.escapeHtml.bind(this.ui)
         );
 
-        // Set image
-        this._setupCardImage(document.getElementById('purchaseCardImg'), card);
+        // ✅ Use blind-aware image setter instead of _setupCardImage
+        OpportunityCardTemplate.applyPurchaseCardImage(
+            document.getElementById('purchaseCardImg'), card
+        );
 
-        // Set afford warning
+        // ... rest unchanged
         const warning = document.getElementById('purchaseAffordWarning');
         if (warning) warning.style.display = canAfford ? 'none' : 'inline';
 
-        // Bind buttons
         OpportunityCardTemplate.bindPurchaseButtons(
             canAfford,
-            // On confirm
             () => {
                 if (this.ws && this.ws.isReady()) {
                     this.ws.send({ type: 'purchase_card' });
                 }
                 this.modalManager.closeModal('purchaseConfirmModal');
             },
-            // On cancel
             () => {
                 this.modalManager.closeModal('purchaseConfirmModal');
                 this.ui.addLog('已放棄購買', 'warning');

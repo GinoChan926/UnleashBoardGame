@@ -3,8 +3,8 @@
 // ── Type configuration ────────────────────────────────────────────────────────
 
 const TYPE_CONFIG = {
-    market_news: { name: '市場消息卡', icon: '📊', color: '#2196f3', image: '../cards/revelation/market/M00.png' },
-    tip:         { name: '錦囊卡',     icon: '🎁', color: '#9c27b0', image: '../cards/revelation/tip/IN00.png'   }
+    market_news: { name: '市場消息卡', icon: '📊', color: '#2196f3', image: '../cards/revelation/market/back.png' },
+    tip:         { name: '錦囊卡',     icon: '🎁', color: '#9c27b0', image: '../cards/revelation/tip/back.png'   }
 };
 
 // ── Template class ────────────────────────────────────────────────────────────
