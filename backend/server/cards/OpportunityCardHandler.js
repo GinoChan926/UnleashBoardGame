@@ -177,6 +177,32 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             effectMessage: effectResult, gameState: player.gameState
         });
 
+        // ✅ Property choice feature (H01 - H05)
+        if (card.hasPropertyChoiceFeature) {
+            console.log(`🏠 房產選擇觸發: ${player.playerName} - ${card.name}`);
+
+            const { startPropertyChoice } = require('../systems/PropertyChoiceSystem.js');
+
+            // Send base result first
+            ws.send(JSON.stringify({
+                type: 'card_decision_result', execute, message: resultMessage,
+                gameState: player.gameState, cardName: card.name, effectMessage: effectResult
+            }));
+
+            room.pendingEvents.delete(ws);
+
+            broadcastToRoom(roomId, {
+                type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            });
+
+            // Prompt player after brief delay
+            setTimeout(() => {
+                startPropertyChoice(ws, roomId, player, card, broadcastToRoom);
+            }, 500);
+
+            return; // skip normal response
+        }
+
         // ✅ C17 - Health share feature (does NOT return - continues to auto draw or normal flow)
         if (card.hasHealthShareFeature) {
             console.log(`💚 大學飯堂健康分配觸發: ${player.playerName}`);

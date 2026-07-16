@@ -60,7 +60,14 @@ const {
     handleEnergyTradePass,
     handleEnergyTradeSellerDecide
 } = require('./server/systems/EnergyTradeSystem.js');
-
+const {
+    handlePropertyChoice,
+    handleGetPropertyList,
+    handleEarlyPayoff
+} = require('./server/systems/PropertyChoiceSystem.js');
+const { handleMoveOtherPlayer } = require('./server/systems/MoveOtherPlayerSystem.js');
+const { handleFineOtherPlayer } = require('./server/systems/FineOtherPlayerSystem.js');
+const { handleGoodCitizenChoice } = require('./server/systems/GoodCitizenSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -91,7 +98,7 @@ function makeDeps(roomId) {
                 showRevelationCardTypeSelection: (ws, s, rId, p) => showRevelationCardTypeSelection(ws, s, rId, p, marketNewsCards, tipCards, rooms.get(rId)),
                 drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
                 drawVolunteerCard:            (ws, s, rId, p, exact) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, exact),
-                drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast),
+                drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, {rooms}),
                 drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
                 rooms
             }),
@@ -238,6 +245,49 @@ wss.on('connection', (ws) => {
                     break;
                 case 'energy_trade_seller_decide':
                     handleEnergyTradeSellerDecide(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'property_choice':
+                    handlePropertyChoice(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'get_property_list':
+                    handleGetPropertyList(ws, data, playerRoomId, rooms);
+                    break;
+
+                case 'property_early_payoff':
+                    handleEarlyPayoff(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'police_move_target':
+                    handleMoveOtherPlayer(ws, data, playerRoomId, rooms, broadcast, {
+                        processStreamlineTile: (state, tile, ws, rId, player, exact) =>
+                            processStreamlineTile(state, tile, ws, rId, player, exact, {
+                                broadcastToRoom: broadcast,
+                                showCardTypeSelection:        (ws, s, rId, p) => showCardTypeSelection(ws, s, rId, p, CARD_TYPES, rooms.get(rId)),
+                                showRevelationCardTypeSelection: (ws, s, rId, p) => showRevelationCardTypeSelection(ws, s, rId, p, marketNewsCards, tipCards, rooms.get(rId)),
+                                drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
+                                drawVolunteerCard:            (ws, s, rId, p, exact) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, exact),
+                                drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, { rooms }),
+                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+                                rooms
+                            }),
+                        processReverseTile: (state, tile, ws, rId, player) =>
+                            processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
+                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast)),
+                        processFlowTile: (state, tile, ws, rId, player, room) =>
+                            processFlowTile(state, tile, ws, rId, player, room, {
+                                broadcastToRoom: broadcast,
+                                startAuction:   (rId, card, player, ws) => startAuction(rId, card, player, ws, broadcast),
+                                processSocialServiceTile: (s, ws, rId, p, t, r) => processSocialServiceTile(s, ws, rId, p, t, r),
+                                investmentCards
+                            })
+                    });
+                    break;
+                case 'police_fine_target':
+                    handleFineOtherPlayer(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'good_citizen_choice':
+                    handleGoodCitizenChoice(ws, data, playerRoomId, rooms, broadcast, tipCards);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

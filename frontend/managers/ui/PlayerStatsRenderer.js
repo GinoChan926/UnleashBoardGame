@@ -68,6 +68,15 @@ export class PlayerStatsRenderer {
 
         // ── Delegate buttons to ButtonStateManager ────────────────────────
         this.buttons.refresh(gameState);
+
+        // ✅ Show pending auto-debt
+        const pendingDebt = (gameState.pendingDebts || [])
+            .reduce((sum, d) => sum + d.amount, 0);
+        const pendingDebtEl = document.getElementById('statPendingDebt');
+        if (pendingDebtEl) {
+            pendingDebtEl.innerText = pendingDebt.toLocaleString();
+            pendingDebtEl.style.color = pendingDebt > 0 ? '#ff9800' : '#4caf50';
+        }
     }
 
     // ── Private ───────────────────────────────────────────────────────────

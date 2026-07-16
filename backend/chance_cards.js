@@ -4517,438 +4517,108 @@ const propertyCards = [
     {
         id: "H01",
         name: "陳年唐樓",
-        description: "物業總價 $700,000 | 租金收入 +$10,000/月\n功能:有機會獲得收購清拆賠償 (開發中)",
+        description: "物業總價 $700,000 | 租金收入 +$10,000/月\n功能:有機會獲得收購清拆賠償\n選擇：自用（僅付月供）或轉讓（付月供並收租金）",
         image: "../cards/property/old_tenement.png",
         cost: 500,
         type: "property",
         category: "地產",
         investmentCost: 700000,
-        energyCost: 0,
+        totalPrice: 700000,
+        monthlyPayment: 0,
         monthlyReturn: 10000,
-        hasDemolitionFeature: true,  // 标记有清拆赔偿功能，供未来使用
-        demolitionCompensation: 5000000,  // 潜在赔偿金额 500万
+        energyCost: 0,
+        hasPropertyChoiceFeature: true,
+        hasDemolitionFeature: true,
+        demolitionCompensation: 5000000,
         effect: (state) => {
-            // 检查是否有生意成本折扣
-            let discount = 0;
-            let discountMessage = '';
-
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 700000;
-            if (discount > 0) {
-                const saved = Math.round(700000 * discount / 100);
-                finalCost = 700000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法購買陳年唐樓`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-            state.passiveIncome += 10000;
-            state.totalAssets += finalCost;
-
-            // 记录地產投資
-            state.propertyInvestments = state.propertyInvestments || [];
-            state.propertyInvestments.push({
-                id: "H01",
-                name: "陳年唐樓",
-                cost: finalCost,
-                monthlyReturn: 10000,
-                hasDemolitionPotential: true,
-                purchasePrice: finalCost
-            });
-
-            // 记录唐楼数量（用于未来清拆赔偿）
-            state.oldTenementCount = (state.oldTenementCount || 0) + 1;
-
-            // 獲得地產投資技能
-            state.hasPropertySkill = true;
-
-            let resultMessage = `✅ 購買陳年唐樓成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，租金收入 +10,000 元/月。`;
-
-            // 清拆赔偿功能（预留，待未来市場消息系统实现）
-            // resultMessage += `\n🏗️ 有傳聞這幢唐樓將會收購清拆，未來可能獲得巨額賠償！(功能開發中)`;
-
-            return resultMessage;
+            return `🏠 房地產機會！請選擇你的處理方式`;
         },
-        getEffectDescription: () => "投資 700,000 元，被動收入 +10,000/月。有機會獲得收購清拆賠償 (開發中)"
+        getEffectDescription: () => "投資 700,000 元，租金 +10,000/月。可選自用或轉讓"
     },
 
     {
         id: "H02",
         name: "香港中西區住宅",
-        description: "物業總價 $10,000,000 | 首期 $1,000,000 | 月供 $40,000/月 (30年) | 租金收入 $30,000/月\n功能：可自用或轉讓給其他玩家 (開發中)",
+        description: "物業總價 $10,000,000 | 首期 $1,000,000 | 月供 $40,000/月 (30年) | 租金收入 $30,000/月\n選擇：自用（僅付月供）或轉讓（付月供並收租金）",
         image: "../cards/property/central_west_residence.png",
         cost: 500,
         type: "property",
         category: "地產",
-        investmentCost: 1000000,  // 首期
-        totalPrice: 10000000,     // 总價
-        monthlyPayment: 40000,    // 每月供款
-        monthlyReturn: 30000,     // 租金收入
+        investmentCost: 1000000,
+        totalPrice: 10000000,
+        monthlyPayment: 40000,
+        monthlyReturn: 30000,
         energyCost: 0,
-        hasTransferFeature: true,  // 标记有转让功能，供未来使用
+        hasPropertyChoiceFeature: true,
+        hasTransferFeature: true,
         effect: (state) => {
-            // 检查是否有生意成本折扣
-            let discount = 0;
-            let discountMessage = '';
-
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 1000000;  // 首期
-            if (discount > 0) {
-                const saved = Math.round(1000000 * discount / 100);
-                finalCost = 1000000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法支付首期購買香港中西區住宅`;
-            }
-
-            // 检查每月現金流是否足够支付月供
-            const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-            const currentMonthlyCF = (state.salary + state.sideIncome + state.passiveIncome) - totalExp;
-
-            if (currentMonthlyCF + state.cash < this.monthlyPayment) {
-                return `⚠️ 警告：每月供款 ${this.monthlyPayment.toLocaleString()} 元，當前月現金流 ${currentMonthlyCF.toLocaleString()} 元，可能無法负担月供！是否继续？`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-
-            // 记录貸款信息（按揭）
-            const mortgageAmount = this.totalPrice - finalCost;  // 貸款金额 900万
-            const monthlyPayment = this.monthlyPayment;
-
-            // 添加每月固定支出（月供）
-            state.mortgagePayment = (state.mortgagePayment || 0) + monthlyPayment;
-            state.passiveIncome += this.monthlyReturn;
-            state.totalAssets += this.totalPrice;
-
-            // 记录地產投資
-            state.propertyInvestments = state.propertyInvestments || [];
-            state.propertyInvestments.push({
-                id: "H02",
-                name: "香港中西區住宅",
-                totalPrice: this.totalPrice,
-                downPayment: finalCost,
-                mortgageAmount: mortgageAmount,
-                monthlyPayment: monthlyPayment,
-                monthlyReturn: this.monthlyReturn,
-                hasDiscount: discount > 0,
-                isTransferable: true  // 可转让
-            });
-
-            // 记录住宅数量
-            state.residentialCount = (state.residentialCount || 0) + 1;
-            state.hasPropertySkill = true;
-
-            // 计算实际月現金流变化
-            const netMonthlyChange = this.monthlyReturn - monthlyPayment;
-
-            let resultMessage = `✅ 購買香港中西區住宅成功！\n`;
-            resultMessage += `   💰 首期支付: ${finalCost.toLocaleString()} 元${discountMessage}\n`;
-            resultMessage += `   🏦 貸款金額: ${mortgageAmount.toLocaleString()} 元\n`;
-            resultMessage += `   📅 每月供款: ${monthlyPayment.toLocaleString()} 元\n`;
-            resultMessage += `   🏠 租金收入: ${this.monthlyReturn.toLocaleString()} 元/月\n`;
-            resultMessage += `   📊 每月淨收益: ${netMonthlyChange >= 0 ? '+' : ''}${netMonthlyChange.toLocaleString()} 元/月`;
-
-            if (netMonthlyChange < 0) {
-                resultMessage += `\n   ⚠️ 注意：租金不足以支付月供，每月需額外支出 ${Math.abs(netMonthlyChange).toLocaleString()} 元！`;
-            }
-
-            // 转让功能（预留，待未来实现）
-            // resultMessage += `\n🔄 此物業可自用或轉讓給其他玩家！(功能開發中)`;
-
-            return resultMessage;
+            return `🏠 房地產機會！請選擇你的處理方式`;
         },
-        getEffectDescription: () => "首期 1,000,000 元，總價 10,000,000 元，月供 40,000/月，租金收入 30,000/月。可自用或轉讓 (開發中)"
+        getEffectDescription: () => "首期 1,000,000 元，月供 40,000/月，租金 30,000/月。可選自用或轉讓"
     },
 
     {
         id: "H03",
         name: "香港油尖旺區住宅",
-        description: "物業總價 $7,000,000 | 首期 $700,000 | 月供 $30,000/月 (30年) | 租金收入 $18,000/月\n功能：可自用或轉讓給其他玩家 (開發中)",
+        description: "物業總價 $7,000,000 | 首期 $700,000 | 月供 $30,000/月 (30年) | 租金收入 $18,000/月\n選擇：自用（僅付月供）或轉讓（付月供並收租金）",
         image: "../cards/property/yau_tsim_mong_residence.png",
         cost: 500,
         type: "property",
         category: "地產",
-        investmentCost: 700000,   // 首期
-        totalPrice: 7000000,      // 总價
-        monthlyPayment: 30000,    // 每月供款
-        monthlyReturn: 18000,     // 租金收入
+        investmentCost: 700000,
+        totalPrice: 7000000,
+        monthlyPayment: 30000,
+        monthlyReturn: 18000,
         energyCost: 0,
-        hasTransferFeature: true,  // 标记有转让功能，供未来使用
+        hasPropertyChoiceFeature: true,
+        hasTransferFeature: true,
         effect: (state) => {
-            // 检查是否有生意成本折扣
-            let discount = 0;
-            let discountMessage = '';
-
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 700000;  // 首期
-            if (discount > 0) {
-                const saved = Math.round(700000 * discount / 100);
-                finalCost = 700000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法支付首期購買香港油尖旺區住宅`;
-            }
-
-            // 检查每月現金流是否足够支付月供
-            const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-            const currentMonthlyCF = (state.salary + state.sideIncome + state.passiveIncome) - totalExp;
-
-            if (currentMonthlyCF + state.cash < this.monthlyPayment) {
-                return `⚠️ 警告：每月供款 ${this.monthlyPayment.toLocaleString()} 元，當前月現金流 ${currentMonthlyCF.toLocaleString()} 元，可能無法负担月供！是否繼續？`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-
-            // 记录貸款信息（按揭）
-            const mortgageAmount = this.totalPrice - finalCost;  // 貸款金额 630万
-            const monthlyPayment = this.monthlyPayment;
-
-            // 添加每月固定支出（月供）
-            state.mortgagePayment = (state.mortgagePayment || 0) + monthlyPayment;
-            state.passiveIncome += this.monthlyReturn;
-            state.totalAssets += this.totalPrice;
-
-            // 记录地產投資
-            state.propertyInvestments = state.propertyInvestments || [];
-            state.propertyInvestments.push({
-                id: "H03",
-                name: "香港油尖旺區住宅",
-                totalPrice: this.totalPrice,
-                downPayment: finalCost,
-                mortgageAmount: mortgageAmount,
-                monthlyPayment: monthlyPayment,
-                monthlyReturn: this.monthlyReturn,
-                hasDiscount: discount > 0,
-                isTransferable: true
-            });
-
-            // 记录住宅数量
-            state.residentialCount = (state.residentialCount || 0) + 1;
-            state.hasPropertySkill = true;
-
-            // 计算实际月現金流变化
-            const netMonthlyChange = this.monthlyReturn - monthlyPayment;
-
-            let resultMessage = `✅ 購買香港油尖旺區住宅成功！\n`;
-            resultMessage += `   💰 首期支付: ${finalCost.toLocaleString()} 元${discountMessage}\n`;
-            resultMessage += `   🏦 貸款金額: ${mortgageAmount.toLocaleString()} 元\n`;
-            resultMessage += `   📅 每月供款: ${monthlyPayment.toLocaleString()} 元\n`;
-            resultMessage += `   🏠 租金收入: ${this.monthlyReturn.toLocaleString()} 元/月\n`;
-            resultMessage += `   📊 每月淨收益: ${netMonthlyChange >= 0 ? '+' : ''}${netMonthlyChange.toLocaleString()} 元/月`;
-
-            if (netMonthlyChange < 0) {
-                resultMessage += `\n   ⚠️ 注意：租金不足以支付月供，每月需額外支出 ${Math.abs(netMonthlyChange).toLocaleString()} 元！`;
-            }
-
-            // 转让功能（预留，待未来实现）
-            // resultMessage += `\n🔄 此物業可自用或轉讓給其他玩家！(功能開發中)`;
-
-            return resultMessage;
+            return `🏠 房地產機會！請選擇你的處理方式`;
         },
-        getEffectDescription: () => "首期 700,000 元，總價 7,000,000 元，月供 30,000/月，租金收入 18,000/月。可自用或轉讓 (開發中)"
+        getEffectDescription: () => "首期 700,000 元，月供 30,000/月，租金 18,000/月。可選自用或轉讓"
     },
 
     {
         id: "H04",
         name: "香港新界北區住宅",
-        description: "物業總價 $4,000,000 | 首期 $400,000 | 月供 $16,000/月 (30年) | 租金收入 $10,000/月\n功能：可自用或轉讓給其他玩家 (開發中)",
+        description: "物業總價 $4,000,000 | 首期 $400,000 | 月供 $16,000/月 (30年) | 租金收入 $10,000/月\n選擇：自用（僅付月供）或轉讓（付月供並收租金）",
         image: "../cards/property/north_district_residence.png",
         cost: 500,
         type: "property",
         category: "地產",
-        investmentCost: 400000,   // 首期
-        totalPrice: 4000000,      // 总價
-        monthlyPayment: 16000,    // 每月供款
-        monthlyReturn: 10000,     // 租金收入
+        investmentCost: 400000,
+        totalPrice: 4000000,
+        monthlyPayment: 16000,
+        monthlyReturn: 10000,
         energyCost: 0,
-        hasTransferFeature: true,  // 标记有转让功能，供未来使用
+        hasPropertyChoiceFeature: true,
+        hasTransferFeature: true,
         effect: (state) => {
-            // 检查是否有生意成本折扣
-            let discount = 0;
-            let discountMessage = '';
-
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 400000;  // 首期
-            if (discount > 0) {
-                const saved = Math.round(400000 * discount / 100);
-                finalCost = 400000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法支付首期購買香港新界北區住宅`;
-            }
-
-            // 检查每月現金流是否足够支付月供
-            const totalExp = state.livingExpense + state.tax + state.loanInterest + state.childExpense;
-            const currentMonthlyCF = (state.salary + state.sideIncome + state.passiveIncome) - totalExp;
-
-            if (currentMonthlyCF + state.cash < this.monthlyPayment) {
-                return `⚠️ 警告：每月供款 ${this.monthlyPayment.toLocaleString()} 元，當前月現金流 ${currentMonthlyCF.toLocaleString()} 元，可能無法负担月供！是否繼續？`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-
-            // 记录貸款信息（按揭）
-            const mortgageAmount = this.totalPrice - finalCost;  // 貸款金额 360万
-            const monthlyPayment = this.monthlyPayment;
-
-            // 添加每月固定支出（月供）
-            state.mortgagePayment = (state.mortgagePayment || 0) + monthlyPayment;
-            state.passiveIncome += this.monthlyReturn;
-            state.totalAssets += this.totalPrice;
-
-            // 记录地產投資
-            state.propertyInvestments = state.propertyInvestments || [];
-            state.propertyInvestments.push({
-                id: "H04",
-                name: "香港新界北區住宅",
-                totalPrice: this.totalPrice,
-                downPayment: finalCost,
-                mortgageAmount: mortgageAmount,
-                monthlyPayment: monthlyPayment,
-                monthlyReturn: this.monthlyReturn,
-                hasDiscount: discount > 0,
-                isTransferable: true
-            });
-
-            // 记录住宅数量
-            state.residentialCount = (state.residentialCount || 0) + 1;
-            state.hasPropertySkill = true;
-
-            // 计算实际月現金流变化
-            const netMonthlyChange = this.monthlyReturn - monthlyPayment;
-
-            let resultMessage = `✅ 購買香港新界北區住宅成功！\n`;
-            resultMessage += `   💰 首期支付: ${finalCost.toLocaleString()} 元${discountMessage}\n`;
-            resultMessage += `   🏦 貸款金額: ${mortgageAmount.toLocaleString()} 元\n`;
-            resultMessage += `   📅 每月供款: ${monthlyPayment.toLocaleString()} 元\n`;
-            resultMessage += `   🏠 租金收入: ${this.monthlyReturn.toLocaleString()} 元/月\n`;
-            resultMessage += `   📊 每月淨收益: ${netMonthlyChange >= 0 ? '+' : ''}${netMonthlyChange.toLocaleString()} 元/月`;
-
-            if (netMonthlyChange < 0) {
-                resultMessage += `\n   ⚠️ 注意：租金不足以支付月供，每月需額外支出 ${Math.abs(netMonthlyChange).toLocaleString()} 元！`;
-            }
-
-            // 转让功能（预留，待未来实现）
-            // resultMessage += `\n🔄 此物業可自用或轉讓給其他玩家！(功能開發中)`;
-
-            return resultMessage;
+            return `🏠 房地產機會！請選擇你的處理方式`;
         },
-        getEffectDescription: () => "首期 400,000 元，總價 4,000,000 元，月供 16,000/月，租金收入 10,000/月。可自用或轉讓 (開發中)"
+        getEffectDescription: () => "首期 400,000 元，月供 16,000/月，租金 10,000/月。可選自用或轉讓"
     },
 
     {
         id: "H05",
         name: "香港工廈",
-        description: "物業總價 $700,000 | 租金收入 +$10,000/月\n功能：可自用或轉讓給其他玩家 (開發中)",
+        description: "物業總價 $500,000 | 租金收入 +$10,000/月\n選擇：自用（僅付月供）或轉讓（付月供並收租金）",
         image: "../cards/property/industrial_building.png",
         cost: 500,
         type: "property",
         category: "地產",
-        investmentCost: 700000,   // 全款購買（工厦通常不需要按揭）
-        totalPrice: 700000,
+        investmentCost: 500000,
+        totalPrice: 500000,
+        monthlyPayment: 0,
         monthlyReturn: 10000,
         energyCost: 0,
-        hasTransferFeature: true,  // 标记有转让功能，供未来使用
+        hasPropertyChoiceFeature: true,
+        hasTransferFeature: true,
         effect: (state) => {
-            // 检查是否有生意成本折扣
-            let discount = 0;
-            let discountMessage = '';
-
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 700000;
-            if (discount > 0) {
-                const saved = Math.round(700000 * discount / 100);
-                finalCost = 700000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法購買香港工廈`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-            state.passiveIncome += 10000;
-            state.totalAssets += this.totalPrice;
-
-            // 记录地產投資
-            state.propertyInvestments = state.propertyInvestments || [];
-            state.propertyInvestments.push({
-                id: "H05",
-                name: "香港工廈",
-                totalPrice: this.totalPrice,
-                purchasePrice: finalCost,
-                monthlyReturn: 10000,
-                hasDiscount: discount > 0,
-                isTransferable: true,
-                propertyType: "industrial"  // 工廈类型
-            });
-
-            // 记录工廈数量
-            state.industrialBuildingCount = (state.industrialBuildingCount || 0) + 1;
-            state.hasPropertySkill = true;
-
-            // 计算回本时间
-            const paybackMonths = Math.ceil(finalCost / 10000);
-            const paybackYears = (paybackMonths / 12).toFixed(1);
-
-            let resultMessage = `✅ 購買香港工廈成功！\n`;
-            resultMessage += `   💰 總投資: ${finalCost.toLocaleString()} 元${discountMessage}\n`;
-            resultMessage += `   🏭 物業類型: 工業大廈\n`;
-            resultMessage += `   🏠 租金收入: 10,000 元/月\n`;
-            resultMessage += `   📊 每月淨收益: +10,000 元/月\n`;
-            resultMessage += `   ⏱️ 預計回本時間: 約 ${paybackMonths} 個月 (${paybackYears} 年)`;
-
-            // 转让功能（预留，待未来实现）
-            // resultMessage += `\n🔄 此物業可自用或轉讓給其他玩家！(功能開發中)`;
-
-            return resultMessage;
+            return `🏠 房地產機會！請選擇你的處理方式`;
         },
-        getEffectDescription: () => "總價 700,000 元，租金收入 10,000/月。可自用或轉讓 (開發中)"
-    },
+        getEffectDescription: () => "總價 500,000 元，租金 10,000/月。可選自用或轉讓"
+    }
 ];
 
 // 导出所有卡片

@@ -548,6 +548,7 @@
                 <div class="panel-row"><span>稅金</span><strong id="statTax">500</strong></div>
                 <div class="panel-row"><span>貸款利息</span><strong id="statLoanInterest">0</strong></div>
                 <div class="panel-row"><span>💰 本利和</span><strong id="statTotalLoanRepay" style="color:#4caf50;">0</strong></div>
+                <div class="panel-row"><span>💸 待償還債務</span><strong id="statPendingDebt" style="color:#ff9800;">0</strong></div>
                 <div class="panel-row"><span>總支出</span><strong id="statTotalExpense">4500</strong></div>
             </div>
 
@@ -578,6 +579,7 @@
                 <button id="btnEndTurn" onclick="window.gameClient?.endTurn()" disabled>⏭️ 結束回合</button>
                 <button id="btnLoan" onclick="window.gameClient?.applyLoan()" disabled>🏦 申請貸款 (10%利息)</button>
                 <button id="btnRepayLoan" onclick="window.gameClient?.repayLoan()" class="btn-repay" disabled>💰 償還貸款</button>
+                <button id="btnProperty" onclick="window.gameClient?.showPropertyPanel()" style="background: #9c27b0;">🏠 物業管理</button>
                 <button id="btnDisconnect" onclick="window.gameClient?.disconnect()">🔌 斷開連接</button>
             </div>
 

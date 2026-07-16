@@ -215,6 +215,10 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     state.cash        += totalIncome;
     state.totalAssets += Math.floor(totalIncome * 0.2);
 
+    // ✅ Auto-collect pending debts
+    const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+    processDebtCollection(player, room, roomId, broadcastToRoom);
+
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
 
     // ✅ Deduct expense on passthrough too
@@ -234,6 +238,10 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     processHealthSupplementInvestment(state, player, ws);
 
     // NO tea restaurant fee on passthrough (only on landing)
+
+    // ✅ Process property mortgages on passthrough too
+    const { processPropertyMortgages } = require('../systems/PropertyChoiceSystem.js');
+    processPropertyMortgages(player, ws, broadcastToRoom, roomId);
 
     const repaymentResult = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
     if (repaymentResult) {

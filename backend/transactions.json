@@ -1,44 +1,16 @@
 [
   {
-    "id": "1784104263520_rnmvli",
-    "timestamp": "15/7/2026 下午4:31:03",
-    "playerName": "Player_1784104200469",
-    "cardType": "business",
-    "cardName": "可持續發展碳中和釀酒廠 - 自買精力",
-    "action": "自買精力",
-    "amountChange": -1000,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "無人購買後選擇自買，以 $1,000 獲得 5 精力"
-  },
-  {
-    "id": "1784104251203_60vm2v",
-    "timestamp": "15/7/2026 下午4:30:51",
-    "playerName": "Player_1784104200469",
-    "cardType": "business",
-    "cardName": "可持續發展碳中和釀酒廠",
+    "id": "1784182761846_nanmei",
+    "timestamp": "16/7/2026 下午2:19:21",
+    "playerName": "Player_1784182730629",
+    "cardType": "finance",
+    "cardName": "P2P投資網上借貸平台",
     "action": "執行",
-    "amountChange": -190000,
-    "passiveIncomeChange": 12000,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": -6,
-    "details": "✅ 開設可持續發展碳中和釀酒廠成功！投資 190,000 元，被動收入 +12,000 元/月，精力消耗 6 點。綠色企業形象提升品牌價值！幸運值 +1，所有被動收入 +3%！\n🌱 環境保護：減少廢物產生，促進循環經濟！\n💚 精力交易：可從銀行提取5精力向其他玩家出售！"
-  },
-  {
-    "id": "1784104240750_s9fhqs",
-    "timestamp": "15/7/2026 下午4:30:40",
-    "playerName": "Player_1784104197990",
-    "cardType": "lier",
-    "cardName": "網購平台買到次貨",
-    "action": "騙子卡",
     "amountChange": -1000,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "📦 網購平台買到次貨！損失 1,000 元，下一回合暫停！"
+    "details": "✅ 購買 100 股 P2P投資平台，花费 1,000 元"
   }
 ]

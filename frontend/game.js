@@ -123,6 +123,10 @@ class GameClient {
         this.boardRenderer.renderAllTiles(this.gameState, this.otherPlayers);
     }
 
+    showPropertyPanel() {
+        this.connection.send({ type: 'get_property_list' });
+    }
+
     // ==================== Connect / disconnect ====================
 
     showProfessionModal() {

@@ -76,6 +76,16 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
         state.cash   += totalIncome;
         state.totalAssets += Math.floor(totalIncome * 0.2);
         incomeMessage = `獲得 ${totalIncome.toLocaleString()} 元現金流`;
+
+        // ✅ Auto-collect pending debts from income
+        if (room) {
+            const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+            const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
+            if (paidDebts.length > 0) {
+                const totalPaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+                incomeMessage += ` | 💸 自動償還債務 $${totalPaid.toLocaleString()}`;
+            }
+        }
     } else {
         incomeMessage = `⚠️ 你身處逆流層，本次結算日沒有收入！`;
     }
@@ -109,6 +119,16 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
             teaRestaurantMessage = player._pendingTeaRestaurantMessage;
             incomeMessage += ` | ${teaRestaurantMessage}`;
             delete player._pendingTeaRestaurantMessage;
+        }
+    }
+
+    // ✅ Process property mortgages
+    if (!state.inReverse) {
+        const { processPropertyMortgages } = require('../systems/PropertyChoiceSystem.js');
+        const paidOff = processPropertyMortgages(player, ws, broadcastToRoom, roomId);
+        if (paidOff.length > 0) {
+            const names = paidOff.map(p => p.name).join('、');
+            incomeMessage += ` | 🎉 房貸還清: ${names}`;
         }
     }
 

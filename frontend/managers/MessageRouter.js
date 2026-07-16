@@ -123,6 +123,22 @@ export class MessageRouter {
             'energy_trade_self_bought':   m => ch().handleEnergyTradeSelfBought(m),
             'energy_trade_cancelled':     m => ch().handleEnergyTradeCancelled(m),
             'energy_trade_closed':          m => ch().handleEnergyTradeClosed(m),
+
+            'property_choice_prompt': m => ch().handlePropertyChoicePrompt(m),
+            'property_choice_result': m => ch().handlePropertyChoiceResult(m),
+            'property_list':      m => ch().handlePropertyList(m),
+            'property_paid_off':  m => ch().handlePropertyPaidOff(m),
+
+            'police_move_prompt':   m => ch().handlePoliceMovePrompt(m),
+            'police_move_executed': m => ch().handlePoliceMoveExecuted(m),
+            'police_move_received': m => ch().handlePoliceMoveReceived(m),
+
+            'police_fine_prompt':   m => ch().handlePoliceFinePrompt(m),
+            'police_fine_executed': m => ch().handlePoliceFineExecuted(m),
+            'police_fine_received': m => ch().handlePoliceFineReceived(m),
+
+            'good_citizen_choice_prompt': m => ch().handleGoodCitizenChoicePrompt(m),
+            'good_citizen_result':        m => ch().handleGoodCitizenResult(m),
             // ── System
             'notification': m => {
                 if (m.message) {
