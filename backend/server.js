@@ -25,6 +25,7 @@ const CARD_TYPES = {
     BUSINESS:  { id: 'business',  name: '創業類', icon: '🚀', color: '#ff9800', cards: businessCards },
     PROPERTY:  { id: 'property',  name: '地產類', icon: '🏠', color: '#9c27b0', cards: propertyCards }
 };
+global.CARD_TYPES = CARD_TYPES;
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 const { getTransactions, clearTransactions, loadFromFile } = require('./server/records/TransactionRecorder.js');
@@ -68,6 +69,12 @@ const {
 const { handleMoveOtherPlayer } = require('./server/systems/MoveOtherPlayerSystem.js');
 const { handleFineOtherPlayer } = require('./server/systems/FineOtherPlayerSystem.js');
 const { handleGoodCitizenChoice } = require('./server/systems/GoodCitizenSystem.js');
+const {
+    handlePersonalCardResponse,
+    handleTeamCardResponse
+} = require('./server/systems/RevelationCardSystem.js');
+const { handleGiftCardTarget }        = require('./server/systems/GiftCardSystem.js');
+const { handleMoveForwardChoice }     = require('./server/systems/MoveForwardSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -288,6 +295,36 @@ wss.on('connection', (ws) => {
                     break;
                 case 'good_citizen_choice':
                     handleGoodCitizenChoice(ws, data, playerRoomId, rooms, broadcast, tipCards);
+                    break;
+
+                case 'personal_card_response':
+                    handlePersonalCardResponse(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'team_card_response':
+                    handleTeamCardResponse(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'gift_card_target':
+                    handleGiftCardTarget(ws, data, playerRoomId, rooms, broadcast, CARD_TYPES);
+                    break;
+
+                case 'move_forward_choice':
+                    handleMoveForwardChoice(ws, data, playerRoomId, rooms, broadcast,
+                        // tileProcessor closure
+                        (state, tile, ws, rId, p, exact) => {
+                            processStreamlineTile(state, tile, ws, rId, p, exact, {
+                                broadcastToRoom: broadcast,
+                                showCardTypeSelection:        (ws, s, rId, p) => showCardTypeSelection(ws, s, rId, p, CARD_TYPES, rooms.get(rId)),
+                                showRevelationCardTypeSelection: (ws, s, rId, p) => showRevelationCardTypeSelection(ws, s, rId, p, marketNewsCards, tipCards, rooms.get(rId)),
+                                drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
+                                drawVolunteerCard:            (ws, s, rId, p, e) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, e),
+                                drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, { rooms }),
+                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+                                rooms
+                            });
+                        }
+                    );
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

@@ -26,7 +26,9 @@ function handleJoin(ws, data, roomId, rooms) {
         maxEnergy:       professionData.maxEnergy,
         luck:            professionData.luck, maxLuck: 10,
         isMyTurn:        room.players.size === 0,
-        currentTurnPlayer: playerName
+        currentTurnPlayer: playerName,
+        volunteerCount:    0,
+        contributionCount: 0,
     };
 
     room.players.set(ws, { playerId, playerName, gameState });

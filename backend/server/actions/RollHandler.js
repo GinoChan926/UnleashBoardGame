@@ -43,18 +43,31 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     state.energy = Math.max(0, state.energy - 1);
 
     // ── Dice roll ─────────────────────────────────────────────────────────────
-    let originalSteps = Math.floor(Math.random() * 6) + 1;
-    let steps         = originalSteps;
-    let multiplierMessage = '';
+    let diceCount = 1;
+    let diceType  = 'normal';
 
     if (state.diceMultiplierActive) {
-        steps = originalSteps * (state.diceMultiplier || 1);
-        multiplierMessage = state.diceMultiplier === 2
-            ? `🍀 四葉草生效！${originalSteps} x2 = ${steps} 步！`
-            : `⭐ 幸運星生效！${originalSteps} x3 = ${steps} 步！`;
+        diceCount = state.diceMultiplier || 1;   // 2 for clover, 3 for lucky star
+        diceType  = state.diceMultiplier === 2 ? 'clover' : 'lucky_star';
+    }
+
+// Roll individual dice values
+    const diceValues = [];
+    for (let i = 0; i < diceCount; i++) {
+        diceValues.push(Math.floor(Math.random() * 6) + 1);
+    }
+
+    const originalSteps = diceValues[0];  // for display purposes
+    const steps = diceValues.reduce((sum, v) => sum + v, 0);
+
+    let multiplierMessage = '';
+    if (state.diceMultiplierActive) {
+        multiplierMessage = diceType === 'clover'
+            ? `🍀 四葉草生效！擲了 ${diceCount} 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`
+            : `⭐ 幸運星生效！擲了 ${diceCount} 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`;
+
         state.diceMultiplierActive = false;
         state.diceMultiplier       = 1;
-        ws.send(JSON.stringify({ type: 'notification', message: multiplierMessage }));
     }
 
     const oldPos = state.streamlinePos;
@@ -174,9 +187,19 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
     // ── Send result ───────────────────────────────────────────────────────────
     const result = {
-        type: 'dice_result', playerId: player.playerId, playerName: player.playerName,
-        steps, originalSteps, multiplierUsed: multiplierMessage !== '',
-        gameState: state, tile, eventMessage, multiplierMessage
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps: steps,
+        originalSteps: originalSteps,
+        multiplierUsed: multiplierMessage !== '',
+        diceValues: diceValues,    // ← NEW: individual dice
+        diceCount: diceCount,       // ← NEW: number of dice
+        diceType: diceType,         // ← NEW: 'normal' / 'clover' / 'lucky_star'
+        gameState: state,
+        tile: tile,
+        eventMessage: eventMessage,
+        multiplierMessage: multiplierMessage
     };
 
     if (tile && !['opportunity','lier','hardship'].includes(tile.type)) {

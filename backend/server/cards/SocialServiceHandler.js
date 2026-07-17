@@ -50,6 +50,10 @@ function handleSocialServiceChoice(ws, data, roomId, rooms, broadcastToRoom, inv
     }
 
     player.gameState.cash -= cost;
+    // ✅ Track social contribution when player picks 服務社會卡
+    if (choice === 'social') {
+        player.gameState.contributionCount = (player.gameState.contributionCount || 0) + 1;
+    }
 
     addTransactionRecord(player.playerName,
         { name: `社會服務中心 (${pending.tileName})`, type: "social_service", id: "SS01" },

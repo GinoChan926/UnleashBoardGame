@@ -1,4 +1,4 @@
-// revelation_cards.js - 启示卡数据（市場消息卡 + 锦囊卡）
+// revelation_cards.js - 启示卡数据（市場消息卡 + 錦囊卡）
 
 // ==================== 市場消息卡 ====================
 const marketNewsCards = [
@@ -2405,256 +2405,139 @@ const marketNewsCards = [
    
 ];
 
-// ==================== 锦囊卡 ====================
+// ==================== 錦囊卡 ====================
 const tipCards = [
-      {
+
+    // ==================== IN01 - Team: Health Investment ====================
+    {
         id: "IN01",
         name: "健康投資",
         description: "你體驗到健康是無法用金錢衡量的，健康是1，其他都是0，開始投資自己的健康。\n自願選擇是否投資。\n健康投資支出：$1,000/月\n精力：+1/月",
         image: "../cards/revelation/tip/IN01.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "team",  // 团队锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const monthlyCost = 1000;  // 每月支出 $1,000
-            const energyBonus = 1;     // 每月精力 +1
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = [];
-                for (let [pWs, p] of room.players) {
-                    playersToAsk.push({
-                        ws: pWs,
-                        playerName: p.playerName,
-                        cash: p.gameState.cash
-                    });
-                }
-                
-                return {
-                    type: 'team_tip_choices',
-                    message: `💪 ${card.name}\n\n${card.description}\n\n投資金額：$${monthlyCost.toLocaleString()}/月\n\n投資後獲得：\n   • 每月精力 +${energyBonus}\n   • 健康是最大的財富！\n\n請每位玩家選擇是否投資：`,
-                    investmentCost: monthlyCost,
-                    energyBonus: energyBonus,
-                    luckBonus: 0,
-                    isRecurring: true,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            let investors = [];
-            
-            for (const [playerName, willInvest] of Object.entries(playerChoices)) {
+        category: "錦囊卡",
+        scope: "team",
+        effect: (state, room, initiator, ws, roomId, playerChoices) => {
+            const monthlyCost = 1000;
+            const energyBonus = 1;
+
+            const investors = [];
+            const insufficientCash = [];
+
+            for (const [playerName, willInvest] of Object.entries(playerChoices || {})) {
                 if (!willInvest) continue;
-                
+
                 let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
+                for (const [, p] of room.players) {
                     if (p.playerName === playerName) {
                         playerObj = p;
-                        playerWs = pWs;
                         break;
                     }
                 }
-                
-                if (playerObj && playerObj.gameState.cash >= monthlyCost) {
-                    playerObj.gameState.cash -= monthlyCost;
-                    
-                    if (!playerObj.gameState.healthInvestment) {
-                        playerObj.gameState.healthInvestment = {
-                            active: true,
-                            monthlyCost: monthlyCost,
-                            energyBonus: energyBonus,
-                            startTurn: playerObj.gameState.totalTurns || 0
-                        };
-                    }
-                    
-                    playerObj.gameState.energy = Math.min(playerObj.gameState.maxEnergy, playerObj.gameState.energy + energyBonus);
-                    investors.push(playerName);
-                    
-                    addTransactionRecord(
-                        playerName,
-                        { name: card.name, type: "tip", id: card.id },
-                        "健康投資",
-                        -monthlyCost,
-                        `開始健康投資！每月支出 $${monthlyCost.toLocaleString()} 元，每月精力 +${energyBonus}`,
-                        null,
-                        playerObj.gameState
-                    );
-                    
-                    if (playerWs) {
-                        playerWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `💪 你開始了健康投資！每月支出 $${monthlyCost.toLocaleString()} 元，每月精力 +${energyBonus}！健康是最大的財富！`
-                        }));
-                        playerWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: playerObj.playerId,
-                            gameState: playerObj.gameState
-                        }));
-                    }
-                } else if (playerObj && playerObj.gameState.cash < monthlyCost) {
-                    if (playerWs) {
-                        playerWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `⚠️ 你選擇投資健康，但現金不足 $${monthlyCost.toLocaleString()} 元，無法開始健康投資。`
-                        }));
-                    }
+                if (!playerObj) continue;
+
+                if (playerObj.gameState.cash < monthlyCost) {
+                    insufficientCash.push(playerName);
+                    continue;
                 }
+
+                playerObj.gameState.cash -= monthlyCost;
+
+                if (!playerObj.gameState.healthInvestment) {
+                    playerObj.gameState.healthInvestment = {
+                        active: true,
+                        monthlyCost,
+                        energyBonus,
+                        startTurn: playerObj.gameState.totalTurns || 0
+                    };
+                }
+
+                playerObj.gameState.energy = Math.min(
+                    playerObj.gameState.maxEnergy,
+                    playerObj.gameState.energy + energyBonus
+                );
+                investors.push(playerName);
             }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `💪 ${currentPlayer.playerName} 觸發團隊錦囊「${card.name}」！${investors.length > 0 ? `${investors.join(', ')} 開始健康投資！` : '沒有玩家參與投資。'}`
-            });
-            
-            if (investors.length === 0) {
-                return `💪 團隊錦囊「${card.name}」完成，但沒有玩家參與投資。`;
+
+            if (investors.length === 0 && insufficientCash.length === 0) {
+                return `💪 團隊錦囊「健康投資」完成，但沒有玩家參與投資`;
             }
-            
-            return `💪 團隊錦囊「${card.name}」完成！\n` +
-                   `👥 投資玩家：${investors.join(', ')}\n` +
-                   `💰 每月支出：$${monthlyCost.toLocaleString()} 元\n` +
-                   `⚡ 每月獲得：精力 +${energyBonus}\n` +
-                   `💚 健康是最大的財富！`;
+
+            let msg = `💪 團隊錦囊「健康投資」完成！\n`;
+            if (investors.length > 0) {
+                msg += `👥 投資玩家：${investors.join(', ')}\n💰 每月支出：$${monthlyCost.toLocaleString()}\n⚡ 每月獲得：精力 +${energyBonus}`;
+            }
+            if (insufficientCash.length > 0) {
+                msg += `\n⚠️ 現金不足未能參與：${insufficientCash.join(', ')}`;
+            }
+            return msg;
         },
         getEffectDescription: () => "團隊錦囊：每位玩家可自願投資 $1,000/月，獲得每月精力 +1"
     },
 
-     {
+    // ==================== IN02 - Team: Personal Brand ====================
+    {
         id: "IN02",
         name: "個人品牌建立",
         description: "你意識到形象管理非常重要，開始學習如何打造自己的形象，結交到人脈質量也越來越好，信譽越來越高。\n自願選擇是否學習\n學習投資：$10,000\n精力：-3\n向銀行借貸月息變為永久2%\n貸款額度提高至月現金流40倍",
         image: "../cards/revelation/tip/IN02.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "team",  // 改为团队锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
+        category: "錦囊卡",
+        scope: "team",
+        effect: (state, room, initiator, ws, roomId, playerChoices) => {
             const investmentCost = 10000;
             const energyCost = 3;
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = [];
-                for (let [pWs, p] of room.players) {
-                    playersToAsk.push({
-                        ws: pWs,
-                        playerName: p.playerName,
-                        cash: p.gameState.cash,
-                        energy: p.gameState.energy
-                    });
-                }
-                
-                return {
-                    type: 'team_tip_choices',
-                    message: `✨ ${card.name}\n\n${card.description}\n\n學習投資：$${investmentCost.toLocaleString()} 元\n精力消耗：-${energyCost}\n\n學習後獲得：\n   • 向銀行借貸月息變為永久 2%\n   • 貸款額度提高至月現金流 40 倍\n   • 人脈加成 +10%\n\n請每位玩家選擇是否學習：`,
-                    investmentCost: investmentCost,
-                    energyCost: energyCost,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            let learners = [];
-            
-            for (const [playerName, willLearn] of Object.entries(playerChoices)) {
+
+            const learners = [];
+            const insufficient = [];
+
+            for (const [playerName, willLearn] of Object.entries(playerChoices || {})) {
                 if (!willLearn) continue;
-                
+
                 let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
+                for (const [, p] of room.players) {
                     if (p.playerName === playerName) {
                         playerObj = p;
-                        playerWs = pWs;
                         break;
                     }
                 }
-                
-                if (playerObj && playerObj.gameState.cash >= investmentCost && playerObj.gameState.energy >= energyCost) {
-                    // 扣除費用和精力
-                    playerObj.gameState.cash -= investmentCost;
-                    playerObj.gameState.energy -= energyCost;
-                    
-                    // 永久降低貸款利率至2%
-                    playerObj.gameState.permanentLoanRate = 2;
-                    // 提高貸款额度至月现金流40倍
-                    playerObj.gameState.loanMultiplier = 40;
-                    // 人脈加成提升
-                    playerObj.gameState.sideIncomeBonus = (playerObj.gameState.sideIncomeBonus || 0) + 0.1;
-                    
-                    learners.push(playerName);
-                    
-                    addTransactionRecord(
-                        playerName,
-                        { name: card.name, type: "tip", id: card.id },
-                        "個人品牌建立",
-                        -investmentCost,
-                        `學習個人品牌建立！花費 $${investmentCost.toLocaleString()} 元，精力 -${energyCost}，貸款利率降至2%，貸款額度40倍，人脈+10%`,
-                        null,
-                        playerObj.gameState
-                    );
-                    
-                    if (playerWs) {
-                        playerWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `✨ 你學習了個人品牌建立！花費 $${investmentCost.toLocaleString()} 元，精力 -${energyCost}。貸款利率降至 2%，貸款額度提高至月現金流 40 倍，人脈加成 +10%！`
-                        }));
-                        playerWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: playerObj.playerId,
-                            gameState: playerObj.gameState
-                        }));
-                    }
-                } else if (playerObj) {
-                    if (playerObj.gameState.cash < investmentCost && playerObj.gameState.energy < energyCost) {
-                        if (playerWs) {
-                            playerWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `⚠️ 你選擇學習個人品牌建立，但現金不足 $${investmentCost.toLocaleString()} 元且精力不足 ${energyCost} 點，無法學習。`
-                            }));
-                        }
-                    } else if (playerObj.gameState.cash < investmentCost) {
-                        if (playerWs) {
-                            playerWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `⚠️ 你選擇學習個人品牌建立，但現金不足 $${investmentCost.toLocaleString()} 元，無法學習。`
-                            }));
-                        }
-                    } else if (playerObj.gameState.energy < energyCost) {
-                        if (playerWs) {
-                            playerWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `⚠️ 你選擇學習個人品牌建立，但精力不足 ${energyCost} 點，無法學習。`
-                            }));
-                        }
-                    }
+                if (!playerObj) continue;
+
+                if (playerObj.gameState.cash < investmentCost ||
+                    playerObj.gameState.energy < energyCost) {
+                    insufficient.push(playerName);
+                    continue;
                 }
+
+                playerObj.gameState.cash -= investmentCost;
+                playerObj.gameState.energy -= energyCost;
+                playerObj.gameState.permanentLoanRate = 2;
+                playerObj.gameState.loanMultiplier = 40;
+                playerObj.gameState.sideIncomeBonus =
+                    (playerObj.gameState.sideIncomeBonus || 0) + 0.1;
+
+                learners.push(playerName);
             }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `✨ ${currentPlayer.playerName} 觸發團隊錦囊「${card.name}」！${learners.length > 0 ? `${learners.join(', ')} 學習了個人品牌建立！` : '沒有玩家參與學習。'}`
-            });
-            
-            if (learners.length === 0) {
-                return `✨ 團隊錦囊「${card.name}」完成，但沒有玩家參與學習。`;
+
+            if (learners.length === 0 && insufficient.length === 0) {
+                return `✨ 團隊錦囊「個人品牌建立」完成，但沒有玩家參與學習`;
             }
-            
-            return `✨ 團隊錦囊「${card.name}」完成！\n` +
-                   `👥 學習玩家：${learners.join(', ')}\n` +
-                   `💰 學習投資：$${investmentCost.toLocaleString()} 元\n` +
-                   `⚡ 精力消耗：-${energyCost}\n` +
-                   `🏦 向銀行借貸月息變為永久 2%\n` +
-                   `💵 貸款額度提高至月現金流 40 倍\n` +
-                   `🤝 人脈加成 +10%`;
+
+            let msg = `✨ 團隊錦囊「個人品牌建立」完成！\n`;
+            if (learners.length > 0) {
+                msg += `👥 學習玩家：${learners.join(', ')}\n💰 投資：$${investmentCost.toLocaleString()}\n⚡ 精力 -${energyCost}\n🏦 貸款利率降至 2%\n💵 貸款額度升至月現金流 40 倍\n🤝 人脈加成 +10%`;
+            }
+            if (insufficient.length > 0) {
+                msg += `\n⚠️ 條件不足未能學習：${insufficient.join(', ')}`;
+            }
+            return msg;
         },
-        getEffectDescription: () => "團隊錦囊：每位玩家可自願投資 $10,000，精力 -3，貸款利率降至2%，貸款額度升至月現金流40倍，人脈加成+10%"
+        getEffectDescription: () => "團隊錦囊：投資 $10,000 精力 -3，貸款利率永久 2%，貸款額度升至月現金流 40 倍"
     },
 
+    // ==================== IN03 - Team: Slow Life (dice for each) ====================
     {
         id: "IN03",
         name: "慢活",
@@ -2662,93 +2545,58 @@ const tipCards = [
         image: "../cards/revelation/tip/IN03.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
+        category: "錦囊卡",
         scope: "team",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 收集所有玩家（包括執行者）
-            const allPlayers = [];
-            for (let [pWs, p] of room.players) {
-                allPlayers.push({
-                    ws: pWs,
-                    player: p
-                });
-            }
-            
-            // 如果需要收集玩家对5-6的選擇
-            if (!playerChoices) {
-                // 先讓每個玩家擲骰子
-                const diceResults = [];
-                for (const { ws: pWs, player: p } of allPlayers) {
-                    const diceRoll = Math.floor(Math.random() * 6) + 1;
-                    diceResults.push({
-                        ws: pWs,
-                        playerName: p.playerName,
-                        diceRoll: diceRoll,
-                        result: getDiceResultMessage(diceRoll)
-                    });
-                }
-                
-                // 檢查是否有玩家擲出5-6需要選擇
-                const playersNeedChoice = diceResults.filter(r => r.diceRoll === 5 || r.diceRoll === 6);
-                
-                if (playersNeedChoice.length > 0) {
-                    return {
-                        type: 'slow_life_choices',
-                        message: `🧘 ${card.name}\n\n${card.description}\n\n請選擇獎勵：`,
-                        diceResults: diceResults,
-                        playersNeedChoice: playersNeedChoice,
-                        cardId: card.id,
-                        cardName: card.name
-                    };
-                }
-                
-                // 沒有需要選擇的，直接執行所有結果
-                return executeSlowLifeResults(room, allPlayers, diceResults, currentPlayer, ws, roomId, card);
-            }
-            
-            // 處理玩家選擇（5-6的獎勵選擇）
-            // playerChoices 格式: { playerName: 'energy' 或 'cash' }
-            
-            // 重新擲骰子（或從儲存的结果获取）
-            const diceResults = [];
-            for (const { ws: pWs, player: p } of allPlayers) {
-                const diceRoll = Math.floor(Math.random() * 6) + 1;
-                diceResults.push({
-                    ws: pWs,
-                    playerName: p.playerName,
-                    diceRoll: diceRoll,
-                    result: getDiceResultMessage(diceRoll)
-                });
-            }
-            
-            // 應用玩家選擇
-            for (const { playerName, diceRoll } of diceResults) {
-                if (diceRoll === 5 || diceRoll === 6) {
-                    const choice = playerChoices[playerName];
-                    if (choice === 'energy') {
-                        // 找到對應玩家，給予精力
-                        for (const { ws: pWs, player: p } of allPlayers) {
-                            if (p.playerName === playerName) {
-                                p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
-                                break;
-                            }
-                        }
-                    } else if (choice === 'cash') {
-                        for (const { ws: pWs, player: p } of allPlayers) {
-                            if (p.playerName === playerName) {
-                                p.gameState.cash += 2000;
-                                break;
-                            }
-                        }
+        effect: (state, room, initiator, ws, roomId, playerChoices) => {
+            // Each participating player rolls, and gets result based on dice
+            const results = [];
+
+            for (const [playerName, participate] of Object.entries(playerChoices || {})) {
+                if (!participate) continue;
+
+                let playerObj = null;
+                for (const [, p] of room.players) {
+                    if (p.playerName === playerName) {
+                        playerObj = p;
+                        break;
                     }
                 }
+                if (!playerObj) continue;
+
+                const diceRoll = Math.floor(Math.random() * 6) + 1;
+                let outcome = '';
+
+                if (diceRoll === 1) {
+                    outcome = '抽 1 張逆境卡 (系統開發中)';
+                } else if (diceRoll === 2) {
+                    const loss = Math.min(2000, playerObj.gameState.cash);
+                    playerObj.gameState.cash -= loss;
+                    outcome = `損失 $${loss.toLocaleString()}`;
+                } else if (diceRoll === 3 || diceRoll === 4) {
+                    outcome = '抽 1 張機會卡 (系統開發中)';
+                } else {
+                    // 5-6: give both bonuses (simplified - can't do secondary choice easily)
+                    playerObj.gameState.energy = Math.min(
+                        playerObj.gameState.maxEnergy,
+                        playerObj.gameState.energy + 2
+                    );
+                    playerObj.gameState.cash += 2000;
+                    outcome = '獲得 2 精力 + $2,000';
+                }
+
+                results.push(`${playerName} 擲 ${diceRoll} → ${outcome}`);
             }
-            
-            return executeSlowLifeResults(room, allPlayers, diceResults, currentPlayer, ws, roomId, card, playerChoices);
+
+            if (results.length === 0) {
+                return `🧘 團隊錦囊「慢活」完成，但沒有玩家參與`;
+            }
+
+            return `🧘 團隊錦囊「慢活」結果：\n${results.join('\n')}`;
         },
-        getEffectDescription: () => "團隊錦囊：每人擲骰子，1→逆境卡，2→損失$2,000，3-4→機會卡，5-6→獲得2精力或$2,000"
+        getEffectDescription: () => "團隊錦囊：每人擲骰子獲得隨機獎勵或懲罰"
     },
 
+    // ==================== IN04 - Personal: Health Supplement ====================
     {
         id: "IN04",
         name: "身體健康最重要",
@@ -2756,153 +2604,63 @@ const tipCards = [
         image: "../cards/revelation/tip/IN04.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const monthlyCost = 2000;  // 每月支出 $2,000
-            const energyBonus = 1;     // 每月精力 +1
-            
-            // 檢查是否已经投資
-            if (state.healthSupplementInvestment && state.healthSupplementInvestment.active) {
-                return `⚠️ 你已經在進行保健品投資了，無需重複投資。`;
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
+            const monthlyCost = 2000;
+            const energyBonus = 1;
+
+            if (state.healthSupplementInvestment?.active) {
+                return `⚠️ 你已經在進行保健品投資了`;
             }
-            
-            // 檢查现金是否足够支付首月费用
+
             if (state.cash < monthlyCost) {
-                return `❌ 現金不足 $${monthlyCost.toLocaleString()} 元，無法開始保健品投資。`;
+                return `❌ 現金不足 $${monthlyCost.toLocaleString()}，無法開始保健品投資`;
             }
-            
-            // 扣除首月费用
+
             state.cash -= monthlyCost;
-            
-            // 立即获得本月精力奖励
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            
-            // 记录健康保健品投資状态（每月自动生效）
             state.healthSupplementInvestment = {
                 active: true,
-                monthlyCost: monthlyCost,
-                energyBonus: energyBonus,
+                monthlyCost,
+                energyBonus,
                 startTurn: state.totalTurns || 0
             };
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "保健品投資",
-                -monthlyCost,
-                `開始保健品投資！每月支出 $${monthlyCost.toLocaleString()} 元，每月精力 +${energyBonus}`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `💊 你開始了保健品投資！每月支出 $${monthlyCost.toLocaleString()} 元，每月精力 +${energyBonus}！身體健康最重要！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `💊 ${currentPlayer.playerName} 開始了保健品投資！每月支出 $${monthlyCost.toLocaleString()} 元，每月精力 +${energyBonus}！`
-            }, ws);
-            
-            return `✨ 開始保健品投資成功！\n` +
-                `💰 每月支出：$${monthlyCost.toLocaleString()} 元\n` +
-                `⚡ 每月獲得：精力 +${energyBonus}\n` +
-                `💚 身體健康是最大的財富！\n` +
-                `📝 首次支付已扣除，每月結算日自動扣款。`;
+
+            return `💊 開始保健品投資成功！\n💰 每月支出：$${monthlyCost.toLocaleString()}\n⚡ 每月獲得：精力 +${energyBonus}\n💚 身體健康是最大的財富！`;
         },
         getEffectDescription: () => "個人錦囊：每月支出 $2,000，獲得每月精力 +1"
     },
 
+    // ==================== IN05 - Personal: Release Emotions ====================
     {
         id: "IN05",
         name: "釋放情緒",
-        description: "學會釋放情緒，放下不必要的煩惱，心情輕鬆愉快。\n自願選擇是否學習。\n投資：$5,000\n獲得2個幸運星",
+        description: "學會釋放情緒，放下不必要的煩惱，心情輕鬆愉快。\n投資：$5,000\n獲得2個幸運星",
         image: "../cards/revelation/tip/IN05.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
             const investmentCost = 5000;
-            const luckyStarReward = 2;  // 獲得2個幸運星
-            
-            // 个人锦囊，直接询问是否学习
-            const userChoice = confirm(
-                `🧘 ${card.name}\n\n${card.description}\n\n學習投資：$${investmentCost.toLocaleString()} 元\n\n學習後獲得：\n   • 幸運星 x${luckyStarReward}\n   • 心情輕鬆愉快，好運降臨！\n\n你是否願意學習？`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不學習「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 檢查现金是否足够
+            const luckyStarReward = 2;
+
             if (state.cash < investmentCost) {
-                return `❌ 現金不足 $${investmentCost.toLocaleString()} 元，無法學習釋放情緒。`;
+                return `❌ 現金不足 $${investmentCost.toLocaleString()}，無法學習釋放情緒`;
             }
-            
-            // 扣除費用
+
             state.cash -= investmentCost;
-            
-            // 獲得幸運星
             state.luckyStarCount = (state.luckyStarCount || 0) + luckyStarReward;
-            
-            // 精力提升（心情輕鬆）
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            
-            // 幸运值提升
             state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "學習釋放情緒",
-                -investmentCost,
-                `學習釋放情緒！花費 $${investmentCost.toLocaleString()} 元，獲得 ${luckyStarReward} 個幸運星，精力 +2，幸運值 +1`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🧘 你學習了釋放情緒！花費 $${investmentCost.toLocaleString()} 元，獲得 ${luckyStarReward} 個幸運星，精力 +2，幸運值 +1！心情輕鬆愉快！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🧘 ${currentPlayer.playerName} 學習了釋放情緒，獲得 ${luckyStarReward} 個幸運星！`
-            }, ws);
-            
-            return `🧘 學習釋放情緒成功！\n` +
-                `💰 花費：$${investmentCost.toLocaleString()} 元\n` +
-                `⭐ 獲得：${luckyStarReward} 個幸運星\n` +
-                `⚡ 精力 +2\n` +
-                `🍀 幸運值 +1\n` +
-                `😊 心情輕鬆愉快，好運降臨！\n` +
-                `📝 目前幸運星數量：${state.luckyStarCount}`;
+
+            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n⚡ 精力 +2\n🍀 幸運值 +1\n📝 目前幸運星：${state.luckyStarCount}`;
         },
         getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星，精力 +2，幸運值 +1"
     },
 
+    // ==================== IN06 - Personal: Social Network ====================
     {
         id: "IN06",
         name: "社交人脈",
@@ -2910,71 +2668,23 @@ const tipCards = [
         image: "../cards/revelation/tip/IN06.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
             const energyBonus = 3;
-            
-            // 个人锦囊，直接询问是否学习
-            const userChoice = confirm(
-                `🤝 ${card.name}\n\n${card.description}\n\n學習後獲得：\n   • 精力 +${energyBonus}\n   • 拓展社交圈，人脈廣闊！\n\n你是否願意學習？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不學習「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 獲得精力獎勵
+
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            
-            // 人脈加成提升（可選）
-            if (!state.sideIncomeBonus) {
-                state.sideIncomeBonus = 0;
-            }
-            // 輕微人脈加成
-            state.sideIncomeBonus = Math.min(0.5, state.sideIncomeBonus + 0.05);
-            
-            // 幸运值微升（人脈帶來好運）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "學習社交人脈",
-                0,
-                `學習社交人脈！精力 +${energyBonus}，人脈加成 +5%，幸運值 +1`,
-                null,
-                state
+            state.sideIncomeBonus = Math.min(
+                0.5,
+                (state.sideIncomeBonus || 0) + 0.05
             );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🤝 你學習了社交人脈！精力 +${energyBonus}，人脈加成 +5%，幸運值 +1！社交圈擴展，機會更多！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🤝 ${currentPlayer.playerName} 學習了社交人脈，精力 +${energyBonus}！`
-            }, ws);
-            
-            return `🤝 學習社交人脈成功！\n` +
-                `⚡ 精力 +${energyBonus}\n` +
-                `🤝 人脈加成 +5%\n` +
-                `🍀 幸運值 +1\n` +
-                `📈 社交圈擴展，未來機會更多！`;
+            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
+
+            return `🤝 學習社交人脈成功！\n⚡ 精力 +${energyBonus}\n🤝 人脈加成 +5%\n🍀 幸運值 +1\n📈 社交圈擴展，未來機會更多！`;
         },
         getEffectDescription: () => "個人錦囊：精力 +3，人脈加成 +5%，幸運值 +1"
     },
-
+    // ==================== IN07 - Personal: Face Fear ====================
     {
         id: "IN07",
         name: "面對恐懼",
@@ -2982,70 +2692,23 @@ const tipCards = [
         image: "../cards/revelation/tip/IN07.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
+        category: "錦囊卡",
         scope: "personal",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
+        effect: (state) => {
             const energyBonus = 2;
-            
-            // 个人锦囊，直接询问是否執行
-            const userChoice = confirm(
-                `🦁 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 精力 +${energyBonus}\n   • 抽取一張逆境卡（勇敢面對）\n\n你是否願意執行？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不執行「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 獲得精力獎勵
+
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            
-            // 幸运值微升（勇敢面對恐懼）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易 - 修复这里！
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "面對恐懼",
-                0,
-                `勇敢面對恐懼！精力 +${energyBonus}，幸運值 +1 (逆境卡系統開發中)`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🦁 你勇敢面對恐懼！精力 +${energyBonus}，幸運值 +1！ (逆境卡系統開發中)`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🦁 ${currentPlayer.playerName} 勇敢面對恐懼，精力 +${energyBonus}！`
-            }, ws);
-            
-            // TODO: 逆境卡系統開發完成後，在這裡添加抽逆境卡的邏輯
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `📜 注意：逆境卡系統正在開發中，暫時無法抽取逆境卡。`
-            }));
-            
-            return `🦁 勇敢面對恐懼成功！\n` +
-                `⚡ 精力 +${energyBonus}\n` +
-                `🍀 幸運值 +1\n` +
-                `📜 逆境卡系統開發中，暫時無法抽取逆境卡。\n` +
-                `💪 勇氣可嘉！繼續保持！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+
+            // Mark for hardship card draw (handled by RevelationCardSystem or handler)
+            state._pendingHardshipDraw = true;
+
+            return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n🍀 幸運值 +1\n📜 將抽取一張逆境卡（開發中）\n💪 勇氣可嘉，繼續保持！`;
         },
         getEffectDescription: () => "個人錦囊：精力 +2，幸運值 +1，抽取一張逆境卡（開發中）"
     },
 
+    // ==================== IN08 - Personal: Gratitude ====================
     {
         id: "IN08",
         name: "凡事感恩",
@@ -3053,68 +2716,21 @@ const tipCards = [
         image: "../cards/revelation/tip/IN08.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const fourLeafCloverReward = 2;  // 獲得2個四葉草
-            
-            // 个人锦囊，直接询问是否執行
-            const userChoice = confirm(
-                `🙏 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 四葉草 x${fourLeafCloverReward}\n   • 感恩的心帶來奇蹟！\n\n你是否願意執行？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不執行「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 獲得四葉草
-            state.fourLeafClover = (state.fourLeafClover || 0) + fourLeafCloverReward;
-            
-            // 精力提升（心情愉快）
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
+            const cloverReward = 2;
+
+            state.fourLeafClover = (state.fourLeafClover || 0) + cloverReward;
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            
-            // 幸运值提升（感恩帶來好運）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "凡事感恩",
-                0,
-                `凡事感恩！獲得 ${fourLeafCloverReward} 個四葉草，精力 +2，幸運值 +1`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🙏 你學會了凡事感恩！獲得 ${fourLeafCloverReward} 個四葉草，精力 +2，幸運值 +1！奇蹟即將誕生！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🙏 ${currentPlayer.playerName} 學會了凡事感恩，獲得 ${fourLeafCloverReward} 個四葉草！`
-            }, ws);
-            
-            return `🙏 凡事感恩成功！\n` +
-                `🍀 獲得：${fourLeafCloverReward} 個四葉草\n` +
-                `⚡ 精力 +2\n` +
-                `🍀 幸運值 +1\n` +
-                `✨ 感恩的心帶來奇蹟！\n` +
-                `📝 目前四葉草數量：${state.fourLeafClover}`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+
+            return `🙏 凡事感恩成功！\n🍀 獲得：${cloverReward} 個四葉草\n⚡ 精力 +2\n🍀 幸運值 +1\n✨ 感恩的心帶來奇蹟！\n📝 目前四葉草：${state.fourLeafClover}`;
         },
         getEffectDescription: () => "個人錦囊：獲得 2 個四葉草，精力 +2，幸運值 +1"
     },
 
+    // ==================== IN09 - Personal: Stay Vigilant ====================
     {
         id: "IN09",
         name: "保持警惕",
@@ -3122,66 +2738,19 @@ const tipCards = [
         image: "../cards/revelation/tip/IN09.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 个人锦囊，直接询问是否執行
-            const userChoice = confirm(
-                `🛡️ ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 取消下一張騙子卡\n   • 保持警惕，遠離詐騙！\n\n你是否願意執行？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不執行「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 增加騙子卡取消次數
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
             state.lierCardCancellation = (state.lierCardCancellation || 0) + 1;
-            
-            // 精力提升（警覺性提高）
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            
-            // 幸运值提升（避開詐騙）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "保持警惕",
-                0,
-                `獲得騙子卡取消機會！可取消下一張騙子卡，精力 +2，幸運值 +1`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🛡️ 你學會了保持警惕！獲得一次取消騙子卡的機會，精力 +2，幸運值 +1！遠離詐騙，保護財產！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🛡️ ${currentPlayer.playerName} 學會了保持警惕，獲得一次取消騙子卡的機會！`
-            }, ws);
-            
-            return `🛡️ 保持警惕成功！\n` +
-                `🛡️ 獲得：1 次取消騙子卡的機會\n` +
-                `⚡ 精力 +2\n` +
-                `🍀 幸運值 +1\n` +
-                `📝 提醒：下一張騙子卡將被自動取消！\n` +
-                `🔒 遠離詐騙，保護財產！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+
+            return `🛡️ 保持警惕成功！\n🛡️ 獲得：1 次取消騙子卡的機會\n⚡ 精力 +2\n🍀 幸運值 +1\n📝 下一張騙子卡將被自動取消！\n🔒 遠離詐騙，保護財產！`;
         },
         getEffectDescription: () => "個人錦囊：取消下一張騙子卡，精力 +2，幸運值 +1"
     },
 
+    // ==================== IN10 - Personal: Report Scam ====================
     {
         id: "IN10",
         name: "舉報騙案",
@@ -3189,70 +2758,22 @@ const tipCards = [
         image: "../cards/revelation/tip/IN10.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 个人锦囊，直接询问是否執行
-            const userChoice = confirm(
-                `👮 ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 獲得 1 次義工資格（可幫助其他玩家防範騙子卡）\n   • 打擊詐騙，維護正義！\n\n你是否願意執行？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不執行「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 增加義工次數（用於幫助其他玩家抵擋騙子卡）
-            state.volunteerCount = (state.volunteerCount || 0) + 1;
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
+            state.volunteerCount  = (state.volunteerCount  || 0) + 1;
             state.volunteerShield = (state.volunteerShield || 0) + 1;
-            
-            // 精力消耗（舉報需要精力）
-            state.energy = Math.max(0, state.energy - 1);
-            
-            // 幸运值提升（善有善報）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
-            
-            // 额外精力（正義感帶來的滿足）
-            state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "舉報騙案",
-                0,
-                `獲得義工資格！可幫助其他玩家防範騙子卡，精力 +1，幸運值 +2，額外精力 +2`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `👮 你成功舉報騙案！獲得 1 次義工資格，精力 +1，幸運值 +2！下次其他玩家遇到騙子卡時，你可以幫助他們！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `👮 ${currentPlayer.playerName} 成功舉報騙案，獲得 1 次義工資格！`
-            }, ws);
-            
-            return `👮 舉報騙案成功！\n` +
-                `👮 獲得：1 次義工資格\n` +
-                `⚡ 精力 -1 +2 (淨 +1)\n` +
-                `🍀 幸運值 +2\n` +
-                `📝 目前義工次數：${state.volunteerShield}\n` +
-                `🤝 下次其他玩家遇到騙子卡時，你可以幫助他們防範！`;
+
+            // -1 for reporting effort, +2 satisfaction = net +1
+            state.energy = Math.min(state.maxEnergy, state.energy + 1);
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+
+            return `👮 舉報騙案成功！\n👮 獲得：1 次義工資格\n⚡ 精力 +1（淨效果）\n🍀 幸運值 +2\n📝 目前義工次數：${state.volunteerShield}\n🤝 可幫助其他玩家防範騙子卡！`;
         },
-        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格（可幫助其他玩家防範騙子卡），精力 +1，幸運值 +2"
+        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格，精力 +1，幸運值 +2"
     },
 
+    // ==================== IN11 - Personal: Grace in Adversity ====================
     {
         id: "IN11",
         name: "逆境恩典",
@@ -3260,70 +2781,23 @@ const tipCards = [
         image: "../cards/revelation/tip/IN11.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
+        category: "錦囊卡",
+        scope: "personal",
+        effect: (state) => {
             const energyBonus = 3;
-            
-            // 个人锦囊，直接询问是否執行
-            const userChoice = confirm(
-                `✨ ${card.name}\n\n${card.description}\n\n執行後獲得：\n   • 精力 +${energyBonus}\n   • 抽取一張逆境卡（滿有恩典）\n\n你是否願意執行？（已支付 500 元）`
-            );
-            
-            if (!userChoice) {
-                return `❌ 你決定不執行「${card.name}」，已支付的 500 元無法退還。`;
-            }
-            
-            // 獲得精力獎勵
+
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            
-            // 幸运值提升（逆境中的恩典）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "逆境恩典",
-                0,
-                `逆境中的恩典！精力 +${energyBonus}，幸運值 +1 (逆境卡系統開發中)`,
-                null,
-                state
-            );
-            
-            // 通知玩家
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `✨ 你獲得了逆境中的恩典！精力 +${energyBonus}，幸運值 +1！(逆境卡系統開發中)`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `✨ ${currentPlayer.playerName} 獲得了逆境恩典，精力 +${energyBonus}！`
-            }, ws);
-            
-            // TODO: 逆境卡系統開發完成後，在這裡添加抽逆境卡的邏輯
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `📜 注意：逆境卡系統正在開發中，暫時無法抽取逆境卡。`
-            }));
-            
-            return `✨ 逆境恩典成功！\n` +
-                `⚡ 精力 +${energyBonus}\n` +
-                `🍀 幸運值 +1\n` +
-                `📜 逆境卡系統開發中，暫時無法抽取逆境卡。\n` +
-                `💪 即使身處逆境，仍有滿滿恩典！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+
+            // Mark for hardship draw
+            state._pendingHardshipDraw = true;
+
+            return `✨ 逆境恩典成功！\n⚡ 精力 +${energyBonus}\n🍀 幸運值 +1\n📜 將抽取一張逆境卡（開發中）\n💪 即使身處逆境，仍有滿滿恩典！`;
         },
         getEffectDescription: () => "個人錦囊：精力 +3，幸運值 +1，抽取一張逆境卡（開發中）"
     },
 
+    // ==================== IN12 - Personal: Time Management ====================
     {
         id: "IN12",
         name: "時間管理",
@@ -3331,16 +2805,19 @@ const tipCards = [
         image: "../cards/revelation/tip/IN12.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
+        category: "錦囊卡",
         scope: "personal",
         effect: (state) => {
-            // 此效果将在 handleExecuteRevelationCard 中特殊处理
-            // 这里只返回基本信息
-            return "獲得一個額外回合！";
+            state.extraTurn = true;
+            state.energy = Math.min(state.maxEnergy, state.energy + 1);
+
+            return `⏰ 時間管理生效！\n✨ 獲得一個額外回合！\n⚡ 精力 +1\n📌 結束目前回合後，你將立即進行下一回合！`;
         },
-        getEffectDescription: () => "個人錦囊：多進行一回合"
+        getEffectDescription: () => "個人錦囊：獲得一個額外回合，精力 +1"
     },
 
+    // ==================== IN13 - Personal: Gift Chance Card ====================
+    // Uses feature flag pattern - actual logic in GiftCardSystem.js
     {
         id: "IN13",
         name: "贈人玫瑰",
@@ -3348,855 +2825,96 @@ const tipCards = [
         image: "../cards/revelation/tip/IN13.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const energyBonus = 2;
-            
-            // 收集其他玩家列表
-            const otherPlayers = [];
-            for (let [pWs, p] of room.players) {
-                if (pWs !== ws) {
-                    otherPlayers.push({
-                        ws: pWs,
-                        playerName: p.playerName,
-                        player: p
-                    });
-                }
-            }
-            
-            if (otherPlayers.length === 0) {
-                return `❌ 沒有其他玩家在線，無法贈送機會卡。`;
-            }
-            
-            // 檢查现金是否足够购买机会卡（500元）
-            if (state.cash < 500) {
-                return `❌ 現金不足 500 元，無法購買機會卡送給其他玩家。`;
-            }
-            
-            // 选择要赠送的玩家
-            let playerOptions = otherPlayers.map((p, index) => `${index + 1}. ${p.playerName}`).join('\n');
-            let selectedIndex = -1;
-            
-            // 弹出选择对话框
-            const choice = prompt(
-                `🌹 ${card.name}\n\n${card.description}\n\n請選擇要贈送機會卡的玩家：\n\n${playerOptions}\n\n請輸入玩家編號 (1-${otherPlayers.length}):`
-            );
-            
-            selectedIndex = parseInt(choice) - 1;
-            
-            if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= otherPlayers.length) {
-                return `❌ 無效的選擇，已取消贈送。`;
-            }
-            
-            const targetPlayer = otherPlayers[selectedIndex];
-            
-            // 扣除购买机会卡的费用
-            state.cash -= 500;
-            
-            // 获得精力奖励
-            state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            
-            // 幸运值提升（善有善報）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易（執行者）
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "贈送機會卡",
-                -500,
-                `贈送一張機會卡給 ${targetPlayer.playerName}，精力 +${energyBonus}，幸運值 +1`,
-                null,
-                state
-            );
-            
-            // 通知執行者
-            if (ws) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🌹 你贈送了一張機會卡給 ${targetPlayer.playerName}！精力 +${energyBonus}，幸運值 +1！`
-                }));
-                ws.send(JSON.stringify({
-                    type: 'state_updated',
-                    playerId: currentPlayer.playerId,
-                    gameState: state
-                }));
-            }
-            
-            // ==================== 触發被赠送玩家的机会卡选择 ====================
-            // 为被赠送的玩家触发机会卡选择
-            const targetWs = targetPlayer.ws;
-            const targetPlayerObj = targetPlayer.player;
-            
-            // 显示机会卡类型选择给被赠送的玩家
-            const cardTypes = Object.values(CARD_TYPES).map(t => ({
-                id: t.id,
-                name: t.name,
-                icon: t.icon,
-                color: t.color,
-                count: t.cards.length
-            }));
-            
-            targetWs.send(JSON.stringify({
-                type: 'card_type_selection',
-                cardTypes: cardTypes,
-                canAfford: true,  // 已经付费，所以可以免费选择
-                isGifted: true,   // 标记这是被赠送的
-                giftedBy: currentPlayer.playerName
-            }));
-            
-            // 记录被赠送玩家的交易
-            addTransactionRecord(
-                targetPlayerObj.playerName,
-                { name: "收到贈送機會卡", type: "tip", id: card.id },
-                "收到贈送",
-                0,
-                `收到 ${currentPlayer.playerName} 贈送的一張機會卡`,
-                null,
-                targetPlayerObj.gameState
-            );
-            
-            // 通知被赠送玩家
-            targetWs.send(JSON.stringify({
-                type: 'notification',
-                message: `🌹 ${currentPlayer.playerName} 贈送了一張機會卡給你！請選擇機會卡類型。`
-            }));
-            
-            // 广播给其他玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🌹 ${currentPlayer.playerName} 贈送了一張機會卡給 ${targetPlayer.playerName}！`
-            }, ws);
-            
-            // 存储待处理的机会卡事件（标记为已付费）
-            if (!room.pendingEvents) {
-                room.pendingEvents = new Map();
-            }
-            
-            // 为被赠送的玩家创建待处理事件，标记为已购买
-            room.pendingEvents.set(targetWs, {
-                type: 'opportunity_card',
-                card: null,
-                cardType: null,
-                playerId: targetPlayerObj.playerId,
-                purchased: true,  // 已经付费
-                isGifted: true,
-                giftedBy: currentPlayer.playerName,
-                timestamp: Date.now()
-            });
-            
-            return `🌹 贈人玫瑰，手有餘香！\n` +
-                `🎁 你贈送了一張機會卡給 ${targetPlayer.playerName}\n` +
-                `⚡ 精力 +${energyBonus}\n` +
-                `🍀 幸運值 +1\n` +
-                `💰 花費：500 元\n` +
-                `💝 善有善報，好運降臨！`;
+        category: "錦囊卡",
+        scope: "personal",
+        hasGiftChanceCardFeature: true,   // ← triggers gift flow
+        effect: (state) => {
+            // Placeholder - actual gift flow handled by RevelationCardSystem
+            state.energy = Math.min(state.maxEnergy, state.energy + 2);
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            return `🌹 贈人玫瑰！精力 +2，幸運值 +1，請選擇要贈送的玩家`;
         },
-        getEffectDescription: () => "個人錦囊：購買一張機會卡送給其他玩家，精力 +2，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：贈送機會卡給其他玩家，精力 +2，幸運值 +1"
     },
 
+    // ==================== IN14 - Personal: Move 1-3 Random ====================
     {
         id: "IN14",
-        name: "黑馬思維",
+        name: "黑馬思維 - 微動力",
         description: "找到你的微動力：能夠找到激發前進的微小動力。\n前進1-3格執行格子行動。",
         image: "../cards/revelation/tip/IN14.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 随机前进1-3格
-            const steps = Math.floor(Math.random() * 3) + 1; // 1, 2, 或 3
-            
-            let oldPos = state.streamlinePos;
-            let newPos = (oldPos + steps) % room.streamlineTiles.length;
-            let tile = null;
-            let eventMessage = null;
-            let passedSettlement = false;
-            let settlementMessage = '';
-            
-            // 遍歷每一步，檢查是否经过结算日
-            for (let i = 1; i <= steps; i++) {
-                let tempPos = (oldPos + i) % room.streamlineTiles.length;
-                let tileAtPos = room.streamlineTiles[tempPos];
-                if (tileAtPos.type === 'settlement') {
-                    passedSettlement = true;
-                    // 经过结算日获得收入
-                    const totalIncome = state.salary + state.sideIncome;
-                    state.cash += totalIncome;
-                    state.totalAssets += Math.floor(totalIncome * 0.2);
-                    
-                    // 计算支出（应用减免）
-                    const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
-                    let expenseReductionMessage = '';
-                    if (reductionPercent > 0) {
-                        expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
-                    }
-                    
-                    // 面包店精力奖励
-                    if (state.bakeryCount && state.bakeryCount > 0) {
-                        const bakeryEnergyBonus = state.bakeryCount;
-                        state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
-                    }
-                    
-                    settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
-                    
-                    // 处理貸款还款
-                    const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
-                    if (repaymentResult) {
-                        ws.send(JSON.stringify(repaymentResult));
-                        broadcastToRoom(roomId, repaymentResult, ws);
-                    }
-                }
-            }
-            
-            // 更新位置
-            state.streamlinePos = newPos;
-            tile = room.streamlineTiles[state.streamlinePos];
-            
-            // 執行格子行动（如果不是结算日）
-            if (tile.type !== 'settlement') {
-                const isExactLanding = false;
-                
-                // 根据格子类型執行行动
-                if (tile.type === 'lier') {
-                    drawAndExecuteLierCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，執行騙子卡效果！`;
-                } else if (tile.type === 'opportunity') {
-                    showCardTypeSelection(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得機會卡選擇！`;
-                } else if (tile.type === 'police') {
-                    drawPoliceCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得警察卡！`;
-                } else if (tile.type === 'volunteer') {
-                    drawVolunteerCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得義工卡！`;
-                } else if (tile.type === 'awareness') {
-                    showRevelationCardTypeSelection(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得察覺卡！`;
-                } else {
-                    // 其他格子类型（income, lucky_star, four_leaf_clover, grace, event, market等）
-                    eventMessage = processStreamlineTile(state, tile, ws, roomId, currentPlayer, false);
-                }
-            }
-            
-            // 精力消耗（前進需要精力）
+        category: "錦囊卡",
+        scope: "personal",
+        hasMoveForwardFeature: true,   // ← triggers movement flow
+        moveMode: 'random',             // ← random 1-3 steps
+        effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "黑馬思維",
-                0,
-                `前進 ${steps} 格！從位置 ${oldPos + 1} → ${newPos + 1}，踩中「${tile.name}」${eventMessage ? '，' + eventMessage : ''}`,
-                null,
-                state
-            );
-            
-            // 发送骰子结果（模拟移动）
-            const diceResult = {
-                type: 'dice_result',
-                playerId: currentPlayer.playerId,
-                playerName: currentPlayer.playerName,
-                steps: steps,
-                originalSteps: steps,
-                multiplierUsed: false,
-                gameState: state,
-                tile: tile,
-                eventMessage: eventMessage,
-                multiplierMessage: `🐴 黑馬思維！前進 ${steps} 格！`
-            };
-            
-            ws.send(JSON.stringify(diceResult));
-            broadcastToRoom(roomId, diceResult, ws);
-            
-            // 如果有经过结算日的消息，额外发送
-            if (settlementMessage) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: settlementMessage
-                }));
-            }
-            
-            // 通知玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🐴 黑馬思維生效！你前進了 ${steps} 格，${eventMessage ? '觸發了格子效果。' : ''}`
-            }));
-            
-            // 广播状态更新
-            broadcastToRoom(roomId, {
-                type: 'state_updated',
-                playerId: currentPlayer.playerId,
-                gameState: state
-            });
-            
-            return `🐴 黑馬思維成功！\n` +
-                `🚀 前進 ${steps} 格\n` +
-                `📍 從位置 ${oldPos + 1} → ${newPos + 1}\n` +
-                `🎲 踩中「${tile.name}」\n` +
-                `${eventMessage ? `📋 效果：${eventMessage.substring(0, 100)}...\n` : ''}` +
-                `${settlementMessage ? `💰 ${settlementMessage}\n` : ''}` +
-                `⚡ 精力 -1\n` +
-                `💪 找到微動力，持續前進！`;
+            return `🐴 黑馬思維！將隨機前進 1-3 格`;
         },
-        getEffectDescription: () => "個人錦囊：前進1-3格並執行格子行動，精力 -1"
+        getEffectDescription: () => "個人錦囊：隨機前進 1-3 格並執行格子效果，精力 -1"
     },
 
+    // ==================== IN15 - Personal: Move 1-3 Choose ====================
     {
         id: "IN15",
-        name: "黑馬思維",
+        name: "黑馬思維 - 清晰選擇",
         description: "清楚你的選擇：他們能夠清楚地選擇適合自己的環境。\n行動自選1-3格",
         image: "../cards/revelation/tip/IN15.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 让玩家选择前进1-3格
-            let steps = 0;
-            let validChoice = false;
-            
-            while (!validChoice) {
-                const choice = prompt(
-                    `🐴 ${card.name}\n\n${card.description}\n\n請選擇前進的格數：\n\n1️⃣ 前進 1 格\n2️⃣ 前進 2 格\n3️⃣ 前進 3 格\n\n請輸入 1、2 或 3：`
-                );
-                
-                steps = parseInt(choice);
-                if (steps >= 1 && steps <= 3) {
-                    validChoice = true;
-                } else {
-                    alert(`❌ 無效的選擇，請輸入 1、2 或 3。`);
-                }
-            }
-            
-            let oldPos = state.streamlinePos;
-            let newPos = (oldPos + steps) % room.streamlineTiles.length;
-            let tile = null;
-            let eventMessage = null;
-            let passedSettlement = false;
-            let settlementMessage = '';
-            
-            // 遍歷每一步，檢查是否经过结算日
-            for (let i = 1; i <= steps; i++) {
-                let tempPos = (oldPos + i) % room.streamlineTiles.length;
-                let tileAtPos = room.streamlineTiles[tempPos];
-                if (tileAtPos.type === 'settlement') {
-                    passedSettlement = true;
-                    // 经过结算日获得收入
-                    const totalIncome = state.salary + state.sideIncome;
-                    state.cash += totalIncome;
-                    state.totalAssets += Math.floor(totalIncome * 0.2);
-                    
-                    // 计算支出（应用减免）
-                    const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
-                    let expenseReductionMessage = '';
-                    if (reductionPercent > 0) {
-                        expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
-                    }
-                    
-                    // 面包店精力奖励
-                    if (state.bakeryCount && state.bakeryCount > 0) {
-                        const bakeryEnergyBonus = state.bakeryCount;
-                        state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
-                    }
-                    
-                    settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
-                    
-                    // 处理貸款还款
-                    const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
-                    if (repaymentResult) {
-                        ws.send(JSON.stringify(repaymentResult));
-                        broadcastToRoom(roomId, repaymentResult, ws);
-                    }
-                }
-            }
-            
-            // 更新位置
-            state.streamlinePos = newPos;
-            tile = room.streamlineTiles[state.streamlinePos];
-            
-            // 執行格子行动（如果不是结算日）
-            if (tile.type !== 'settlement') {
-                const isExactLanding = false;
-                
-                // 根据格子类型執行行动
-                if (tile.type === 'lier') {
-                    drawAndExecuteLierCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，執行騙子卡效果！`;
-                } else if (tile.type === 'opportunity') {
-                    showCardTypeSelection(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得機會卡選擇！`;
-                } else if (tile.type === 'police') {
-                    drawPoliceCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得警察卡！`;
-                } else if (tile.type === 'volunteer') {
-                    drawVolunteerCard(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得義工卡！`;
-                } else if (tile.type === 'awareness') {
-                    showRevelationCardTypeSelection(ws, state, roomId, currentPlayer);
-                    eventMessage = `踩中「${tile.name}」，獲得察覺卡！`;
-                } else {
-                    // 其他格子类型（income, lucky_star, four_leaf_clover, grace, event, market等）
-                    eventMessage = processStreamlineTile(state, tile, ws, roomId, currentPlayer, false);
-                }
-            }
-            
-            // 精力消耗（前進需要精力）
+        category: "錦囊卡",
+        scope: "personal",
+        hasMoveForwardFeature: true,
+        moveMode: 'choose',             // ← player picks 1-3
+        effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            
-            // 幸运值提升（清楚的選擇）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "黑馬思維",
-                0,
-                `自選前進 ${steps} 格！從位置 ${oldPos + 1} → ${newPos + 1}，踩中「${tile.name}」${eventMessage ? '，' + eventMessage : ''}`,
-                null,
-                state
-            );
-            
-            // 发送骰子结果（模拟移动）
-            const diceResult = {
-                type: 'dice_result',
-                playerId: currentPlayer.playerId,
-                playerName: currentPlayer.playerName,
-                steps: steps,
-                originalSteps: steps,
-                multiplierUsed: false,
-                gameState: state,
-                tile: tile,
-                eventMessage: eventMessage,
-                multiplierMessage: `🐴 黑馬思維！你選擇前進 ${steps} 格！`
-            };
-            
-            ws.send(JSON.stringify(diceResult));
-            broadcastToRoom(roomId, diceResult, ws);
-            
-            // 如果有经过结算日的消息，额外发送
-            if (settlementMessage) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: settlementMessage
-                }));
-            }
-            
-            // 通知玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🐴 黑馬思維生效！你前進了 ${steps} 格，${eventMessage ? '觸發了格子效果。' : ''}`
-            }));
-            
-            // 广播状态更新
-            broadcastToRoom(roomId, {
-                type: 'state_updated',
-                playerId: currentPlayer.playerId,
-                gameState: state
-            });
-            
-            return `🐴 黑馬思維成功！\n` +
-                `🎯 你選擇前進 ${steps} 格\n` +
-                `📍 從位置 ${oldPos + 1} → ${newPos + 1}\n` +
-                `🎲 踩中「${tile.name}」\n` +
-                `${eventMessage ? `📋 效果：${eventMessage.substring(0, 100)}...\n` : ''}` +
-                `${settlementMessage ? `💰 ${settlementMessage}\n` : ''}` +
-                `⚡ 精力 -1\n` +
-                `🍀 幸運值 +1\n` +
-                `💪 清楚自己的選擇，創造適合的環境！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            return `🐴 黑馬思維！請選擇要前進的格數 (1-3)`;
         },
-        getEffectDescription: () => "個人錦囊：自選前進1-3格並執行格子行動，精力 -1，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果，精力 -1，幸運值 +1"
     },
 
+    // ==================== IN16 - Personal: Move to Income Tile ====================
     {
         id: "IN16",
-        name: "黑馬思維",
+        name: "黑馬思維 - 收入策略",
         description: "了解自己的人生策略，能應對挑戰，擁有豐盛人生。\n前往月收入格",
         image: "../cards/revelation/tip/IN16.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 找到月收入格的位置（平流层中 type 为 'income' 的格子）
-            // 月收入格包括：升職加薪、副業發展、創業啟動
-            const targetTileNames = ["升職加薪", "副業發展", "創業啟動"];
-            
-            let targetIndex = -1;
-            let targetTile = null;
-            
-            // 寻找最近的月收入格（从当前位置往后找）
-            for (let i = 1; i <= room.streamlineTiles.length; i++) {
-                let checkIndex = (state.streamlinePos + i) % room.streamlineTiles.length;
-                let tile = room.streamlineTiles[checkIndex];
-                if (targetTileNames.includes(tile.name)) {
-                    targetIndex = checkIndex;
-                    targetTile = tile;
-                    break;
-                }
-            }
-            
-            // 如果找不到（理论上应该有），找第一个月收入格
-            if (targetIndex === -1) {
-                for (let i = 0; i < room.streamlineTiles.length; i++) {
-                    let tile = room.streamlineTiles[i];
-                    if (targetTileNames.includes(tile.name)) {
-                        targetIndex = i;
-                        targetTile = tile;
-                        break;
-                    }
-                }
-            }
-            
-            if (targetIndex === -1) {
-                return `❌ 找不到月收入格，卡片無法執行。`;
-            }
-            
-            const oldPos = state.streamlinePos;
-            let steps = 0;
-            
-            // 计算需要前进的步数
-            if (targetIndex >= oldPos) {
-                steps = targetIndex - oldPos;
-            } else {
-                steps = (room.streamlineTiles.length - oldPos) + targetIndex;
-            }
-            
-            let eventMessage = null;
-            let passedSettlement = false;
-            let settlementMessage = '';
-            
-            // 遍歷每一步，檢查是否经过结算日
-            for (let i = 1; i <= steps; i++) {
-                let tempPos = (oldPos + i) % room.streamlineTiles.length;
-                let tileAtPos = room.streamlineTiles[tempPos];
-                if (tileAtPos.type === 'settlement') {
-                    passedSettlement = true;
-                    // 经过结算日获得收入
-                    const totalIncome = state.salary + state.sideIncome;
-                    state.cash += totalIncome;
-                    state.totalAssets += Math.floor(totalIncome * 0.2);
-                    
-                    // 计算支出（应用减免）
-                    const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
-                    let expenseReductionMessage = '';
-                    if (reductionPercent > 0) {
-                        expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
-                    }
-                    
-                    // 面包店精力奖励
-                    if (state.bakeryCount && state.bakeryCount > 0) {
-                        const bakeryEnergyBonus = state.bakeryCount;
-                        state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
-                    }
-                    
-                    settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
-                    
-                    // 处理貸款还款
-                    const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
-                    if (repaymentResult) {
-                        ws.send(JSON.stringify(repaymentResult));
-                        broadcastToRoom(roomId, repaymentResult, ws);
-                    }
-                }
-            }
-            
-            // 更新位置到月收入格
-            state.streamlinePos = targetIndex;
-            
-            // 執行月收入格的效果
-            const isExactLanding = false;
-            eventMessage = processStreamlineTile(state, targetTile, ws, roomId, currentPlayer, isExactLanding);
-            
-            // 精力消耗（前進需要精力）
+        category: "錦囊卡",
+        scope: "personal",
+        hasMoveForwardFeature: true,
+        moveMode: 'income',             // ← auto move to nearest income tile
+        effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            
-            // 幸运值提升（了解人生策略）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "黑馬思維",
-                0,
-                `前往月收入格！前進 ${steps} 格，從位置 ${oldPos + 1} → ${targetIndex + 1}，執行「${targetTile.name}」效果${eventMessage ? '：' + eventMessage : ''}`,
-                null,
-                state
-            );
-            
-            // 发送骰子结果（模拟移动）
-            const diceResult = {
-                type: 'dice_result',
-                playerId: currentPlayer.playerId,
-                playerName: currentPlayer.playerName,
-                steps: steps,
-                originalSteps: steps,
-                multiplierUsed: false,
-                gameState: state,
-                tile: targetTile,
-                eventMessage: eventMessage,
-                multiplierMessage: `🐴 黑馬思維！前往月收入格，前進 ${steps} 格！`
-            };
-            
-            ws.send(JSON.stringify(diceResult));
-            broadcastToRoom(roomId, diceResult, ws);
-            
-            // 如果有经过结算日的消息，额外发送
-            if (settlementMessage) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: settlementMessage
-                }));
-            }
-            
-            // 通知玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🐴 黑馬思維生效！你前往月收入格「${targetTile.name}」，${eventMessage || '獲得了收入提升！'}`
-            }));
-            
-            // 广播状态更新
-            broadcastToRoom(roomId, {
-                type: 'state_updated',
-                playerId: currentPlayer.playerId,
-                gameState: state
-            });
-            
-            return `🐴 黑馬思維成功！\n` +
-                `🎯 前往月收入格：「${targetTile.name}」\n` +
-                `🚀 前進 ${steps} 格\n` +
-                `📍 從位置 ${oldPos + 1} → ${targetIndex + 1}\n` +
-                `📋 效果：${eventMessage || '獲得收入提升！'}\n` +
-                `${settlementMessage ? `💰 ${settlementMessage}\n` : ''}` +
-                `⚡ 精力 -1\n` +
-                `🍀 幸運值 +2\n` +
-                `💪 了解人生策略，應對挑戰，擁有豐盛人生！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+            return `🐴 黑馬思維！將前往最近的月收入格`;
         },
-        getEffectDescription: () => "個人錦囊：前往最近的月收入格（升職加薪/副業發展/創業啟動），執行格子效果，精力 -1，幸運值 +2"
+        getEffectDescription: () => "個人錦囊：前往最近的月收入格，精力 -1，幸運值 +2"
     },
 
+    // ==================== IN17 - Personal: Move to Nearest Player ====================
     {
         id: "IN17",
-        name: "黑馬思維",
+        name: "黑馬思維 - 突破限制",
         description: "突破：他們能夠突破標準化限制，實現自我。\n前進到最近一位玩家格子（經過結算日有收入）",
         image: "../cards/revelation/tip/IN17.png",
         cost: 500,
         type: "tip",
-        category: "锦囊卡",
-        scope: "personal",  // 个人锦囊
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 收集其他玩家的位置
-            const otherPlayers = [];
-            for (let [pWs, p] of room.players) {
-                if (pWs !== ws) {
-                    otherPlayers.push({
-                        ws: pWs,
-                        playerName: p.playerName,
-                        position: p.gameState.streamlinePos,
-                        inReverse: p.gameState.inReverse,
-                        inFlow: p.gameState.inFlow
-                    });
-                }
-            }
-            
-            if (otherPlayers.length === 0) {
-                return `❌ 沒有其他玩家在線，無法前進到玩家格子。`;
-            }
-            
-            const currentPos = state.streamlinePos;
-            
-            // 找到最近的玩家（從當前位置往後找，最少步數）
-            let closestPlayer = null;
-            let minSteps = Infinity;
-            
-            for (const player of otherPlayers) {
-                // 只考慮平流層的玩家（因為卡片只在平流層使用）
-                if (player.inReverse || player.inFlow) continue;
-                
-                let steps = 0;
-                if (player.position >= currentPos) {
-                    steps = player.position - currentPos;
-                } else {
-                    steps = (room.streamlineTiles.length - currentPos) + player.position;
-                }
-                
-                if (steps > 0 && steps < minSteps) {
-                    minSteps = steps;
-                    closestPlayer = player;
-                }
-            }
-            
-            // 如果沒有平流層的玩家，找逆流層或順流層的
-            if (closestPlayer === null) {
-                for (const player of otherPlayers) {
-                    let steps = 0;
-                    if (player.position >= currentPos) {
-                        steps = player.position - currentPos;
-                    } else {
-                        steps = (room.streamlineTiles.length - currentPos) + player.position;
-                    }
-                    
-                    if (steps > 0 && steps < minSteps) {
-                        minSteps = steps;
-                        closestPlayer = player;
-                    }
-                }
-            }
-            
-            if (closestPlayer === null) {
-                return `❌ 找不到其他玩家的位置，無法執行。`;
-            }
-            
-            const oldPos = state.streamlinePos;
-            const steps = minSteps;
-            const targetPos = closestPlayer.position;
-            let eventMessage = null;
-            let passedSettlement = false;
-            let settlementMessage = '';
-            
-            // 遍歷每一步，檢查是否经过结算日
-            for (let i = 1; i <= steps; i++) {
-                let tempPos = (oldPos + i) % room.streamlineTiles.length;
-                let tileAtPos = room.streamlineTiles[tempPos];
-                if (tileAtPos.type === 'settlement') {
-                    passedSettlement = true;
-                    // 经过结算日获得收入
-                    const totalIncome = state.salary + state.sideIncome;
-                    state.cash += totalIncome;
-                    state.totalAssets += Math.floor(totalIncome * 0.2);
-                    
-                    // 计算支出（应用减免）
-                    const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
-                    let expenseReductionMessage = '';
-                    if (reductionPercent > 0) {
-                        expenseReductionMessage = ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`;
-                    }
-                    
-                    // 面包店精力奖励
-                    if (state.bakeryCount && state.bakeryCount > 0) {
-                        const bakeryEnergyBonus = state.bakeryCount;
-                        state.energy = Math.min(state.maxEnergy, state.energy + bakeryEnergyBonus);
-                    }
-                    
-                    settlementMessage += `\n📅 經過結算日！獲得 ${totalIncome.toLocaleString()} 元現金流${expenseReductionMessage}`;
-                    
-                    // 处理貸款还款
-                    const repaymentResult = processSettlementRepayment(currentPlayer, ws, roomId);
-                    if (repaymentResult) {
-                        ws.send(JSON.stringify(repaymentResult));
-                        broadcastToRoom(roomId, repaymentResult, ws);
-                    }
-                }
-            }
-            
-            // 更新位置到目標玩家的格子
-            state.streamlinePos = targetPos;
-            const targetTile = room.streamlineTiles[targetPos];
-            
-            // 執行格子行动
-            const isExactLanding = false;
-            
-            if (targetTile.type === 'lier') {
-                drawAndExecuteLierCard(ws, state, roomId, currentPlayer);
-                eventMessage = `踩中「${targetTile.name}」，執行騙子卡效果！`;
-            } else if (targetTile.type === 'opportunity') {
-                showCardTypeSelection(ws, state, roomId, currentPlayer);
-                eventMessage = `踩中「${targetTile.name}」，獲得機會卡選擇！`;
-            } else if (targetTile.type === 'police') {
-                drawPoliceCard(ws, state, roomId, currentPlayer);
-                eventMessage = `踩中「${targetTile.name}」，獲得警察卡！`;
-            } else if (targetTile.type === 'volunteer') {
-                drawVolunteerCard(ws, state, roomId, currentPlayer);
-                eventMessage = `踩中「${targetTile.name}」，獲得義工卡！`;
-            } else if (targetTile.type === 'awareness') {
-                showRevelationCardTypeSelection(ws, state, roomId, currentPlayer);
-                eventMessage = `踩中「${targetTile.name}」，獲得察覺卡！`;
-            } else {
-                eventMessage = processStreamlineTile(state, targetTile, ws, roomId, currentPlayer, isExactLanding);
-            }
-            
-            // 精力消耗（突破需要精力）
+        category: "錦囊卡",
+        scope: "personal",
+        hasMoveForwardFeature: true,
+        moveMode: 'nearest_player',    // ← auto move to nearest player
+        effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            
-            // 幸运值提升（突破限制）
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
-            
-            // 记录交易
-            addTransactionRecord(
-                currentPlayer.playerName,
-                { name: card.name, type: "tip", id: card.id },
-                "黑馬思維",
-                0,
-                `前進到最近玩家 ${closestPlayer.playerName} 的格子！前進 ${steps} 格，從位置 ${oldPos + 1} → ${targetPos + 1}，踩中「${targetTile.name}」${eventMessage ? '，' + eventMessage : ''}`,
-                null,
-                state
-            );
-            
-            // 发送骰子结果（模拟移动）
-            const diceResult = {
-                type: 'dice_result',
-                playerId: currentPlayer.playerId,
-                playerName: currentPlayer.playerName,
-                steps: steps,
-                originalSteps: steps,
-                multiplierUsed: false,
-                gameState: state,
-                tile: targetTile,
-                eventMessage: eventMessage,
-                multiplierMessage: `🐴 黑馬思維！突破限制，前進 ${steps} 格到 ${closestPlayer.playerName} 的位置！`
-            };
-            
-            ws.send(JSON.stringify(diceResult));
-            broadcastToRoom(roomId, diceResult, ws);
-            
-            // 如果有经过结算日的消息，额外发送
-            if (settlementMessage) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: settlementMessage
-                }));
-            }
-            
-            // 通知玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🐴 黑馬思維生效！你前進到 ${closestPlayer.playerName} 的格子「${targetTile.name}」，${eventMessage || '觸發了格子效果！'}`
-            }));
-            
-            // 通知被踩中格子的玩家
-            if (closestPlayer.ws) {
-                closestPlayer.ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `🐴 ${currentPlayer.playerName} 使用黑馬思維前進到你的位置（${targetTile.name}）！`
-                }));
-            }
-            
-            // 广播状态更新
-            broadcastToRoom(roomId, {
-                type: 'state_updated',
-                playerId: currentPlayer.playerId,
-                gameState: state
-            });
-            
-            return `🐴 黑馬思維成功！\n` +
-                `🎯 目標玩家：${closestPlayer.playerName}\n` +
-                `🚀 前進 ${steps} 格\n` +
-                `📍 從位置 ${oldPos + 1} → ${targetPos + 1}\n` +
-                `🎲 踩中「${targetTile.name}」\n` +
-                `📋 效果：${eventMessage || '觸發格子效果'}\n` +
-                `${settlementMessage ? `💰 ${settlementMessage}\n` : ''}` +
-                `⚡ 精力 -1\n` +
-                `🍀 幸運值 +2\n` +
-                `💪 突破標準化限制，實現自我！`;
+            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+            return `🐴 黑馬思維！將前進到最近玩家的位置`;
         },
-        getEffectDescription: () => "個人錦囊：前進到最近一位玩家的格子（經過結算日有收入），執行格子效果，精力 -1，幸運值 +2"
-    },
-
+        getEffectDescription: () => "個人錦囊：前進到最近玩家格子，精力 -1，幸運值 +2"
+    }
 ];
 
 // 合并所有启示卡
@@ -4211,145 +2929,3 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = { marketNewsCards, tipCards, revelationCards };
 }
 
- // ============================================================
-
-// 辅助函数：获取骰子結果訊息
-function getDiceResultMessage(diceRoll) {
-    switch(diceRoll) {
-        case 1: return "🎭 抽1張逆境卡";
-        case 2: return "💰 損失 $2,000";
-        case 3: return "🎴 抽1張機會卡";
-        case 4: return "🎴 抽1張機會卡";
-        case 5: return "⚡ 獲得2精力 或 $2,000";
-        case 6: return "⚡ 獲得2精力 或 $2,000";
-        default: return "";
-    }
-}
-
-// 辅助函数：執行慢活结果
-function executeSlowLifeResults(room, allPlayers, diceResults, currentPlayer, ws, roomId, card, playerChoices = {}) {
-    let results = [];
-    let totalLoss = 0;
-    let totalGain = 0;
-    
-    for (const { ws: pWs, player: p, playerName, diceRoll } of diceResults) {
-        let resultMessage = `${playerName} 擲出 ${diceRoll} 點：`;
-        
-        switch(diceRoll) {
-            case 1:
-                // 抽1張逆境卡 - 触发逆流层卡片
-                resultMessage += ` 觸發逆境卡效果！`;
-                // 这里需要调用逆流层卡片抽取函数
-                // 注意：这需要后端支持，可能需要发送消息让前端处理
-                break;
-                
-            case 2:
-                // 損失 $2,000
-                const lossAmount = 2000;
-                if (p.gameState.cash >= lossAmount) {
-                    p.gameState.cash -= lossAmount;
-                    totalLoss += lossAmount;
-                    resultMessage += ` 損失 $${lossAmount.toLocaleString()} 元`;
-                } else {
-                    // 现金不足，扣除所有现金
-                    const actualLoss = p.gameState.cash;
-                    p.gameState.cash = 0;
-                    totalLoss += actualLoss;
-                    resultMessage += ` 現金不足，損失 $${actualLoss.toLocaleString()} 元`;
-                }
-                
-                addTransactionRecord(
-                    playerName,
-                    { name: card.name, type: "tip", id: card.id },
-                    "慢活損失",
-                    -lossAmount,
-                    `慢活骰子點數 ${diceRoll}，損失 $${lossAmount.toLocaleString()} 元`,
-                    null,
-                    p.gameState
-                );
-                break;
-                
-            case 3:
-            case 4:
-                // 抽1張機會卡
-                resultMessage += ` 獲得機會卡！`;
-                // 这里需要调用机会卡抽取函数
-                // 注意：这需要后端支持
-                break;
-                
-            case 5:
-            case 6:
-                // 獲得2精力 或 $2,000
-                const choice = playerChoices[playerName];
-                if (choice === 'energy') {
-                    p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
-                    resultMessage += ` 獲得 2 精力！`;
-                    totalGain += 0;
-                    
-                    addTransactionRecord(
-                        playerName,
-                        { name: card.name, type: "tip", id: card.id },
-                        "慢活獎勵",
-                        0,
-                        `慢活骰子點數 ${diceRoll}，獲得 2 精力`,
-                        null,
-                        p.gameState
-                    );
-                } else {
-                    p.gameState.cash += 2000;
-                    resultMessage += ` 獲得 $2,000 元！`;
-                    totalGain += 2000;
-                    
-                    addTransactionRecord(
-                        playerName,
-                        { name: card.name, type: "tip", id: card.id },
-                        "慢活獎勵",
-                        2000,
-                        `慢活骰子點數 ${diceRoll}，獲得 $2,000 元`,
-                        null,
-                        p.gameState
-                    );
-                }
-                break;
-        }
-        
-        results.push(resultMessage);
-        
-        // 通知该玩家
-        if (pWs) {
-            pWs.send(JSON.stringify({
-                type: 'notification',
-                message: `🧘 ${resultMessage}`
-            }));
-            pWs.send(JSON.stringify({
-                type: 'state_updated',
-                playerId: p.playerId,
-                gameState: p.gameState
-            }));
-        }
-    }
-    
-    // 广播给所有玩家
-    broadcastToRoom(roomId, {
-        type: 'notification',
-        message: `🧘 ${currentPlayer.playerName} 觸發團隊錦囊「${card.name}」！\n${results.join('\n')}`
-    });
-    
-    return `🧘 團隊錦囊「${card.name}」完成！\n` +
-           `📊 結果：\n${results.join('\n')}\n` +
-           `💰 總損失：$${totalLoss.toLocaleString()} 元\n` +
-           `🎁 總獲得：$${totalGain.toLocaleString()} 元 / ${totalGain > 0 ? '獎勵' : '無'}`;
-}
-
-// 辅助函数：获取骰子結果訊息
-function getDiceResultMessage(diceRoll) {
-    switch(diceRoll) {
-        case 1: return "🎭 抽1張逆境卡";
-        case 2: return "💰 損失 $2,000";
-        case 3: return "🎴 抽1張機會卡";
-        case 4: return "🎴 抽1張機會卡";
-        case 5: return "⚡ 獲得2精力 或 $2,000";
-        case 6: return "⚡ 獲得2精力 或 $2,000";
-        default: return "";
-    }
-}

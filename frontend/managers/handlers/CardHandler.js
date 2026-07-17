@@ -46,6 +46,10 @@ export class CardHandler {
     handleRevelationTypeSelection(m) { this.revelation.handleRevelationTypeSelection(m); }
     handleRevelationCardDraw(m)      { this.revelation.handleRevelationCardDraw(m); }
     handleRevelationCardPurchased(m) { this.revelation.handleRevelationCardPurchased(m); }
+    handlePersonalCardPrompt(m) { this.revelation.handlePersonalCardPrompt(m); }
+    handlePersonalCardResult(m) { this.revelation.handlePersonalCardResult(m); }
+    handleTeamCardPrompt(m)     { this.revelation.handleTeamCardPrompt(m); }
+    handleTeamCardResult(m)     { this.revelation.handleTeamCardResult(m); }
 
     // ── Volunteer ─────────────────────────────────────────────────────────
     handleVolunteerCardExecute(m) { this.volunteer.handleVolunteerCardExecute(m); }

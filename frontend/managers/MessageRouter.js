@@ -139,6 +139,14 @@ export class MessageRouter {
 
             'good_citizen_choice_prompt': m => ch().handleGoodCitizenChoicePrompt(m),
             'good_citizen_result':        m => ch().handleGoodCitizenResult(m),
+
+            'personal_card_prompt':  m => ch().handlePersonalCardPrompt(m),
+            'personal_card_result':  m => ch().handlePersonalCardResult(m),
+            'team_card_prompt':      m => ch().handleTeamCardPrompt(m),
+            'team_card_result':      m => ch().handleTeamCardResult(m),
+
+            'gift_card_prompt':                m => ch().handleGiftCardPrompt(m),
+            'move_forward_choice_prompt':      m => ch().handleMoveForwardChoicePrompt(m),
             // ── System
             'notification': m => {
                 if (m.message) {

@@ -427,16 +427,23 @@ function _handleGeneric(card, state, ws) {
     const energyCost     = card.energyCost     || 0;
 
     if (investmentCost > 0 && state.cash < investmentCost) {
-        ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足 ${investmentCost.toLocaleString()} 元` }));
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足` }));
         return '';
     }
     if (energyCost > 0 && state.energy < energyCost) {
-        ws.send(JSON.stringify({ type: 'notification', message: `❌ 精力不足 ${energyCost} 點` }));
+        ws.send(JSON.stringify({ type: 'notification', message: `❌ 精力不足` }));
         return '';
     }
 
-    // ✅ Just execute the effect - no _pendingPoliceCardDraw flag needed
-    return card.effect(state);
+    const result = card.effect(state);
+
+    // ✅ Track social contributions
+    if (card.category === '貢獻社會' || card.cardType === 'social' ||
+        (card.id && card.id.startsWith('CH'))) {
+        state.contributionCount = (state.contributionCount || 0) + 1;
+    }
+
+    return result;
 }
 
 function _handlePartyRoom(card, data, player, room, ws, roomId) {

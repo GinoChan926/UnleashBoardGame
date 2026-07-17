@@ -101,52 +101,61 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    const card        = pendingEvent.card;
-    const execute     = data.execute;
-    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
-    let   effectResult = '';
-    let   resultMessage = '';
+    const card = pendingEvent.card;
+    const execute = data.execute;
 
-    if (execute) {
-        try {
-            effectResult = (card.scope === 'team' || card.type === 'market_news')
-                ? card.effect(player.gameState, room, player, ws, roomId, data.playerChoices)
-                : card.effect(player.gameState);
-        } catch (e) {
-            effectResult = `執行「${card.name}」效果時發生錯誤`;
-        }
-
-        // Special: time management card IN13
-        if (card.id === 'IN13') {
-            player.gameState.extraTurn = true;
-            effectResult = '獲得一個額外回合！';
-        }
-
-        resultMessage = `✨ 執行「${card.name}」成功！${effectResult}`;
-
-        addTransactionRecord(player.playerName, card, '執行',
-            player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
-
-        broadcastToRoom(roomId, {
-            type: 'card_executed', playerId: player.playerId, playerName: player.playerName,
-            cardName: card.name, effectMessage: effectResult, gameState: player.gameState
-        });
-    } else {
-        resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;
+    if (!execute) {
+        // Player declined right away
+        const stateBefore = JSON.parse(JSON.stringify(player.gameState));
         addTransactionRecord(player.playerName, card, '放棄', -500, '放棄執行', stateBefore, player.gameState);
         broadcastToRoom(roomId, {
             type: 'card_skipped', playerId: player.playerId, playerName: player.playerName,
-            cardName: card.name, message: resultMessage
+            cardName: card.name, message: `❌ 放棄「${card.name}」`
         });
+        ws.send(JSON.stringify({
+            type: 'card_decision_result', execute: false,
+            message: `❌ 你決定不執行「${card.name}」，500 元不退還`,
+            gameState: player.gameState, cardName: card.name
+        }));
+        room.pendingRevelationEvents.delete(ws);
+        return;
     }
 
-    ws.send(JSON.stringify({
-        type: 'card_decision_result', execute, message: resultMessage,
-        gameState: player.gameState, cardName: card.name, effectMessage: effectResult
-    }));
-
+    // ✅ Route by scope
     room.pendingRevelationEvents.delete(ws);
-    broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
+
+    if (card.scope === 'team') {
+        // Team card - broadcast to all players
+        const { startTeamCard } = require('../systems/RevelationCardSystem.js');
+
+        // Send acknowledgment to initiator
+        ws.send(JSON.stringify({
+            type: 'card_decision_result',
+            execute: true,
+            message: `👥 團隊錦囊「${card.name}」已觸發，等待其他玩家回應...`,
+            gameState: player.gameState,
+            cardName: card.name
+        }));
+
+        setTimeout(() => {
+            startTeamCard(ws, roomId, player, card, broadcastToRoom, rooms);
+        }, 300);
+    } else {
+        // Personal card - show to drawer only
+        const { startPersonalCard } = require('../systems/RevelationCardSystem.js');
+
+        ws.send(JSON.stringify({
+            type: 'card_decision_result',
+            execute: true,
+            message: `📜 準備執行個人錦囊「${card.name}」...`,
+            gameState: player.gameState,
+            cardName: card.name
+        }));
+
+        setTimeout(() => {
+            startPersonalCard(ws, roomId, player, card, broadcastToRoom, rooms);
+        }, 300);
+    }
 }
 
 function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {

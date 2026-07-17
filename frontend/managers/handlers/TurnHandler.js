@@ -87,9 +87,25 @@ export class TurnHandler {
         this.updateTurnStatus();
     }
 
-    handleDiceResult(message) {
+    async handleDiceResult(message) {
         const { client } = this;
 
+        // ✅ Show dice animation FIRST before updating anything
+        if (message.diceValues && message.diceValues.length > 0) {
+            // Only show animation for own rolls
+            const { DiceAnimationTemplate } = await import('../cards/templates/DiceAnimationTemplate.js');
+
+            await new Promise(resolve => {
+                DiceAnimationTemplate.show(
+                    message.diceValues,
+                    message.diceType || 'normal',
+                    message.playerName || '',
+                    resolve
+                );
+            });
+        }
+
+        // Now apply state updates (after animation completes)
         if (message.playerId === client.playerId && message.gameState) {
             client.gameState = message.gameState;
         } else if (message.gameState) {
@@ -97,10 +113,14 @@ export class TurnHandler {
         }
 
         client.updateUI();
-        // ✅ Pass otherPlayers so tokens render correctly
         client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
+
+        // Show multiplier message if any
+        if (message.multiplierMessage) {
+            client.logManager.showNotification(message.multiplierMessage, 'success');
+        }
     }
 
     handleTurnSkipped(message) {

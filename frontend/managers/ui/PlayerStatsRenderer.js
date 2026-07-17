@@ -34,6 +34,25 @@ export class PlayerStatsRenderer {
             : gameState.inReverse ? '逆流層'
                 : '平流層';
 
+        // ✅ Win condition progress with color coding
+        const VOL_REQ  = 5;
+        const CONT_REQ = 1;
+
+        const volunteers    = gameState.volunteerCount    || 0;
+        const contributions = gameState.contributionCount || 0;
+
+        const volEl = document.getElementById('statVolunteerProgress');
+        if (volEl) {
+            volEl.innerText = `${volunteers}/${VOL_REQ}`;
+            volEl.style.color = volunteers >= VOL_REQ ? '#4caf50' : '#ff5252';
+        }
+
+        const contEl = document.getElementById('statContributionProgress');
+        if (contEl) {
+            contEl.innerText = `${contributions}/${CONT_REQ}`;
+            contEl.style.color = contributions >= CONT_REQ ? '#4caf50' : '#ff5252';
+        }
+
         // ── Stat elements ────────────────────────────────────────────────
         this._set('statCash',          gameState.cash.toLocaleString());
         this._set('statSalary',        gameState.salary.toLocaleString());
