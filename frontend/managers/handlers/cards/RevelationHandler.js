@@ -19,8 +19,16 @@ export class RevelationHandler {
     }
 
     handleRevelationCardPurchased(message) {
+        const { client } = this;
+
+        // ✅ Apply the state update (cash was deducted)
+        if (message.gameState) {
+            client.gameState = message.gameState;
+            client.updateUI();
+        }
+
         if (message.card) {
-            this.client.cardModal.showRevelationEffectModal(message.card);
+            client.cardModal.showRevelationEffectModal(message.card);
         }
     }
 
@@ -130,6 +138,66 @@ export class RevelationHandler {
         client.logManager.showNotification(
             `👥 團隊錦囊「${message.card.name}」完成！`,
             'success'
+        );
+    }
+    async handleAssetChoicePrompt(message) {
+        const { client } = this;
+        const { AssetChoiceTemplate } = await import('../../cards/templates/AssetChoiceTemplate.js');
+
+        const old = document.getElementById('assetChoiceModal');
+        if (old) old.remove();
+
+        client.modalManager.createModal(
+            'assetChoiceModal',
+            AssetChoiceTemplate.buildModal()
+        );
+
+        client.modalManager.openModal('assetChoiceModal');
+        AssetChoiceTemplate.populate(message, client.escapeHtml.bind(client));
+
+        const timerId = AssetChoiceTemplate.startCountdown(
+            message.timeout || 30,
+            () => {
+                AssetChoiceTemplate.disableButtons();
+                client.modalManager.closeModal('assetChoiceModal');
+            }
+        );
+
+        AssetChoiceTemplate.bindButtons(
+            () => {
+                if (timerId) clearInterval(timerId);
+                AssetChoiceTemplate.disableButtons();
+                client.connection.send({
+                    type: 'asset_choice_response',
+                    choiceId: message.choiceId,
+                    participate: true
+                });
+                client.modalManager.closeModal('assetChoiceModal');
+                client.logManager.addLog(`📊 你選擇參與「${message.card.name}」`, 'success');
+            },
+            () => {
+                if (timerId) clearInterval(timerId);
+                AssetChoiceTemplate.disableButtons();
+                client.connection.send({
+                    type: 'asset_choice_response',
+                    choiceId: message.choiceId,
+                    participate: false
+                });
+                client.modalManager.closeModal('assetChoiceModal');
+                client.logManager.addLog(`📊 你選擇不參與「${message.card.name}」`, 'warning');
+            }
+        );
+    }
+
+    handleMarketNewsResult(message) {
+        const { client } = this;
+        client.logManager.addLog(
+            `📰 ${message.initiator} 觸發「${message.cardName}」: ${message.message}`,
+            'event'
+        );
+        client.logManager.showNotification(
+            `📰 ${message.cardName} 完成`,
+            'info'
         );
     }
 }

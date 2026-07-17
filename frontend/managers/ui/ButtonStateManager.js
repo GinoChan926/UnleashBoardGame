@@ -1,16 +1,10 @@
 "use strict";
 
-/**
- * Single source of truth for every button's enabled/disabled state.
- * Called by both TurnHandler (on turn change) and PlayerStatsRenderer
- * (on stat update). No duplicated logic anywhere else.
- */
 export class ButtonStateManager {
     constructor(client) {
         this.client = client;
     }
 
-    /** Master update - call this whenever turn or gameState changes */
     refresh(gameState) {
         if (!gameState) {
             this._disableAll();
@@ -18,7 +12,10 @@ export class ButtonStateManager {
         }
 
         const isMyTurn = gameState.isMyTurn === true;
-        const canRoll  = isMyTurn && gameState.energy > 0 && !gameState.hasRolledThisTurn;
+
+        // ✅ Roll only depends on turn + hasRolledThisTurn (no more energy check)
+        const canRoll  = isMyTurn && !gameState.hasRolledThisTurn;
+
         const canLoan  = isMyTurn && gameState.loanAmount === 0;
         const canRepay = isMyTurn && gameState.loanAmount > 0;
         const clovers  = gameState.fourLeafClover  || 0;

@@ -1,8 +1,165 @@
 // revelation_cards.js - 启示卡数据（市場消息卡 + 錦囊卡）
+"use strict";
+
+// ==================== Helper functions ====================
+
+function _findStockHolders(room, stockPrices) {
+    const result = [];
+    for (const [ws, p] of room.players) {
+        if (!p.gameState.stockHoldings) continue;
+
+        const holdings = [];
+        for (const [, holding] of Object.entries(p.gameState.stockHoldings)) {
+            const code = holding.code;
+            if (stockPrices[code] !== undefined) {
+                const sellPrice = holding.shares * stockPrices[code];
+                holdings.push({
+                    stockCode: code,
+                    stockName: holding.name || code,
+                    shares: holding.shares,
+                    price: stockPrices[code],
+                    sellValue: sellPrice,
+                    cost: holding.totalCost,
+                    profit: sellPrice - holding.totalCost
+                });
+            }
+        }
+
+        if (holdings.length > 0) {
+            result.push({
+                playerId: p.playerId,
+                ws,
+                assetInfo: {
+                    assetName: '股票',
+                    holdings,
+                    totalSellValue: holdings.reduce((s, h) => s + h.sellValue, 0),
+                    totalProfit: holdings.reduce((s, h) => s + h.profit, 0)
+                }
+            });
+        }
+    }
+    return result;
+}
+
+function _applyStockSales(room, participants, ctx, stockPrices, cardName, cardId) {
+    const sold = [];
+    let totalRevenue = 0;
+
+    for (const [playerName, willSell] of Object.entries(participants)) {
+        if (!willSell) continue;
+        const p = ctx.findPlayerByName(playerName);
+        if (!p || !p.gameState.stockHoldings) continue;
+
+        let playerRevenue = 0;
+        let playerProfit = 0;
+        const soldStocks = [];
+
+        for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
+            const code = holding.code;
+            if (stockPrices[code] === undefined) continue;
+
+            const price = stockPrices[code];
+            const revenue = holding.shares * price;
+            const profit = revenue - holding.totalCost;
+
+            p.gameState.cash += revenue;
+            playerRevenue += revenue;
+            playerProfit += profit;
+            soldStocks.push(`${code}(${holding.shares}股)`);
+            delete p.gameState.stockHoldings[stockId];
+        }
+
+        if (playerRevenue > 0) {
+            totalRevenue += playerRevenue;
+            sold.push(`${playerName}: ${soldStocks.join(', ')} 獲利 $${playerProfit.toLocaleString()}`);
+            ctx.addTransactionRecord(
+                playerName,
+                { name: cardName, type: "market_news", id: cardId },
+                "市場消息出售", playerRevenue,
+                `依市場消息出售股票，總收入 $${playerRevenue.toLocaleString()}`,
+                null, p.gameState
+            );
+        }
+    }
+
+    if (sold.length === 0) return `📊 「${cardName}」發生，但無人選擇出售`;
+
+    return `📊 ${cardName}！\n👥 出售玩家：\n${sold.join('\n')}\n💰 總成交金額：$${totalRevenue.toLocaleString()}`;
+}
+
+function _findPropertyHolders(room, targetPropertyId, marketPrice) {
+    const result = [];
+    for (const [ws, p] of room.players) {
+        if (!p.gameState.propertyInvestments) continue;
+
+        const prop = p.gameState.propertyInvestments.find(inv => inv.id === targetPropertyId);
+        if (prop) {
+            const mortgageAmount = prop.remainingBalance !== undefined ? prop.remainingBalance : (prop.mortgageAmount || 0);
+            const profit = marketPrice - mortgageAmount;
+            result.push({
+                playerId: p.playerId,
+                ws,
+                assetInfo: {
+                    assetName: prop.name,
+                    marketPrice,
+                    mortgageAmount,
+                    profit
+                }
+            });
+        }
+    }
+    return result;
+}
+
+function _applyPropertySales(room, participants, ctx, targetPropertyId, marketPrice, cardName, cardId) {
+    const sold = [];
+    let totalPaid = 0;
+
+    for (const [playerName, willSell] of Object.entries(participants)) {
+        if (!willSell) continue;
+        const p = ctx.findPlayerByName(playerName);
+        if (!p || !p.gameState.propertyInvestments) continue;
+
+        const idx = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
+        if (idx === -1) continue;
+
+        const prop = p.gameState.propertyInvestments[idx];
+        const mortgageAmount = prop.remainingBalance !== undefined ? prop.remainingBalance : (prop.mortgageAmount || 0);
+        const profit = marketPrice - mortgageAmount;
+
+        p.gameState.cash += profit;
+        totalPaid += profit;
+
+        // Remove monthly expenses
+        if (prop.monthlyPayment && p.gameState.livingExpense) {
+            p.gameState.livingExpense = Math.max(0, p.gameState.livingExpense - prop.monthlyPayment);
+        }
+        if (prop.monthlyReturn && p.gameState.passiveIncome) {
+            p.gameState.passiveIncome = Math.max(0, p.gameState.passiveIncome - prop.monthlyReturn);
+        }
+
+        p.gameState.propertyInvestments.splice(idx, 1);
+        p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 1);
+
+        sold.push(`${playerName}: ${prop.name} 淨收 $${profit.toLocaleString()}`);
+        ctx.addTransactionRecord(
+            playerName,
+            { name: cardName, type: "market_news", id: cardId },
+            "物業出售", profit,
+            `出售 ${prop.name}，市價 $${marketPrice.toLocaleString()} - 按揭 $${mortgageAmount.toLocaleString()} = 淨收 $${profit.toLocaleString()}`,
+            null, p.gameState
+        );
+    }
+
+    if (sold.length === 0) return `🏠 「${cardName}」發生，但無人選擇出售`;
+
+    return `🏠 ${cardName}！\n👥 出售玩家：\n${sold.join('\n')}\n💰 總成交金額：$${totalPaid.toLocaleString()}`;
+}
 
 // ==================== 市場消息卡 ====================
 const marketNewsCards = [
 
+    // ==================== M01 - Fund performance up ====================
     {
         id: "M01",
         name: "基金業績上升",
@@ -11,86 +168,40 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否持有 F02 基金
-                const hasFundF02 = p.gameState.financeInvestments && 
-                                  p.gameState.financeInvestments.some(inv => inv.id === "F02");
-                
-                if (hasFundF02) {
-                    // 找到 F02 基金投資
-                    const fundInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F02");
-                    const oldMonthlyReturn = fundInvestment.monthlyReturn;
-                    const newMonthlyReturn = oldMonthlyReturn + 500;
-                    
-                    // 更新基金的每月回报
-                    fundInvestment.monthlyReturn = newMonthlyReturn;
-                    fundInvestment.interestIncreased = true;
-                    fundInvestment.increaseAmount = 500;
-                    
-                    // 更新被动收入
-                    p.gameState.passiveIncome += 500;
-                    affectedPlayers.push(p.playerName);
-                    changes.push(`${p.playerName}: $${oldMonthlyReturn}/月 → $${newMonthlyReturn}/月`);
-                    
-                    // 记录交易
-                    addTransactionRecord(
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `📈 市場消息：基金業績上升`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const investors = [];
+            const bonus = 500;
+
+            for (const [, p] of room.players) {
+                const funds = (p.gameState.financeInvestments || [])
+                    .filter(inv => inv.id === "F02");
+
+                funds.forEach(fund => {
+                    fund.monthlyReturn = (fund.monthlyReturn || 0) + bonus;
+                    p.gameState.passiveIncome += bonus;
+                    ctx.addTransactionRecord(
                         p.playerName,
                         { name: "基金業績上升", type: "market_news", id: "M01" },
-                        "基金利息增加",
-                        0,
-                        `基金 F02 每月利息增加 $500 元！原利息 $${oldMonthlyReturn}/月 → 新利息 $${newMonthlyReturn}/月`,
-                        null,
-                        p.gameState
+                        "基金利息增加", 0,
+                        `基金 F02 每月利息 +$${bonus}`,
+                        null, p.gameState
                     );
-                    
-                    // 通知该玩家
-                    if (pWs && pWs !== ws) {
-                        pWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `📈 市場消息：${currentPlayer.playerName} 觸發了「基金業績上升」！你持有的基金 F02 每月利息增加 $500 元！`
-                        }));
-                        pWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: p.playerId,
-                            gameState: p.gameState
-                        }));
-                    }
-                }
-            }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有基金 F02，無法受益。`
                 });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有基金 F02，無法受益。`;
+
+                if (funds.length > 0) investors.push(p.playerName);
             }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📈 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n基金 F02 每月利息增加 $500 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `📈 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家受益。`
-            }));
-            
-            return `📈 基金業績上升成功！\n` +
-                   `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                   `💰 基金 F02 每月利息 +$500/月\n` +
-                   `📊 變化詳情：\n${changes.join('\n')}`;
+
+            if (investors.length === 0) return `📊 沒有玩家持有 F02，無人受益`;
+
+            return `📈 基金業績上升！\n👥 受益玩家：${investors.join(', ')}\n💰 每月利息 +$${bonus}`;
         },
-        getEffectDescription: () => "市場消息：所有玩家持有的基金 F02 每月利息 +$500/月"
+        getEffectDescription: () => "市場消息：持有 F02 的玩家每月利息 +$500"
     },
 
+    // ==================== M02 - Fund performance down ====================
     {
         id: "M02",
         name: "基金業績下跌",
@@ -99,87 +210,43 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否持有 F02 基金
-                const hasFundF02 = p.gameState.financeInvestments && 
-                                  p.gameState.financeInvestments.some(inv => inv.id === "F02");
-                
-                if (hasFundF02) {
-                    // 找到 F02 基金投資
-                    const fundInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F02");
-                    const oldMonthlyReturn = fundInvestment.monthlyReturn;
-                    const newMonthlyReturn = Math.max(0, oldMonthlyReturn - 500); // 最低为0，不会变成负数
-                    const actualDecrease = oldMonthlyReturn - newMonthlyReturn;
-                    
-                    // 更新基金的每月回报
-                    fundInvestment.monthlyReturn = newMonthlyReturn;
-                    fundInvestment.interestDecreased = true;
-                    fundInvestment.decreaseAmount = actualDecrease;
-                    
-                    // 更新被动收入
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `📉 市場消息：基金業績下跌`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const decrease = 500;
+
+            for (const [, p] of room.players) {
+                const funds = (p.gameState.financeInvestments || [])
+                    .filter(inv => inv.id === "F02");
+
+                funds.forEach(fund => {
+                    const oldReturn = fund.monthlyReturn || 0;
+                    const newReturn = Math.max(0, oldReturn - decrease);
+                    const actualDecrease = oldReturn - newReturn;
+                    fund.monthlyReturn = newReturn;
                     p.gameState.passiveIncome -= actualDecrease;
-                    affectedPlayers.push(p.playerName);
-                    changes.push(`${p.playerName}: $${oldMonthlyReturn}/月 → $${newMonthlyReturn}/月 (減少 $${actualDecrease})`);
-                    
-                    // 记录交易
-                    addTransactionRecord(
+                    ctx.addTransactionRecord(
                         p.playerName,
                         { name: "基金業績下跌", type: "market_news", id: "M02" },
-                        "基金利息減少",
-                        0,
-                        `基金 F02 每月利息減少 $${actualDecrease} 元！原利息 $${oldMonthlyReturn}/月 → 新利息 $${newMonthlyReturn}/月`,
-                        null,
-                        p.gameState
+                        "基金利息減少", 0,
+                        `基金 F02 每月利息 -$${actualDecrease}`,
+                        null, p.gameState
                     );
-                    
-                    // 通知该玩家
-                    if (pWs && pWs !== ws) {
-                        pWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `📉 市場消息：${currentPlayer.playerName} 觸發了「基金業績下跌」！你持有的基金 F02 每月利息減少 $${actualDecrease} 元！`
-                        }));
-                        pWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: p.playerId,
-                            gameState: p.gameState
-                        }));
-                    }
-                }
-            }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有基金 F02，沒有影響。`
                 });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有基金 F02，沒有影響。`;
+
+                if (funds.length > 0) affected.push(p.playerName);
             }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📉 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n基金 F02 每月利息減少 $500 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `📉 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家受到影響。`
-            }));
-            
-            return `📉 基金業績下跌！\n` +
-                   `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                   `💰 基金 F02 每月利息 -$500/月\n` +
-                   `📊 變化詳情：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有 F02，無影響`;
+
+            return `📉 基金業績下跌！\n👥 受影響玩家：${affected.join(', ')}\n💰 每月利息 -$${decrease}`;
         },
-        getEffectDescription: () => "市場消息：所有玩家持有的基金 F02 每月利息 -$500/月"
+        getEffectDescription: () => "市場消息：持有 F02 的玩家每月利息 -$500"
     },
 
+    // ==================== M03 - Loan rate down ====================
     {
         id: "M03",
         name: "貸款利率下降",
@@ -188,83 +255,39 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            const newInterestRate = 5; // 新利率 5%
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否有貸款
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `🏦 市場消息：貸款利率下降`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const newRate = 5;
+
+            for (const [, p] of room.players) {
                 if (p.gameState.loanAmount > 0) {
-                    const oldLoanAmount = p.gameState.loanAmount;
-                    const oldInterestRate = 10; // 原利率 10%
-                    const oldInterestAmount = Math.round(oldLoanAmount * oldInterestRate / 100);
-                    const newInterestAmount = Math.round(oldLoanAmount * newInterestRate / 100);
-                    const interestSaved = oldInterestAmount - newInterestAmount;
-                    
-                    // 更新貸款利率
-                    p.gameState.loanInterestRate = newInterestRate;
-                    p.gameState.loanInterest = newInterestAmount;
-                    
-                    affectedPlayers.push(p.playerName);
-                    changes.push(`${p.playerName}: 貸款 $${oldLoanAmount.toLocaleString()}，利息 $${oldInterestAmount}/月 → $${newInterestAmount}/月 (節省 $${interestSaved}/月)`);
-                    
-                    // 记录交易
-                    addTransactionRecord(
+                    const oldInterest = p.gameState.loanInterest || 0;
+                    const newInterest = Math.round(p.gameState.loanAmount * newRate / 100);
+                    const saved = oldInterest - newInterest;
+                    p.gameState.loanInterestRate = newRate;
+                    p.gameState.loanInterest = newInterest;
+                    affected.push(p.playerName);
+                    ctx.addTransactionRecord(
                         p.playerName,
                         { name: "貸款利率下降", type: "market_news", id: "M03" },
-                        "貸款利率調整",
-                        0,
-                        `貸款利率從 10% 降至 ${newInterestRate}%，每月利息從 $${oldInterestAmount} 降至 $${newInterestAmount}，節省 $${interestSaved}/月`,
-                        null,
-                        p.gameState
+                        "貸款利率調整", 0,
+                        `利率降至 ${newRate}%，每月節省 $${saved}`,
+                        null, p.gameState
                     );
-                    
-                    // 通知该玩家
-                    if (pWs && pWs !== ws) {
-                        pWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `🏦 市場消息：${currentPlayer.playerName} 觸發了「貸款利率下降」！你的貸款利率降至 ${newInterestRate}%，每月利息節省 $${interestSaved} 元！`
-                        }));
-                        pWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: p.playerId,
-                            gameState: p.gameState
-                        }));
-                    }
                 }
             }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏦 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家有銀行貸款，沒有影響。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家有銀行貸款，沒有影響。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏦 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n貸款利率降至 ${newInterestRate}%，利息支出減半！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏦 市場消息「${card.name}」生效！${affectedPlayers.length} 位有貸款的玩家受惠，利率降至 ${newInterestRate}%。`
-            }));
-            
-            return `🏦 貸款利率下降成功！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `📉 貸款利率：10% → ${newInterestRate}%\n` +
-                `💰 利息支出減半！\n` +
-                `📊 變化詳情：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家有貸款，無影響`;
+
+            return `🏦 貸款利率下降至 ${newRate}%！\n👥 受惠玩家：${affected.join(', ')}`;
         },
-        getEffectDescription: () => "市場消息：所有有貸款的玩家，利率降至5%，利息支出減半"
+        getEffectDescription: () => "市場消息：所有有貸款的玩家利率降至 5%"
     },
 
+    // ==================== M04 - Crypto scam ====================
     {
         id: "M04",
         name: "加密貨幣平台騙局",
@@ -273,193 +296,91 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `⚠️ 市場消息：加密貨幣平台騙局`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
             let totalLoss = 0;
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否持有加密货币 (C01)
-                let cryptoLoss = 0;
-                let cryptoDetails = [];
-                
+
+            for (const [, p] of room.players) {
+                let playerLoss = 0;
                 if (p.gameState.cryptoHoldings) {
-                    // 遍歷所有加密货币持仓
                     for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
-                        // 檢查是否是 C01 相关加密货币
-                        if (cryptoId === 'F03' || cryptoId === 'F04' || 
-                            (holding.code === 'C01') || 
+                        if (cryptoId === 'F03' || cryptoId === 'F04' ||
+                            holding.code === 'C01' ||
                             (holding.name && holding.name.includes('C01'))) {
-                            
-                            const lossAmount = holding.totalCost;
-                            cryptoLoss += lossAmount;
-                            totalLoss += lossAmount;
-                            cryptoDetails.push(`${holding.name || holding.code}: ${holding.units}顆，成本 $${lossAmount.toLocaleString()}`);
-                            
-                            // 删除该加密货币持仓
+                            playerLoss += holding.totalCost;
                             delete p.gameState.cryptoHoldings[cryptoId];
                         }
                     }
                 }
-                
-                if (cryptoLoss > 0) {
-                    affectedPlayers.push(p.playerName);
-                    changes.push(`${p.playerName}: 損失 $${cryptoLoss.toLocaleString()} (${cryptoDetails.join(', ')})`);
-                    
-                    // 更新总資产（减去损失）
-                    p.gameState.totalAssets = Math.max(0, p.gameState.totalAssets - cryptoLoss);
-                    
-                    // 幸运值下降（被骗影响心情）
+
+                if (playerLoss > 0) {
+                    p.gameState.totalAssets = Math.max(0, p.gameState.totalAssets - playerLoss);
                     p.gameState.luck = Math.max(0, p.gameState.luck - 2);
-                    
-                    // 记录交易
-                    addTransactionRecord(
+                    totalLoss += playerLoss;
+                    affected.push(p.playerName);
+                    ctx.addTransactionRecord(
                         p.playerName,
                         { name: "加密貨幣平台騙局", type: "market_news", id: "M04" },
-                        "加密貨幣損失",
-                        -cryptoLoss,
-                        `因加密貨幣平台無牌經營，持有的 C01 加密貨幣血本無歸，損失 $${cryptoLoss.toLocaleString()} 元，幸運值 -2`,
-                        null,
-                        p.gameState
+                        "加密貨幣損失", -playerLoss,
+                        `C01 加密貨幣血本無歸，損失 $${playerLoss.toLocaleString()}`,
+                        null, p.gameState
                     );
-                    
-                    // 通知该玩家
-                    if (pWs && pWs !== ws) {
-                        pWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `⚠️ 市場消息：${currentPlayer.playerName} 觸發了「加密貨幣平台騙局」！你持有的 C01 加密貨幣血本無歸，損失 $${cryptoLoss.toLocaleString()} 元！幸運值 -2`
-                        }));
-                        pWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: p.playerId,
-                            gameState: p.gameState
-                        }));
-                    }
                 }
             }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `⚠️ 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有 C01 加密貨幣，沒有人受影響。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有 C01 加密貨幣，沒有人受影響。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `⚠️ ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n血本無歸，損失總額 $${totalLoss.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `⚠️ 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家損失總額 $${totalLoss.toLocaleString()} 元。`
-            }));
-            
-            return `⚠️ 加密貨幣平台騙局！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `💰 總損失金額：$${totalLoss.toLocaleString()} 元\n` +
-                `💔 所有 C01 加密貨幣已從財務報表中刪除\n` +
-                `🍀 受影響玩家幸運值 -2\n` +
-                `📊 詳細損失：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有 C01，無影響`;
+
+            return `⚠️ 加密貨幣平台騙局！\n👥 受害玩家：${affected.join(', ')}\n💰 總損失：$${totalLoss.toLocaleString()}\n🍀 幸運值 -2`;
         },
-        getEffectDescription: () => "市場消息：所有持有 C01 加密貨幣的玩家，血本無歸，刪除所有加密貨幣持倉，幸運值 -2"
+        getEffectDescription: () => "市場消息：持有 C01 加密貨幣者血本無歸"
     },
 
+    // ==================== M05 - P2P performance up ====================
     {
-    id: "M05",
-    name: "P2P網上銀行業績提升",
-    description: "由於平台投資項目營運良好，投資人獲得豐碩回報，收益增加。\nP2P N02 每股價值 +$10 元",
-    image: "../cards/revelation/market/M05.png",
-    cost: 500,
-    type: "market_news",
-    category: "市場消息卡",
-    effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-        let affectedPlayers = [];
-        let changes = [];
-        const priceIncrease = 10;
-        
-        // 遍歷所有玩家
-        for (let [pWs, p] of room.players) {
-            // 檢查玩家是否持有 P2P N02 投資 (id 为 "F05")
-            const hasP2PInvestment = p.gameState.financeInvestments && 
-                                     p.gameState.financeInvestments.some(inv => inv.id === "F05");
-            
-            if (hasP2PInvestment) {
-                // 找到 P2P 投資
-                const p2pInvestment = p.gameState.financeInvestments.find(inv => inv.id === "F05");
-                const oldPricePerUnit = p2pInvestment.pricePerUnit;
-                const newPricePerUnit = oldPricePerUnit + priceIncrease;
-                const valueIncrease = p2pInvestment.units * priceIncrease;
-                
-                // 更新每股价值
-                p2pInvestment.pricePerUnit = newPricePerUnit;
-                p2pInvestment.valueIncreased = true;
-                p2pInvestment.increaseAmount = priceIncrease;
-                
-                // 更新总資产价值（增加）
-                p.gameState.totalAssets = (p.gameState.totalAssets || 0) + valueIncrease;
-                
-                affectedPlayers.push(p.playerName);
-                changes.push(`${p.playerName}: 持有 ${p2pInvestment.units} 股，每股 $${oldPricePerUnit} → $${newPricePerUnit}，總價值增加 $${valueIncrease.toLocaleString()}`);
-                
-                // 记录交易
-                addTransactionRecord(
-                    p.playerName,
-                    { name: "P2P網上銀行業績提升", type: "market_news", id: "M05" },
-                    "P2P價值提升",
-                    valueIncrease,
-                    `P2P N02 每股價值增加 $${priceIncrease} 元！持有 ${p2pInvestment.units} 股，總價值增加 $${valueIncrease.toLocaleString()} 元`,
-                    null,
-                    p.gameState
-                );
-                
-                // 通知该玩家
-                if (pWs && pWs !== ws) {
-                    pWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `📈 市場消息：${currentPlayer.playerName} 觸發了「P2P網上銀行業績提升」！你持有的 P2P N02 每股價值增加 $${priceIncrease} 元，總資產增加 $${valueIncrease.toLocaleString()} 元！`
-                    }));
-                    pWs.send(JSON.stringify({
-                        type: 'state_updated',
-                        playerId: p.playerId,
-                        gameState: p.gameState
-                    }));
-                }
-            }
-        }
-        
-        if (affectedPlayers.length === 0) {
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有 P2P N02，無法受益。`
-            });
-            return `📊 市場消息「${card.name}」生效，但沒有玩家持有 P2P N02，無法受益。`;
-        }
-        
-        // 广播给所有玩家
-        broadcastToRoom(roomId, {
-            type: 'notification',
-            message: `📈 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\nP2P N02 每股價值增加 $${priceIncrease} 元！`
-        });
-        
-        // 通知当前玩家结果
-        ws.send(JSON.stringify({
-            type: 'notification',
-            message: `📈 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家受益，P2P N02 每股 +$${priceIncrease} 元。`
-        }));
-        
-        return `📈 P2P網上銀行業績提升成功！\n` +
-               `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-               `💰 P2P N02 每股價值 +$${priceIncrease} 元\n` +
-               `📊 變化詳情：\n${changes.join('\n')}`;
-    },
-    getEffectDescription: () => "市場消息：所有玩家持有的 P2P N02 每股價值 +$10 元"
-    },
+        id: "M05",
+        name: "P2P網上銀行業績提升",
+        description: "由於平台投資項目營運良好，投資人獲得豐碩回報，收益增加。\nP2P N02 每股價值 +$10 元",
+        image: "../cards/revelation/market/M05.png",
+        cost: 500,
+        type: "market_news",
+        category: "市場消息卡",
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `📈 市場消息：P2P 業績提升`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const priceIncrease = 10;
 
+            for (const [, p] of room.players) {
+                const p2ps = (p.gameState.financeInvestments || [])
+                    .filter(inv => inv.id === "F05");
+
+                p2ps.forEach(p2p => {
+                    const valueIncrease = p2p.units * priceIncrease;
+                    p2p.pricePerUnit = (p2p.pricePerUnit || 10) + priceIncrease;
+                    p.gameState.totalAssets = (p.gameState.totalAssets || 0) + valueIncrease;
+                    ctx.addTransactionRecord(
+                        p.playerName,
+                        { name: "P2P業績提升", type: "market_news", id: "M05" },
+                        "P2P價值提升", valueIncrease,
+                        `P2P N02 每股 +$${priceIncrease}，總資產 +$${valueIncrease.toLocaleString()}`,
+                        null, p.gameState
+                    );
+                });
+
+                if (p2ps.length > 0) affected.push(p.playerName);
+            }
+
+            if (affected.length === 0) return `📊 沒有玩家持有 P2P N02，無影響`;
+
+            return `📈 P2P 業績提升！\n👥 受益玩家：${affected.join(', ')}\n💰 每股 +$${priceIncrease}`;
+        },
+        getEffectDescription: () => "市場消息：持有 P2P N02 者每股價值 +$10"
+    },
+    // ==================== M06 - Crypto boom (sell at 10x) ====================
     {
         id: "M06",
         name: "加密貨幣爆升",
@@ -468,185 +389,95 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 收集所有持有 C01 加密货币的玩家
-            const playersWithCrypto = [];
-            
-            for (let [pWs, p] of room.players) {
-                let cryptoHoldings = [];
-                let totalValue = 0;
-                let sellPrice = 0;
-                
-                if (p.gameState.cryptoHoldings) {
-                    for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
-                        // 檢查是否是 C01 相关加密货币
-                        if (cryptoId === 'F03' || cryptoId === 'F04' || 
-                            (holding.code === 'C01') || 
-                            (holding.name && holding.name.includes('C01'))) {
-                            
-                            // 原價的10倍出售
-                            const originalValue = holding.totalCost;
-                            const multiplier = 10;
-                            sellPrice = originalValue * multiplier;
-                            const profit = sellPrice - originalValue;
-                            
-                            cryptoHoldings.push({
-                                cryptoId: cryptoId,
-                                name: holding.name || holding.code || 'C01加密货币',
-                                units: holding.units,
-                                originalCost: originalValue,
-                                sellPrice: sellPrice,
-                                profit: profit
-                            });
-                            totalValue += sellPrice;
-                        }
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以 10 倍價格出售 C01 加密貨幣",
+        effect: (state) => `🚀 市場消息：加密貨幣爆升`,
+
+        findAffectedPlayers: (room) => {
+            const result = [];
+            for (const [ws, p] of room.players) {
+                if (!p.gameState.cryptoHoldings) continue;
+
+                let totalUnits = 0;
+                let totalCost = 0;
+                let sellValue = 0;
+
+                for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
+                    if (cryptoId === 'F03' || cryptoId === 'F04' ||
+                        holding.code === 'C01' ||
+                        (holding.name && holding.name.includes('C01'))) {
+                        totalUnits += holding.units;
+                        totalCost += holding.totalCost;
                     }
                 }
-                
-                if (cryptoHoldings.length > 0) {
-                    playersWithCrypto.push({
-                        ws: pWs,
-                        player: p,
-                        cryptoHoldings: cryptoHoldings,
-                        totalValue: totalValue
+
+                if (totalUnits > 0) {
+                    sellValue = totalCost * 10;
+                    result.push({
+                        playerId: p.playerId,
+                        ws,
+                        assetInfo: {
+                            assetName: 'C01 加密貨幣',
+                            units: totalUnits,
+                            originalCost: totalCost,
+                            sellValue,
+                            profit: sellValue - totalCost
+                        }
                     });
                 }
             }
-            
-            if (playersWithCrypto.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🚀 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有 C01 加密貨幣，無法受益。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有 C01 加密貨幣，無法受益。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithCrypto.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    cryptoHoldings: p.cryptoHoldings,
-                    totalValue: p.totalValue
-                }));
-                
-                return {
-                    type: 'crypto_sell_choices',
-                    message: `🚀 ${card.name}\n\n${card.description}\n\n持有 C01 加密貨幣的玩家可以原價 10 倍出售！\n\n請持有加密貨幣的玩家選擇是否出售：`,
-                    multiplier: 10,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let soldRecords = [];
-            let totalSoldValue = 0;
-            
-            for (const [playerName, willSell] of Object.entries(playerChoices)) {
-                if (!willSell) continue;
-                
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                let playerTotalProfit = 0;
-                let soldCryptos = [];
-                
-                // 出售所有 C01 加密货币
-                if (playerObj.gameState.cryptoHoldings) {
-                    for (const [cryptoId, holding] of Object.entries(playerObj.gameState.cryptoHoldings)) {
-                        if (cryptoId === 'F03' || cryptoId === 'F04' || 
-                            (holding.code === 'C01') || 
-                            (holding.name && holding.name.includes('C01'))) {
-                            
-                            const originalValue = holding.totalCost;
-                            const multiplier = 10;
-                            const sellPrice = originalValue * multiplier;
-                            const profit = sellPrice - originalValue;
-                            
-                            // 增加现金
-                            playerObj.gameState.cash += sellPrice;
-                            playerTotalProfit += profit;
-                            totalSoldValue += sellPrice;
-                            
-                            soldCryptos.push(`${holding.name || holding.code}: ${holding.units}顆，成本 $${originalValue.toLocaleString()}，售出 $${sellPrice.toLocaleString()}，獲利 $${profit.toLocaleString()}`);
-                            
-                            // 记录交易
-                            addTransactionRecord(
-                                playerName,
-                                { name: "加密貨幣爆升出售", type: "market_news", id: "M06" },
-                                "加密貨幣出售",
-                                sellPrice,
-                                `以原價 10 倍出售 C01 加密貨幣！成本 $${originalValue.toLocaleString()}，售出 $${sellPrice.toLocaleString()}，獲利 $${profit.toLocaleString()}`,
-                                null,
-                                playerObj.gameState
-                            );
-                            
-                            // 删除该加密货币持仓
-                            delete playerObj.gameState.cryptoHoldings[cryptoId];
-                        }
-                    }
-                }
-                
-                if (soldCryptos.length > 0) {
-                    // 幸运值提升（抓住机会）
-                    playerObj.gameState.luck = Math.min(playerObj.gameState.maxLuck || 10, playerObj.gameState.luck + 2);
-                    
-                    soldRecords.push(`${playerName}: 出售成功！總獲利 $${playerTotalProfit.toLocaleString()}\n   ${soldCryptos.join('；')}`);
-                    
-                    // 通知该玩家
-                    if (playerWs) {
-                        playerWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `🚀 你以原價 10 倍出售了 C01 加密貨幣！獲利 $${playerTotalProfit.toLocaleString()} 元，幸運值 +2！`
-                        }));
-                        playerWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: playerObj.playerId,
-                            gameState: playerObj.gameState
-                        }));
-                    }
-                }
-            }
-            
-            if (soldRecords.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🚀 市場消息：${currentPlayer.playerName} 觸發了「${card.name}」，但沒有玩家選擇出售加密貨幣。`
-                });
-                return `📊 市場消息「${card.name}」完成，但沒有玩家選擇出售加密貨幣。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🚀 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n${soldRecords.length} 位玩家以原價 10 倍出售了 C01 加密貨幣，總金額 $${totalSoldValue.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🚀 市場消息「${card.name}」生效！${soldRecords.length} 位玩家成功出售加密貨幣，總金額 $${totalSoldValue.toLocaleString()} 元。`
-            }));
-            
-            return `🚀 加密貨幣爆升成功！\n` +
-                `👥 出售玩家：${soldRecords.map(r => r.split('\n')[0]).join(', ')}\n` +
-                `💰 總出售金額：$${totalSoldValue.toLocaleString()} 元\n` +
-                `📊 詳細記錄：\n${soldRecords.join('\n')}`;
+            return result;
         },
-        getEffectDescription: () => "市場消息：持有 C01 加密貨幣的玩家可以原價 10 倍出售"
+
+        applyChoices: (room, participants, ctx) => {
+            const sold = [];
+            let totalRevenue = 0;
+
+            for (const [playerName, willSell] of Object.entries(participants)) {
+                if (!willSell) continue;
+                const p = ctx.findPlayerByName(playerName);
+                if (!p || !p.gameState.cryptoHoldings) continue;
+
+                let playerRevenue = 0;
+                let playerProfit = 0;
+
+                for (const [cryptoId, holding] of Object.entries(p.gameState.cryptoHoldings)) {
+                    if (cryptoId === 'F03' || cryptoId === 'F04' ||
+                        holding.code === 'C01' ||
+                        (holding.name && holding.name.includes('C01'))) {
+                        const sellPrice = holding.totalCost * 10;
+                        const profit = sellPrice - holding.totalCost;
+                        p.gameState.cash += sellPrice;
+                        playerRevenue += sellPrice;
+                        playerProfit += profit;
+                        delete p.gameState.cryptoHoldings[cryptoId];
+                    }
+                }
+
+                if (playerRevenue > 0) {
+                    p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 2);
+                    totalRevenue += playerRevenue;
+                    sold.push(`${playerName} 獲利 $${playerProfit.toLocaleString()}`);
+                    ctx.addTransactionRecord(
+                        playerName,
+                        { name: "加密貨幣爆升出售", type: "market_news", id: "M06" },
+                        "10倍出售", playerRevenue,
+                        `以 10 倍價格出售 C01，獲利 $${playerProfit.toLocaleString()}`,
+                        null, p.gameState
+                    );
+                }
+            }
+
+            if (sold.length === 0) return `🚀 加密貨幣爆升發生，但無人選擇出售`;
+
+            return `🚀 加密貨幣爆升！\n👥 出售玩家：\n${sold.join('\n')}\n💰 總成交金額：$${totalRevenue.toLocaleString()}`;
+        },
+
+        getEffectDescription: () => "市場消息：C01 加密貨幣可以 10 倍價格出售"
     },
 
+    // ==================== M07 - P2P bankrupt ====================
     {
         id: "M07",
         name: "P2P網上銀行破產",
@@ -655,96 +486,41 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `⚠️ 市場消息：P2P 破產`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
             let totalLoss = 0;
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否持有 P2P N02 投資 (id 为 "N02")
-                let p2pLoss = 0;
-                let p2pDetails = [];
-                
-                if (p.gameState.financeInvestments) {
-                    // 找到 P2P 投資索引
-                    const p2pIndex = p.gameState.financeInvestments.findIndex(inv => inv.id === "N02");
-                    
-                    if (p2pIndex !== -1) {
-                        const p2pInvestment = p.gameState.financeInvestments[p2pIndex];
-                        p2pLoss = p2pInvestment.totalCost;
-                        totalLoss += p2pLoss;
-                        p2pDetails.push(`${p2pInvestment.name}: ${p2pInvestment.units}股，成本 $${p2pLoss.toLocaleString()}`);
-                        
-                        // 从投資列表中删除
-                        p.gameState.financeInvestments.splice(p2pIndex, 1);
-                        
-                        // 更新总資产（减去损失）
-                        p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - p2pLoss);
-                        
-                        // 幸运值下降（投資失败）
-                        p.gameState.luck = Math.max(0, p.gameState.luck - 2);
-                        
-                        affectedPlayers.push(p.playerName);
-                        changes.push(`${p.playerName}: 損失 $${p2pLoss.toLocaleString()} (${p2pDetails.join(', ')})`);
-                        
-                        // 记录交易
-                        addTransactionRecord(
-                            p.playerName,
-                            { name: "P2P網上銀行破產", type: "market_news", id: "M07" },
-                            "P2P投資損失",
-                            -p2pLoss,
-                            `P2P平台爆雷！持有的 P2P N02 血本無歸，損失 $${p2pLoss.toLocaleString()} 元，幸運值 -2`,
-                            null,
-                            p.gameState
-                        );
-                        
-                        // 通知该玩家
-                        if (pWs && pWs !== ws) {
-                            pWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `⚠️ 市場消息：${currentPlayer.playerName} 觸發了「P2P網上銀行破產」！你持有的 P2P N02 血本無歸，損失 $${p2pLoss.toLocaleString()} 元！幸運值 -2`
-                            }));
-                            pWs.send(JSON.stringify({
-                                type: 'state_updated',
-                                playerId: p.playerId,
-                                gameState: p.gameState
-                            }));
-                        }
-                    }
-                }
-            }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `⚠️ 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有 P2P N02，沒有人受影響。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有 P2P N02，沒有人受影響。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `⚠️ ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n血本無歸，損失總額 $${totalLoss.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `⚠️ 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家損失總額 $${totalLoss.toLocaleString()} 元。`
-            }));
-            
-            return `⚠️ P2P網上銀行破產！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `💰 總損失金額：$${totalLoss.toLocaleString()} 元\n` +
-                `💔 所有 P2P N02 已從財務報表中刪除\n` +
-                `🍀 受影響玩家幸運值 -2\n` +
-                `📊 詳細損失：\n${changes.join('\n')}`;
-        },
-        getEffectDescription: () => "市場消息：所有持有 P2P N02 的玩家，血本無歸，刪除 P2P 持倉，幸運值 -2"
-    },
 
+            for (const [, p] of room.players) {
+                if (!p.gameState.financeInvestments) continue;
+                const idx = p.gameState.financeInvestments.findIndex(inv => inv.id === "F05" || inv.id === "N02");
+                if (idx === -1) continue;
+
+                const p2p = p.gameState.financeInvestments[idx];
+                const loss = p2p.totalCost || (p2p.units * p2p.pricePerUnit);
+                p.gameState.financeInvestments.splice(idx, 1);
+                p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - loss);
+                p.gameState.luck = Math.max(0, p.gameState.luck - 2);
+                totalLoss += loss;
+                affected.push(p.playerName);
+                ctx.addTransactionRecord(
+                    p.playerName,
+                    { name: "P2P破產", type: "market_news", id: "M07" },
+                    "P2P損失", -loss,
+                    `P2P N02 血本無歸，損失 $${loss.toLocaleString()}`,
+                    null, p.gameState
+                );
+            }
+
+            if (affected.length === 0) return `📊 沒有玩家持有 P2P，無影響`;
+
+            return `⚠️ P2P 網上銀行破產！\n👥 受害玩家：${affected.join(', ')}\n💰 總損失：$${totalLoss.toLocaleString()}\n🍀 幸運值 -2`;
+        },
+        getEffectDescription: () => "市場消息：所有 P2P N02 持有者血本無歸"
+    },
+    // ==================== M08 - Great miracle day (stocks at 3x) ====================
     {
         id: "M08",
         name: "大奇蹟日",
@@ -753,177 +529,86 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            // 收集所有持有股票的玩家
-            const playersWithStocks = [];
-            
-            for (let [pWs, p] of room.players) {
-                let stockHoldings = [];
-                let totalValue = 0;
-                
-                if (p.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        // 原買入價的3倍出售
-                        const originalCost = holding.totalCost;
-                        const multiplier = 3;
-                        const sellPrice = originalCost * multiplier;
-                        const profit = sellPrice - originalCost;
-                        
-                        stockHoldings.push({
-                            stockId: stockId,
-                            name: holding.name || stockId,
-                            shares: holding.shares,
-                            originalCost: originalCost,
-                            avgCost: holding.purchasePrice,
-                            sellPrice: sellPrice,
-                            profit: profit
-                        });
-                        totalValue += sellPrice;
-                    }
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以 3 倍價格出售所有股票",
+        effect: (state) => `🌟 市場消息：大奇蹟日`,
+
+        findAffectedPlayers: (room) => {
+            const result = [];
+            for (const [ws, p] of room.players) {
+                if (!p.gameState.stockHoldings) continue;
+
+                let totalShares = 0;
+                let totalCost = 0;
+
+                for (const [, holding] of Object.entries(p.gameState.stockHoldings)) {
+                    totalShares += holding.shares;
+                    totalCost += holding.totalCost;
                 }
-                
-                if (stockHoldings.length > 0) {
-                    playersWithStocks.push({
-                        ws: pWs,
-                        player: p,
-                        stockHoldings: stockHoldings,
-                        totalValue: totalValue
+
+                if (totalShares > 0) {
+                    const sellValue = totalCost * 3;
+                    result.push({
+                        playerId: p.playerId,
+                        ws,
+                        assetInfo: {
+                            assetName: '所有股票',
+                            units: totalShares,
+                            originalCost: totalCost,
+                            sellValue,
+                            profit: sellValue - totalCost
+                        }
                     });
                 }
             }
-            
-            if (playersWithStocks.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🌟 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有股票，無法受益。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有股票，無法受益。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithStocks.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    stockHoldings: p.stockHoldings,
-                    totalValue: p.totalValue
-                }));
-                
-                return {
-                    type: 'stock_sell_choices',
-                    message: `🌟 ${card.name}\n\n${card.description}\n\n所有股票都可以原買入價 3 倍出售！\n\n請持有股票的玩家選擇是否出售：`,
-                    multiplier: 3,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let soldRecords = [];
-            let totalSoldValue = 0;
-            
-            for (const [playerName, willSell] of Object.entries(playerChoices)) {
-                if (!willSell) continue;
-                
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                let playerTotalProfit = 0;
-                let soldStocks = [];
-                
-                // 出售所有股票
-                if (playerObj.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(playerObj.gameState.stockHoldings)) {
-                        const originalCost = holding.totalCost;
-                        const multiplier = 3;
-                        const sellPrice = originalCost * multiplier;
-                        const profit = sellPrice - originalCost;
-                        
-                        // 增加现金
-                        playerObj.gameState.cash += sellPrice;
-                        playerTotalProfit += profit;
-                        totalSoldValue += sellPrice;
-                        
-                        soldStocks.push(`${holding.name || stockId}: ${holding.shares}股，成本 $${originalCost.toLocaleString()}，售出 $${sellPrice.toLocaleString()}，獲利 $${profit.toLocaleString()}`);
-                        
-                        // 记录交易
-                        addTransactionRecord(
-                            playerName,
-                            { name: "大奇蹟日出售股票", type: "market_news", id: "M08" },
-                            "股票出售",
-                            sellPrice,
-                            `以原買入價 3 倍出售股票！成本 $${originalCost.toLocaleString()}，售出 $${sellPrice.toLocaleString()}，獲利 $${profit.toLocaleString()}`,
-                            null,
-                            playerObj.gameState
-                        );
-                    }
-                }
-                
-                // 清空所有股票持仓
-                playerObj.gameState.stockHoldings = {};
-                
-                if (soldStocks.length > 0) {
-                    // 幸运值大幅提升（抓住奇蹟機會）
-                    playerObj.gameState.luck = Math.min(playerObj.gameState.maxLuck || 10, playerObj.gameState.luck + 3);
-                    
-                    // 精力恢复（心情愉悦）
-                    playerObj.gameState.energy = Math.min(playerObj.gameState.maxEnergy, playerObj.gameState.energy + 2);
-                    
-                    soldRecords.push(`${playerName}: 出售成功！總獲利 $${playerTotalProfit.toLocaleString()}\n   ${soldStocks.join('；')}`);
-                    
-                    // 通知该玩家
-                    if (playerWs) {
-                        playerWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `🌟 大奇蹟日！你以原買入價 3 倍出售了所有股票！總獲利 $${playerTotalProfit.toLocaleString()} 元，幸運值 +3，精力 +2！`
-                        }));
-                        playerWs.send(JSON.stringify({
-                            type: 'state_updated',
-                            playerId: playerObj.playerId,
-                            gameState: playerObj.gameState
-                        }));
-                    }
-                }
-            }
-            
-            if (soldRecords.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🌟 市場消息：${currentPlayer.playerName} 觸發了「${card.name}」，但沒有玩家選擇出售股票。`
-                });
-                return `📊 市場消息「${card.name}」完成，但沒有玩家選擇出售股票。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🌟 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n${soldRecords.length} 位玩家以原買入價 3 倍出售了所有股票，總金額 $${totalSoldValue.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🌟 市場消息「${card.name}」生效！${soldRecords.length} 位玩家成功出售股票，總金額 $${totalSoldValue.toLocaleString()} 元。`
-            }));
-            
-            return `🌟 大奇蹟日成功！\n` +
-                `👥 出售玩家：${soldRecords.map(r => r.split('\n')[0]).join(', ')}\n` +
-                `💰 總出售金額：$${totalSoldValue.toLocaleString()} 元\n` +
-                `📊 詳細記錄：\n${soldRecords.join('\n')}`;
+            return result;
         },
-        getEffectDescription: () => "市場消息：所有股票可以原買入價 3 倍出售，幸運值 +3，精力 +2"
+
+        applyChoices: (room, participants, ctx) => {
+            const sold = [];
+            let totalRevenue = 0;
+
+            for (const [playerName, willSell] of Object.entries(participants)) {
+                if (!willSell) continue;
+                const p = ctx.findPlayerByName(playerName);
+                if (!p || !p.gameState.stockHoldings) continue;
+
+                let playerRevenue = 0;
+                let playerProfit = 0;
+
+                for (const [, holding] of Object.entries(p.gameState.stockHoldings)) {
+                    const sellPrice = holding.totalCost * 3;
+                    playerRevenue += sellPrice;
+                    playerProfit += (sellPrice - holding.totalCost);
+                }
+
+                p.gameState.cash += playerRevenue;
+                p.gameState.stockHoldings = {};
+
+                p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 3);
+                p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
+                totalRevenue += playerRevenue;
+                sold.push(`${playerName} 獲利 $${playerProfit.toLocaleString()}`);
+                ctx.addTransactionRecord(
+                    playerName,
+                    { name: "大奇蹟日出售股票", type: "market_news", id: "M08" },
+                    "3倍出售所有股票", playerRevenue,
+                    `所有股票以 3 倍價格出售，獲利 $${playerProfit.toLocaleString()}`,
+                    null, p.gameState
+                );
+            }
+
+            if (sold.length === 0) return `🌟 大奇蹟日發生，但無人選擇出售`;
+
+            return `🌟 大奇蹟日！\n👥 出售玩家：\n${sold.join('\n')}\n💰 總成交金額：$${totalRevenue.toLocaleString()}\n🍀 幸運值 +3, 精力 +2`;
+        },
+
+        getEffectDescription: () => "市場消息：所有股票可以 3 倍價格出售"
     },
 
+
+    // ==================== M09 - Stock black swan ====================
     {
         id: "M09",
         name: "股市黑天鵝",
@@ -932,644 +617,146 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                let playerChanges = [];
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `🦢 市場消息：股市黑天鵝`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+
+            for (const [, p] of room.players) {
+                if (!p.gameState.stockHoldings) continue;
                 let hasStock = false;
-                
-                if (p.gameState.stockHoldings && Object.keys(p.gameState.stockHoldings).length > 0) {
+
+                for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
+                    const oldShares = holding.shares;
+                    const newShares = Math.floor(oldShares / 2);
+
+                    if (newShares === 0) {
+                        delete p.gameState.stockHoldings[stockId];
+                    } else {
+                        holding.shares = newShares;
+                        holding.purchasePrice = holding.purchasePrice * 2;
+                    }
                     hasStock = true;
-                    
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        const oldShares = holding.shares;
-                        const newShares = Math.floor(oldShares / 2); // 股數減半（向下取整）
-                        const sharesReduced = oldShares - newShares;
-                        
-                        if (newShares === 0) {
-                            // 如果原本只有1股，合併後為0股，刪除該股票
-                            playerChanges.push(`${holding.name || stockId}: ${oldShares}股 → 0股 (被合併消失)`);
-                            delete p.gameState.stockHoldings[stockId];
-                        } else {
-                            // 更新股數，總成本不變，因此平均成本翻倍
-                            const oldAvgCost = holding.purchasePrice;
-                            const newAvgCost = oldAvgCost * 2;
-                            
-                            holding.shares = newShares;
-                            holding.purchasePrice = newAvgCost;
-                            // totalCost 保持不變
-                            
-                            playerChanges.push(`${holding.name || stockId}: ${oldShares}股 → ${newShares}股 (成本不變，平均成本 $${oldAvgCost.toFixed(2)} → $${newAvgCost.toFixed(2)})`);
-                        }
-                    }
-                    
-                    if (playerChanges.length > 0) {
-                        affectedPlayers.push(p.playerName);
-                        changes.push(`${p.playerName}:\n   ${playerChanges.join('\n   ')}`);
-                        
-                        // 幸运值下降（股市黑天鵝影響）
-                        p.gameState.luck = Math.max(0, p.gameState.luck - 1);
-                        
-                        // 记录交易
-                        addTransactionRecord(
-                            p.playerName,
-                            { name: "股市黑天鵝", type: "market_news", id: "M09" },
-                            "股票合併",
-                            0,
-                            `股市黑天鵝！所有持股股數減半，每兩股合併成一股。${playerChanges.join('；')}，幸運值 -1`,
-                            null,
-                            p.gameState
-                        );
-                        
-                        // 通知该玩家
-                        if (pWs && pWs !== ws) {
-                            pWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `🦢 市場消息：${currentPlayer.playerName} 觸發了「股市黑天鵝」！你的所有股票股數減半，幸運值 -1！\n${playerChanges.join('\n')}`
-                            }));
-                            pWs.send(JSON.stringify({
-                                type: 'state_updated',
-                                playerId: p.playerId,
-                                gameState: p.gameState
-                            }));
-                        }
-                    }
+                }
+
+                if (hasStock) {
+                    p.gameState.luck = Math.max(0, p.gameState.luck - 1);
+                    affected.push(p.playerName);
+                    ctx.addTransactionRecord(
+                        p.playerName,
+                        { name: "股市黑天鵝", type: "market_news", id: "M09" },
+                        "股票合併", 0,
+                        `所有股數減半，總成本不變`,
+                        null, p.gameState
+                    );
                 }
             }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🦢 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有股票，沒有人受影響。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有股票，沒有人受影響。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🦢 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n所有股票股數減半，每兩股合併成一股！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🦢 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家的股票股數減半。`
-            }));
-            
-            return `🦢 股市黑天鵝發生！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `📊 股票合併：每兩股合併成一股，股數減半\n` +
-                `💰 股票總成本不變，平均成本翻倍\n` +
-                `🍀 受影響玩家幸運值 -1\n` +
-                `📊 詳細變化：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有股票，無影響`;
+
+            return `🦢 股市黑天鵝！\n👥 受影響玩家：${affected.join(', ')}\n📊 所有股票股數減半\n🍀 幸運值 -1`;
         },
-        getEffectDescription: () => "市場消息：所有持有股票的玩家，股數減半（每兩股合併成一股），總成本不變，平均成本翻倍，幸運值 -1"
+        getEffectDescription: () => "市場消息：所有股票股數減半"
     },
 
+    // ==================== M10 - Stock news set A (B01=10, A01=2, H01=10) ====================
     {
         id: "M10",
-        name: "金融市場動盪",
+        name: "金融市場動盪 (熊市)",
         description: "股票行情：B01 金融公司 $10 | A01 科技公司 $2 | H01 健康食品公司 $10\n所有持有股票的玩家可以選擇出售與否（不消耗精力）",
         image: "../cards/revelation/market/M10.png",
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const stockPrices = {
-                "B01": { name: "股票交易 - B01金融公司", price: 10, originalRange: "5-30" },
-                "A01": { name: "股票交易 - A01科技公司", price: 2, originalRange: "1-100" },
-                "H01": { name: "股票交易 - H01健康食品公司", price: 10, originalRange: "1-10" }
-            };
-            
-            // 收集所有持有股票的玩家
-            const playersWithStocks = [];
-            for (let [pWs, p] of room.players) {
-                const playerStocks = [];
-                if (p.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        const stockCode = holding.code || stockId;
-                        if (stockPrices[stockCode]) {
-                            playerStocks.push({
-                                stockId: stockId,
-                                stockCode: stockCode,
-                                stockName: stockPrices[stockCode].name,
-                                shares: holding.shares,
-                                currentPrice: stockPrices[stockCode].price,
-                                avgCost: holding.purchasePrice
-                            });
-                        }
-                    }
-                }
-                if (playerStocks.length > 0) {
-                    playersWithStocks.push({
-                        ws: pWs,
-                        player: p,
-                        stocks: playerStocks
-                    });
-                }
-            }
-            
-            if (playersWithStocks.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有相關股票。`
-                });
-                return `📊 市場消息卡「${card.name}」生效，但沒有玩家持有相關股票。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithStocks.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    stocks: p.stocks
-                }));
-                
-                return {
-                    type: 'market_news_choices',
-                    message: `📊 ${card.name}\n\n${card.description}\n\n請持有股票的玩家選擇是否出售股票：`,
-                    stockPrices: stockPrices,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let totalSold = 0;
-            let soldRecords = [];
-            
-            for (const [playerName, choices] of Object.entries(playerChoices)) {
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                for (const [stockCode, willSell] of Object.entries(choices)) {
-                    if (willSell && stockPrices[stockCode]) {
-                        // 找到对应的持股
-                        let holdingToSell = null;
-                        let stockIdToSell = null;
-                        for (const [stockId, holding] of Object.entries(playerObj.gameState.stockHoldings || {})) {
-                            if (holding.code === stockCode || stockId.includes(stockCode)) {
-                                holdingToSell = holding;
-                                stockIdToSell = stockId;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingToSell && holdingToSell.shares > 0) {
-                            const sellPrice = stockPrices[stockCode].price;
-                            const totalRevenue = holdingToSell.shares * sellPrice;
-                            const profit = totalRevenue - holdingToSell.totalCost;
-                            
-                            playerObj.gameState.cash += totalRevenue;
-                            soldRecords.push(`${playerName} 賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name} @ $${sellPrice}，獲利 ${profit >= 0 ? '+' : ''}${profit.toLocaleString()}`);
-                            
-                            addTransactionRecord(
-                                playerName,
-                                { name: `市場消息-賣出${stockPrices[stockCode].name}`, type: "market_news", id: card.id },
-                                "市場消息出售",
-                                totalRevenue,
-                                `響應市場消息，賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name}，成交價 $${sellPrice}/股`,
-                                null,
-                                playerObj.gameState
-                            );
-                            
-                            // 清除持股
-                            delete playerObj.gameState.stockHoldings[stockIdToSell];
-                            totalSold++;
-                        }
-                    }
-                }
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📊 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！${soldRecords.length > 0 ? soldRecords.join('；') : '沒有玩家出售股票'}`
-            });
-            
-            return `📊 市場消息「${card.name}」完成！${soldRecords.length > 0 ? soldRecords.join('\n') : '沒有玩家出售股票'}`;
-        },
-        getEffectDescription: () => "市場消息：影響股票價格，持有相關股票的玩家可選擇出售"
-    },
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以市場價格出售股票",
+        stockPrices: { B01: 10, A01: 2, H01: 10 },
+        effect: (state) => `📊 市場消息：金融市場動盪`,
 
+        findAffectedPlayers: function(room) {
+            return _findStockHolders(room, this.stockPrices);
+        },
+        applyChoices: function(room, participants, ctx) {
+            return _applyStockSales(room, participants, ctx, this.stockPrices, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：B01=$10, A01=$2, H01=$10"
+    },
+    // ==================== M11 - Stock news set B (B01=30, A01=60, H01=4) ====================
     {
         id: "M11",
-        name: "金融市場動盪",
+        name: "金融市場動盪 (混合)",
         description: "股票行情：B01 金融公司 $30 | A01 科技公司 $60 | H01 健康食品公司 $4\n所有持有股票的玩家可以選擇出售與否（不消耗精力）",
         image: "../cards/revelation/market/M11.png",
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const stockPrices = {
-                "B01": { name: "股票交易 - B01金融公司", price: 30, originalRange: "5-30" },
-                "A01": { name: "股票交易 - A01科技公司", price: 60, originalRange: "1-100" },
-                "H01": { name: "股票交易 - H01健康食品公司", price: 4, originalRange: "1-10" }
-            };
-            
-            // 收集所有持有股票的玩家
-            const playersWithStocks = [];
-            for (let [pWs, p] of room.players) {
-                const playerStocks = [];
-                if (p.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        const stockCode = holding.code || stockId;
-                        if (stockPrices[stockCode]) {
-                            playerStocks.push({
-                                stockId: stockId,
-                                stockCode: stockCode,
-                                stockName: stockPrices[stockCode].name,
-                                shares: holding.shares,
-                                currentPrice: stockPrices[stockCode].price,
-                                avgCost: holding.purchasePrice
-                            });
-                        }
-                    }
-                }
-                if (playerStocks.length > 0) {
-                    playersWithStocks.push({
-                        ws: pWs,
-                        player: p,
-                        stocks: playerStocks
-                    });
-                }
-            }
-            
-            if (playersWithStocks.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有相關股票。`
-                });
-                return `📊 市場消息卡「${card.name}」生效，但沒有玩家持有相關股票。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithStocks.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    stocks: p.stocks
-                }));
-                
-                return {
-                    type: 'market_news_choices',
-                    message: `📊 ${card.name}\n\n${card.description}\n\n請持有股票的玩家選擇是否出售股票：`,
-                    stockPrices: stockPrices,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let totalSold = 0;
-            let soldRecords = [];
-            
-            for (const [playerName, choices] of Object.entries(playerChoices)) {
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                for (const [stockCode, willSell] of Object.entries(choices)) {
-                    if (willSell && stockPrices[stockCode]) {
-                        // 找到对应的持股
-                        let holdingToSell = null;
-                        let stockIdToSell = null;
-                        for (const [stockId, holding] of Object.entries(playerObj.gameState.stockHoldings || {})) {
-                            if (holding.code === stockCode || stockId.includes(stockCode)) {
-                                holdingToSell = holding;
-                                stockIdToSell = stockId;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingToSell && holdingToSell.shares > 0) {
-                            const sellPrice = stockPrices[stockCode].price;
-                            const totalRevenue = holdingToSell.shares * sellPrice;
-                            const profit = totalRevenue - holdingToSell.totalCost;
-                            
-                            playerObj.gameState.cash += totalRevenue;
-                            soldRecords.push(`${playerName} 賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name} @ $${sellPrice}，獲利 ${profit >= 0 ? '+' : ''}${profit.toLocaleString()}`);
-                            
-                            addTransactionRecord(
-                                playerName,
-                                { name: `市場消息-賣出${stockPrices[stockCode].name}`, type: "market_news", id: card.id },
-                                "市場消息出售",
-                                totalRevenue,
-                                `響應市場消息，賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name}，成交價 $${sellPrice}/股`,
-                                null,
-                                playerObj.gameState
-                            );
-                            
-                            // 清除持股
-                            delete playerObj.gameState.stockHoldings[stockIdToSell];
-                            totalSold++;
-                        }
-                    }
-                }
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📊 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！${soldRecords.length > 0 ? soldRecords.join('；') : '沒有玩家出售股票'}`
-            });
-            
-            return `📊 市場消息「${card.name}」完成！${soldRecords.length > 0 ? soldRecords.join('\n') : '沒有玩家出售股票'}`;
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以市場價格出售股票",
+        stockPrices: { B01: 30, A01: 60, H01: 4 },
+        effect: (state) => `📊 市場消息：金融市場動盪`,
+
+        findAffectedPlayers: function(room) {
+            return _findStockHolders(room, this.stockPrices);
         },
-        getEffectDescription: () => "市場消息：影響股票價格，持有相關股票的玩家可選擇出售"
+        applyChoices: function(room, participants, ctx) {
+            return _applyStockSales(room, participants, ctx, this.stockPrices, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：B01=$30, A01=$60, H01=$4"
     },
 
-     {
+    // ==================== M12 - Stock news set C (B01=5, A01=100, H01=6) ====================
+    {
         id: "M12",
-        name: "金融市場動盪",
+        name: "金融市場動盪 (科技牛市)",
         description: "股票行情：B01 金融公司 $5 | A01 科技公司 $100 | H01 健康食品公司 $6\n所有持有股票的玩家可以選擇出售與否（不消耗精力）",
         image: "../cards/revelation/market/M12.png",
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const stockPrices = {
-                "B01": { name: "股票交易 - B01金融公司", price: 5, originalRange: "5-30" },
-                "A01": { name: "股票交易 - A01科技公司", price: 100, originalRange: "1-100" },
-                "H01": { name: "股票交易 - H01健康食品公司", price: 6, originalRange: "1-10" }
-            };
-            
-            // 收集所有持有股票的玩家
-            const playersWithStocks = [];
-            for (let [pWs, p] of room.players) {
-                const playerStocks = [];
-                if (p.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        const stockCode = holding.code || stockId;
-                        if (stockPrices[stockCode]) {
-                            playerStocks.push({
-                                stockId: stockId,
-                                stockCode: stockCode,
-                                stockName: stockPrices[stockCode].name,
-                                shares: holding.shares,
-                                currentPrice: stockPrices[stockCode].price,
-                                avgCost: holding.purchasePrice
-                            });
-                        }
-                    }
-                }
-                if (playerStocks.length > 0) {
-                    playersWithStocks.push({
-                        ws: pWs,
-                        player: p,
-                        stocks: playerStocks
-                    });
-                }
-            }
-            
-            if (playersWithStocks.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有相關股票。`
-                });
-                return `📊 市場消息卡「${card.name}」生效，但沒有玩家持有相關股票。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithStocks.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    stocks: p.stocks
-                }));
-                
-                return {
-                    type: 'market_news_choices',
-                    message: `📊 ${card.name}\n\n${card.description}\n\n請持有股票的玩家選擇是否出售股票：`,
-                    stockPrices: stockPrices,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let totalSold = 0;
-            let soldRecords = [];
-            
-            for (const [playerName, choices] of Object.entries(playerChoices)) {
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                for (const [stockCode, willSell] of Object.entries(choices)) {
-                    if (willSell && stockPrices[stockCode]) {
-                        // 找到对应的持股
-                        let holdingToSell = null;
-                        let stockIdToSell = null;
-                        for (const [stockId, holding] of Object.entries(playerObj.gameState.stockHoldings || {})) {
-                            if (holding.code === stockCode || stockId.includes(stockCode)) {
-                                holdingToSell = holding;
-                                stockIdToSell = stockId;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingToSell && holdingToSell.shares > 0) {
-                            const sellPrice = stockPrices[stockCode].price;
-                            const totalRevenue = holdingToSell.shares * sellPrice;
-                            const profit = totalRevenue - holdingToSell.totalCost;
-                            
-                            playerObj.gameState.cash += totalRevenue;
-                            soldRecords.push(`${playerName} 賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name} @ $${sellPrice}，獲利 ${profit >= 0 ? '+' : ''}${profit.toLocaleString()}`);
-                            
-                            addTransactionRecord(
-                                playerName,
-                                { name: `市場消息-賣出${stockPrices[stockCode].name}`, type: "market_news", id: card.id },
-                                "市場消息出售",
-                                totalRevenue,
-                                `響應市場消息，賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name}，成交價 $${sellPrice}/股`,
-                                null,
-                                playerObj.gameState
-                            );
-                            
-                            // 清除持股
-                            delete playerObj.gameState.stockHoldings[stockIdToSell];
-                            totalSold++;
-                        }
-                    }
-                }
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📊 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！${soldRecords.length > 0 ? soldRecords.join('；') : '沒有玩家出售股票'}`
-            });
-            
-            return `📊 市場消息「${card.name}」完成！${soldRecords.length > 0 ? soldRecords.join('\n') : '沒有玩家出售股票'}`;
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以市場價格出售股票",
+        stockPrices: { B01: 5, A01: 100, H01: 6 },
+        effect: (state) => `📊 市場消息：金融市場動盪`,
+
+        findAffectedPlayers: function(room) {
+            return _findStockHolders(room, this.stockPrices);
         },
-        getEffectDescription: () => "市場消息：影響股票價格，持有相關股票的玩家可選擇出售"
+        applyChoices: function(room, participants, ctx) {
+            return _applyStockSales(room, participants, ctx, this.stockPrices, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：B01=$5, A01=$100, H01=$6"
     },
 
-     {
+    // ==================== M13 - Stock news set D (B01=15, A01=20, H01=8) ====================
+    {
         id: "M13",
-        name: "金融市場動盪",
+        name: "金融市場動盪 (平穩)",
         description: "股票行情：B01 金融公司 $15 | A01 科技公司 $20 | H01 健康食品公司 $8\n所有持有股票的玩家可以選擇出售與否（不消耗精力）",
         image: "../cards/revelation/market/M13.png",
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const stockPrices = {
-                "B01": { name: "股票交易 - B01金融公司", price: 15, originalRange: "5-30" },
-                "A01": { name: "股票交易 - A01科技公司", price: 20, originalRange: "1-100" },
-                "H01": { name: "股票交易 - H01健康食品公司", price: 8, originalRange: "1-10" }
-            };
-            
-            // 收集所有持有股票的玩家
-            const playersWithStocks = [];
-            for (let [pWs, p] of room.players) {
-                const playerStocks = [];
-                if (p.gameState.stockHoldings) {
-                    for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
-                        const stockCode = holding.code || stockId;
-                        if (stockPrices[stockCode]) {
-                            playerStocks.push({
-                                stockId: stockId,
-                                stockCode: stockCode,
-                                stockName: stockPrices[stockCode].name,
-                                shares: holding.shares,
-                                currentPrice: stockPrices[stockCode].price,
-                                avgCost: holding.purchasePrice
-                            });
-                        }
-                    }
-                }
-                if (playerStocks.length > 0) {
-                    playersWithStocks.push({
-                        ws: pWs,
-                        player: p,
-                        stocks: playerStocks
-                    });
-                }
-            }
-            
-            if (playersWithStocks.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📊 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有相關股票。`
-                });
-                return `📊 市場消息卡「${card.name}」生效，但沒有玩家持有相關股票。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithStocks.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    stocks: p.stocks
-                }));
-                
-                return {
-                    type: 'market_news_choices',
-                    message: `📊 ${card.name}\n\n${card.description}\n\n請持有股票的玩家選擇是否出售股票：`,
-                    stockPrices: stockPrices,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let totalSold = 0;
-            let soldRecords = [];
-            
-            for (const [playerName, choices] of Object.entries(playerChoices)) {
-                let playerObj = null;
-                let playerWs = null;
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        break;
-                    }
-                }
-                
-                if (!playerObj) continue;
-                
-                for (const [stockCode, willSell] of Object.entries(choices)) {
-                    if (willSell && stockPrices[stockCode]) {
-                        // 找到对应的持股
-                        let holdingToSell = null;
-                        let stockIdToSell = null;
-                        for (const [stockId, holding] of Object.entries(playerObj.gameState.stockHoldings || {})) {
-                            if (holding.code === stockCode || stockId.includes(stockCode)) {
-                                holdingToSell = holding;
-                                stockIdToSell = stockId;
-                                break;
-                            }
-                        }
-                        
-                        if (holdingToSell && holdingToSell.shares > 0) {
-                            const sellPrice = stockPrices[stockCode].price;
-                            const totalRevenue = holdingToSell.shares * sellPrice;
-                            const profit = totalRevenue - holdingToSell.totalCost;
-                            
-                            playerObj.gameState.cash += totalRevenue;
-                            soldRecords.push(`${playerName} 賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name} @ $${sellPrice}，獲利 ${profit >= 0 ? '+' : ''}${profit.toLocaleString()}`);
-                            
-                            addTransactionRecord(
-                                playerName,
-                                { name: `市場消息-賣出${stockPrices[stockCode].name}`, type: "market_news", id: card.id },
-                                "市場消息出售",
-                                totalRevenue,
-                                `響應市場消息，賣出 ${holdingToSell.shares}股 ${stockPrices[stockCode].name}，成交價 $${sellPrice}/股`,
-                                null,
-                                playerObj.gameState
-                            );
-                            
-                            // 清除持股
-                            delete playerObj.gameState.stockHoldings[stockIdToSell];
-                            totalSold++;
-                        }
-                    }
-                }
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📊 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！${soldRecords.length > 0 ? soldRecords.join('；') : '沒有玩家出售股票'}`
-            });
-            
-            return `📊 市場消息「${card.name}」完成！${soldRecords.length > 0 ? soldRecords.join('\n') : '沒有玩家出售股票'}`;
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以市場價格出售股票",
+        stockPrices: { B01: 15, A01: 20, H01: 8 },
+        effect: (state) => `📊 市場消息：金融市場動盪`,
+
+        findAffectedPlayers: function(room) {
+            return _findStockHolders(room, this.stockPrices);
         },
-        getEffectDescription: () => "市場消息：影響股票價格，持有相關股票的玩家可選擇出售"
+        applyChoices: function(room, participants, ctx) {
+            return _applyStockSales(room, participants, ctx, this.stockPrices, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：B01=$15, A01=$20, H01=$8"
     },
 
+
+    // ==================== M14 - Property demolition compensation ====================
     {
         id: "M14",
         name: "房屋遷拆",
@@ -1578,97 +765,39 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            const compensationAmount = 5000000; // 500萬
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                // 檢查玩家是否持有 H01 陳年唐樓
-                let hasProperty = false;
-                let propertyDetails = [];
-                let compensationReceived = 0;
-                
-                // 檢查 propertyInvestments
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === "H01");
-                    
-                    if (propertyIndex !== -1) {
-                        const property = p.gameState.propertyInvestments[propertyIndex];
-                        hasProperty = true;
-                        compensationReceived = compensationAmount;
-                        
-                        propertyDetails.push(`${property.name}: 原價 $${property.totalPrice?.toLocaleString() || property.cost?.toLocaleString() || '?'} 元`);
-                        
-                        // 从地产投資中删除（已被收購）
-                        p.gameState.propertyInvestments.splice(propertyIndex, 1);
-                        
-                        // 增加现金（補償金）
-                        p.gameState.cash += compensationReceived;
-                        
-                        // 更新总資产
-                        p.gameState.totalAssets = (p.gameState.totalAssets || 0) + compensationReceived;
-                        
-                        affectedPlayers.push(p.playerName);
-                        changes.push(`${p.playerName}: 獲得補償 $${compensationReceived.toLocaleString()} 元 (${propertyDetails.join(', ')})`);
-                        
-                        // 记录交易
-                        addTransactionRecord(
-                            p.playerName,
-                            { name: "房屋遷拆補償", type: "market_news", id: "M10" },
-                            "房屋收購補償",
-                            compensationReceived,
-                            `市建局收購陳年唐樓！獲得遷拆補償 $${compensationReceived.toLocaleString()} 元`,
-                            null,
-                            p.gameState
-                        );
-                        
-                        // 通知该玩家
-                        if (pWs && pWs !== ws) {
-                            pWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `🏗️ 市場消息：${currentPlayer.playerName} 觸發了「房屋遷拆」！你的陳年唐樓被市建局收購，獲得補償 $${compensationReceived.toLocaleString()} 元！`
-                            }));
-                            pWs.send(JSON.stringify({
-                                type: 'state_updated',
-                                playerId: p.playerId,
-                                gameState: p.gameState
-                            }));
-                        }
-                    }
-                }
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `🏗️ 市場消息：房屋遷拆`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const compensation = 5000000;
+
+            for (const [, p] of room.players) {
+                if (!p.gameState.propertyInvestments) continue;
+                const idx = p.gameState.propertyInvestments.findIndex(inv => inv.id === "H01");
+                if (idx === -1) continue;
+
+                p.gameState.propertyInvestments.splice(idx, 1);
+                p.gameState.cash += compensation;
+                p.gameState.totalAssets = (p.gameState.totalAssets || 0) + compensation;
+                affected.push(p.playerName);
+                ctx.addTransactionRecord(
+                    p.playerName,
+                    { name: "房屋遷拆補償", type: "market_news", id: "M14" },
+                    "房屋收購補償", compensation,
+                    `陳年唐樓被收購，獲補償 $${compensation.toLocaleString()}`,
+                    null, p.gameState
+                );
             }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏗️ 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有 H01 陳年唐樓，無事發生。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有 H01 陳年唐樓，無事發生。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏗️ ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n獲得遷拆補償總額 $${(affectedPlayers.length * compensationAmount).toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏗️ 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家獲得遷拆補償，每人 $${compensationAmount.toLocaleString()} 元。`
-            }));
-            
-            return `🏗️ 房屋遷拆成功！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `💰 每位獲得補償：$${compensationAmount.toLocaleString()} 元\n` +
-                `🏠 被收購物業：H01 陳年唐樓\n` +
-                `📊 詳細記錄：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有 H01，無事發生`;
+
+            return `🏗️ 房屋遷拆！\n👥 受惠玩家：${affected.join(', ')}\n💰 每人補償：$${compensation.toLocaleString()}`;
         },
-        getEffectDescription: () => "市場消息：持有 H01 陳年唐樓的玩家獲得 $500 萬遷拆補償"
+        getEffectDescription: () => "市場消息：持有 H01 陳年唐樓的玩家獲得 $500 萬補償"
     },
 
+    // ==================== M15 - Buy H02 residential at $12M ====================
     {
         id: "M15",
         name: "求購香港中西區住宅物業",
@@ -1677,168 +806,22 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const marketPrice = 12000000; // 1200萬
-            const targetPropertyId = "H02"; // 香港中西區住宅的 ID
-            
-            // 收集所有持有 H02 香港中西區住宅的玩家
-            const playersWithProperty = [];
-            
-            for (let [pWs, p] of room.players) {
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                    
-                    if (propertyIndex !== -1) {
-                        const property = p.gameState.propertyInvestments[propertyIndex];
-                        const mortgageAmount = property.mortgageAmount || 0;
-                        const playerProfit = marketPrice - mortgageAmount;
-                        
-                        playersWithProperty.push({
-                            ws: pWs,
-                            player: p,
-                            property: property,
-                            propertyIndex: propertyIndex,
-                            mortgageAmount: mortgageAmount,
-                            playerProfit: playerProfit
-                        });
-                    }
-                }
-            }
-            
-            if (playersWithProperty.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有香港中西區住宅物業，無法出售。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有香港中西區住宅物業，無法出售。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithProperty.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    property: {
-                        name: p.property.name,
-                        marketPrice: marketPrice,
-                        mortgageAmount: p.mortgageAmount,
-                        profit: p.playerProfit
-                    }
-                }));
-                
-                return {
-                    type: 'property_sell_choices',
-                    message: `🏠 ${card.name}\n\n${card.description}\n\n市場價格：$${marketPrice.toLocaleString()} 元/套\n收益計算：市場價格 - 按揭貸款\n\n請持有香港中西區住宅物業的玩家選擇是否出售：`,
-                    marketPrice: marketPrice,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let soldRecords = [];
-            let totalPaid = 0;
-            
-            for (const [playerName, willSell] of Object.entries(playerChoices)) {
-                if (!willSell) continue;
-                
-                let playerObj = null;
-                let playerWs = null;
-                let propertyData = null;
-                let propertyIndex = null;
-                
-                // 找到对应的玩家
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        if (p.gameState.propertyInvestments) {
-                            const idx = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                            if (idx !== -1) {
-                                propertyData = p.gameState.propertyInvestments[idx];
-                                propertyIndex = idx;
-                            }
-                        }
-                        break;
-                    }
-                }
-                
-                if (!playerObj || !propertyData) continue;
-                
-                const mortgageAmount = propertyData.mortgageAmount || 0;
-                const profit = marketPrice - mortgageAmount;
-                
-                // 增加现金（出售收益）
-                playerObj.gameState.cash += profit;
-                totalPaid += profit;
-                
-                // 从地产投資中删除
-                playerObj.gameState.propertyInvestments.splice(propertyIndex, 1);
-                
-                // 如果有按揭貸款，需要清除相關的每月供款
-                if (mortgageAmount > 0 && playerObj.gameState.mortgagePayment) {
-                    playerObj.gameState.mortgagePayment = Math.max(0, playerObj.gameState.mortgagePayment - (propertyData.monthlyPayment || 0));
-                }
-                
-                // 幸运值提升（成功出售）
-                playerObj.gameState.luck = Math.min(playerObj.gameState.maxLuck || 10, playerObj.gameState.luck + 1);
-                
-                soldRecords.push(`${playerName}: 出售香港中西區住宅，獲得 $${profit.toLocaleString()} 元 (市場價 $${marketPrice.toLocaleString()} - 按揭 $${mortgageAmount.toLocaleString()})`);
-                
-                // 记录交易
-                addTransactionRecord(
-                    playerName,
-                    { name: "求購香港中西區住宅物業", type: "market_news", id: "M11" },
-                    "物業出售",
-                    profit,
-                    `出售香港中西區住宅！市場價格 $${marketPrice.toLocaleString()}，按揭貸款 $${mortgageAmount.toLocaleString()}，獲得 $${profit.toLocaleString()} 元，幸運值 +1`,
-                    null,
-                    playerObj.gameState
-                );
-                
-                // 通知该玩家
-                if (playerWs) {
-                    playerWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `🏠 你成功出售了香港中西區住宅！獲得 $${profit.toLocaleString()} 元，幸運值 +1！`
-                    }));
-                    playerWs.send(JSON.stringify({
-                        type: 'state_updated',
-                        playerId: playerObj.playerId,
-                        gameState: playerObj.gameState
-                    }));
-                }
-            }
-            
-            if (soldRecords.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 觸發了「${card.name}」，但沒有玩家選擇出售物業。`
-                });
-                return `📊 市場消息「${card.name}」完成，但沒有玩家選擇出售物業。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏠 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n${soldRecords.length} 位玩家成功出售香港中西區住宅，總金額 $${totalPaid.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏠 市場消息「${card.name}」生效！${soldRecords.length} 位玩家成功出售物業，總金額 $${totalPaid.toLocaleString()} 元。`
-            }));
-            
-            return `🏠 求購香港中西區住宅物業成功！\n` +
-                `👥 出售玩家：${soldRecords.map(r => r.split(':')[0]).join(', ')}\n` +
-                `💰 總支付金額：$${totalPaid.toLocaleString()} 元\n` +
-                `📊 詳細記錄：\n${soldRecords.join('\n')}`;
-        },
-        getEffectDescription: () => "市場消息：持有 H02 香港中西區住宅的玩家可以 $12,000,000 出售，收益 = 市價 - 按揭貸款"
-    },
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以 $12,000,000 出售",
+        marketPrice: 12000000,
+        targetPropertyId: "H02",
+        effect: (state) => `🏠 市場消息：求購中西區住宅`,
 
+        findAffectedPlayers: function(room) {
+            return _findPropertyHolders(room, this.targetPropertyId, this.marketPrice);
+        },
+        applyChoices: function(room, participants, ctx) {
+            return _applyPropertySales(room, participants, ctx, this.targetPropertyId, this.marketPrice, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：H02 香港中西區住宅可以 $12,000,000 出售"
+    },
+    // ==================== M16 - Buy H03 residential at $8M ====================
     {
         id: "M16",
         name: "求購香港油尖旺區住宅物業",
@@ -1847,168 +830,23 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const marketPrice = 8000000; // 800萬
-            const targetPropertyId = "H03"; // 香港油尖旺區住宅的 ID
-            
-            // 收集所有持有 H03 香港油尖旺區住宅的玩家
-            const playersWithProperty = [];
-            
-            for (let [pWs, p] of room.players) {
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                    
-                    if (propertyIndex !== -1) {
-                        const property = p.gameState.propertyInvestments[propertyIndex];
-                        const mortgageAmount = property.mortgageAmount || 0;
-                        const playerProfit = marketPrice - mortgageAmount;
-                        
-                        playersWithProperty.push({
-                            ws: pWs,
-                            player: p,
-                            property: property,
-                            propertyIndex: propertyIndex,
-                            mortgageAmount: mortgageAmount,
-                            playerProfit: playerProfit
-                        });
-                    }
-                }
-            }
-            
-            if (playersWithProperty.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有香港油尖旺區住宅物業，無法出售。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有香港油尖旺區住宅物業，無法出售。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithProperty.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    property: {
-                        name: p.property.name,
-                        marketPrice: marketPrice,
-                        mortgageAmount: p.mortgageAmount,
-                        profit: p.playerProfit
-                    }
-                }));
-                
-                return {
-                    type: 'property_sell_choices',
-                    message: `🏠 ${card.name}\n\n${card.description}\n\n市場價格：$${marketPrice.toLocaleString()} 元/套\n收益計算：市場價格 - 按揭貸款\n\n請持有香港油尖旺區住宅物業的玩家選擇是否出售：`,
-                    marketPrice: marketPrice,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let soldRecords = [];
-            let totalPaid = 0;
-            
-            for (const [playerName, willSell] of Object.entries(playerChoices)) {
-                if (!willSell) continue;
-                
-                let playerObj = null;
-                let playerWs = null;
-                let propertyData = null;
-                let propertyIndex = null;
-                
-                // 找到对应的玩家
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        if (p.gameState.propertyInvestments) {
-                            const idx = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                            if (idx !== -1) {
-                                propertyData = p.gameState.propertyInvestments[idx];
-                                propertyIndex = idx;
-                            }
-                        }
-                        break;
-                    }
-                }
-                
-                if (!playerObj || !propertyData) continue;
-                
-                const mortgageAmount = propertyData.mortgageAmount || 0;
-                const profit = marketPrice - mortgageAmount;
-                
-                // 增加现金（出售收益）
-                playerObj.gameState.cash += profit;
-                totalPaid += profit;
-                
-                // 从地产投資中删除
-                playerObj.gameState.propertyInvestments.splice(propertyIndex, 1);
-                
-                // 如果有按揭貸款，需要清除相關的每月供款
-                if (mortgageAmount > 0 && playerObj.gameState.mortgagePayment) {
-                    playerObj.gameState.mortgagePayment = Math.max(0, playerObj.gameState.mortgagePayment - (propertyData.monthlyPayment || 0));
-                }
-                
-                // 幸运值提升（成功出售）
-                playerObj.gameState.luck = Math.min(playerObj.gameState.maxLuck || 10, playerObj.gameState.luck + 1);
-                
-                soldRecords.push(`${playerName}: 出售香港油尖旺區住宅，獲得 $${profit.toLocaleString()} 元 (市場價 $${marketPrice.toLocaleString()} - 按揭 $${mortgageAmount.toLocaleString()})`);
-                
-                // 记录交易
-                addTransactionRecord(
-                    playerName,
-                    { name: "求購香港油尖旺區住宅物業", type: "market_news", id: "M12" },
-                    "物業出售",
-                    profit,
-                    `出售香港油尖旺區住宅！市場價格 $${marketPrice.toLocaleString()}，按揭貸款 $${mortgageAmount.toLocaleString()}，獲得 $${profit.toLocaleString()} 元，幸運值 +1`,
-                    null,
-                    playerObj.gameState
-                );
-                
-                // 通知该玩家
-                if (playerWs) {
-                    playerWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `🏠 你成功出售了香港油尖旺區住宅！獲得 $${profit.toLocaleString()} 元，幸運值 +1！`
-                    }));
-                    playerWs.send(JSON.stringify({
-                        type: 'state_updated',
-                        playerId: playerObj.playerId,
-                        gameState: playerObj.gameState
-                    }));
-                }
-            }
-            
-            if (soldRecords.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 觸發了「${card.name}」，但沒有玩家選擇出售物業。`
-                });
-                return `📊 市場消息「${card.name}」完成，但沒有玩家選擇出售物業。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏠 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n${soldRecords.length} 位玩家成功出售香港油尖旺區住宅，總金額 $${totalPaid.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏠 市場消息「${card.name}」生效！${soldRecords.length} 位玩家成功出售物業，總金額 $${totalPaid.toLocaleString()} 元。`
-            }));
-            
-            return `🏠 求購香港油尖旺區住宅物業成功！\n` +
-                `👥 出售玩家：${soldRecords.map(r => r.split(':')[0]).join(', ')}\n` +
-                `💰 總支付金額：$${totalPaid.toLocaleString()} 元\n` +
-                `📊 詳細記錄：\n${soldRecords.join('\n')}`;
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以 $8,000,000 出售",
+        marketPrice: 8000000,
+        targetPropertyId: "H03",
+        effect: (state) => `🏠 市場消息：求購油尖旺住宅`,
+
+        findAffectedPlayers: function(room) {
+            return _findPropertyHolders(room, this.targetPropertyId, this.marketPrice);
         },
-        getEffectDescription: () => "市場消息：持有 H03 香港油尖旺區住宅的玩家可以 $8,000,000 出售，收益 = 市價 - 按揭貸款"
+        applyChoices: function(room, participants, ctx) {
+            return _applyPropertySales(room, participants, ctx, this.targetPropertyId, this.marketPrice, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：H03 香港油尖旺區住宅可以 $8,000,000 出售"
     },
 
+    // ==================== M17 - Buy H04 residential at $5M ====================
     {
         id: "M17",
         name: "求購香港北區住宅物業",
@@ -2017,157 +855,22 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const marketPrice = 5000000; // 500萬
-            const targetPropertyId = "H04"; // 香港新界北區住宅的 ID
-            
-            // 收集所有持有 H04 香港新界北區住宅的玩家
-            const playersWithProperty = [];
-            
-            for (let [pWs, p] of room.players) {
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                    
-                    if (propertyIndex !== -1) {
-                        const property = p.gameState.propertyInvestments[propertyIndex];
-                        const mortgageAmount = property.mortgageAmount || 0;
-                        const playerProfit = marketPrice - mortgageAmount;
-                        
-                        playersWithProperty.push({
-                            ws: pWs,
-                            player: p,
-                            property: property,
-                            propertyIndex: propertyIndex,
-                            mortgageAmount: mortgageAmount,
-                            playerProfit: playerProfit
-                        });
-                    }
-                }
-            }
-            
-            if (playersWithProperty.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有香港新界北區住宅物業，無法出售。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有香港新界北區住宅物業，無法出售。`;
-            }
-            
-            // 如果需要收集玩家选择
-            if (!playerChoices) {
-                const playersToAsk = playersWithProperty.map(p => ({
-                    ws: p.ws,
-                    playerName: p.player.playerName,
-                    property: {
-                        name: p.property.name,
-                        marketPrice: marketPrice,
-                        mortgageAmount: p.mortgageAmount,
-                        profit: p.playerProfit
-                    }
-                }));
-                
-                return {
-                    type: 'property_sell_choices',
-                    message: `🏠 ${card.name}\n\n${card.description}\n\n市場價格：$${marketPrice.toLocaleString()} 元/套\n收益計算：市場價格 - 按揭貸款\n\n請持有香港新界北區住宅物業的玩家選擇是否出售：`,
-                    marketPrice: marketPrice,
-                    playersToAsk: playersToAsk,
-                    cardId: card.id,
-                    cardName: card.name
-                };
-            }
-            
-            // 处理玩家选择
-            let soldRecords = [];
-            let totalPaid = 0;
-            
-            for (const [playerName, willSell] of Object.entries(playerChoices)) {
-                if (!willSell) continue;
-                
-                let playerObj = null;
-                let playerWs = null;
-                let propertyData = null;
-                let propertyIndex = null;
-                
-                for (let [pWs, p] of room.players) {
-                    if (p.playerName === playerName) {
-                        playerObj = p;
-                        playerWs = pWs;
-                        if (p.gameState.propertyInvestments) {
-                            const idx = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                            if (idx !== -1) {
-                                propertyData = p.gameState.propertyInvestments[idx];
-                                propertyIndex = idx;
-                            }
-                        }
-                        break;
-                    }
-                }
-                
-                if (!playerObj || !propertyData) continue;
-                
-                const mortgageAmount = propertyData.mortgageAmount || 0;
-                const profit = marketPrice - mortgageAmount;
-                
-                playerObj.gameState.cash += profit;
-                totalPaid += profit;
-                playerObj.gameState.propertyInvestments.splice(propertyIndex, 1);
-                
-                if (mortgageAmount > 0 && playerObj.gameState.mortgagePayment) {
-                    playerObj.gameState.mortgagePayment = Math.max(0, playerObj.gameState.mortgagePayment - (propertyData.monthlyPayment || 0));
-                }
-                
-                playerObj.gameState.luck = Math.min(playerObj.gameState.maxLuck || 10, playerObj.gameState.luck + 1);
-                
-                soldRecords.push(`${playerName}: 出售香港新界北區住宅，獲得 $${profit.toLocaleString()} 元 (市場價 $${marketPrice.toLocaleString()} - 按揭 $${mortgageAmount.toLocaleString()})`);
-                
-                addTransactionRecord(
-                    playerName,
-                    { name: "求購香港北區住宅物業", type: "market_news", id: "M13" },
-                    "物業出售",
-                    profit,
-                    `出售香港新界北區住宅！市場價格 $${marketPrice.toLocaleString()}，按揭貸款 $${mortgageAmount.toLocaleString()}，獲得 $${profit.toLocaleString()} 元，幸運值 +1`,
-                    null,
-                    playerObj.gameState
-                );
-                
-                if (playerWs) {
-                    playerWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `🏠 你成功出售了香港新界北區住宅！獲得 $${profit.toLocaleString()} 元，幸運值 +1！`
-                    }));
-                    playerWs.send(JSON.stringify({
-                        type: 'state_updated',
-                        playerId: playerObj.playerId,
-                        gameState: playerObj.gameState
-                    }));
-                }
-            }
-            
-            if (soldRecords.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏠 市場消息：${currentPlayer.playerName} 觸發了「${card.name}」，但沒有玩家選擇出售物業。`
-                });
-                return `📊 市場消息「${card.name}」完成，但沒有玩家選擇出售物業。`;
-            }
-            
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏠 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n${soldRecords.length} 位玩家成功出售香港新界北區住宅，總金額 $${totalPaid.toLocaleString()} 元！`
-            });
-            
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏠 市場消息「${card.name}」生效！${soldRecords.length} 位玩家成功出售物業，總金額 $${totalPaid.toLocaleString()} 元。`
-            }));
-            
-            return `🏠 求購香港北區住宅物業成功！\n` +
-                `👥 出售玩家：${soldRecords.map(r => r.split(':')[0]).join(', ')}\n` +
-                `💰 總支付金額：$${totalPaid.toLocaleString()} 元\n` +
-                `📊 詳細記錄：\n${soldRecords.join('\n')}`;
+        scope: "team",
+        marketNewsMode: "choice",
+        actionLabel: "以 $5,000,000 出售",
+        marketPrice: 5000000,
+        targetPropertyId: "H04",
+        effect: (state) => `🏠 市場消息：求購新界北住宅`,
+
+        findAffectedPlayers: function(room) {
+            return _findPropertyHolders(room, this.targetPropertyId, this.marketPrice);
         },
-        getEffectDescription: () => "市場消息：持有 H04 香港新界北區住宅的玩家可以 $5,000,000 出售，收益 = 市價 - 按揭貸款"
+        applyChoices: function(room, participants, ctx) {
+            return _applyPropertySales(room, participants, ctx, this.targetPropertyId, this.marketPrice, this.name, this.id);
+        },
+        getEffectDescription: () => "市場消息：H04 香港新界北區住宅可以 $5,000,000 出售"
     },
+    // ==================== M18 - Industrial building rent up ====================
     {
         id: "M18",
         name: "求租香港工廈",
@@ -2176,108 +879,40 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            const rentIncrease = 30000; // 租金增加 $30,000
-            const passiveIncomeIncrease = 6000; // 被動收入增加 $6,000
-            const targetPropertyId = "H05"; // 香港工廈的 ID
-            
-            // 收集所有持有 H05 香港工廈的玩家
-            const playersWithProperty = [];
-            
-            for (let [pWs, p] of room.players) {
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    const propertyIndex = p.gameState.propertyInvestments.findIndex(inv => inv.id === targetPropertyId);
-                    
-                    if (propertyIndex !== -1) {
-                        const property = p.gameState.propertyInvestments[propertyIndex];
-                        const oldMonthlyReturn = property.monthlyReturn || 0;
-                        const newMonthlyReturn = oldMonthlyReturn + passiveIncomeIncrease;
-                        
-                        playersWithProperty.push({
-                            ws: pWs,
-                            player: p,
-                            property: property,
-                            propertyIndex: propertyIndex,
-                            oldMonthlyReturn: oldMonthlyReturn,
-                            newMonthlyReturn: newMonthlyReturn
-                        });
-                    }
-                }
-            }
-            
-            if (playersWithProperty.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `🏭 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有香港工廈，無法受益。`
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `🏭 市場消息：工廈租金上漲`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const passiveIncrease = 6000;
+
+            for (const [, p] of room.players) {
+                if (!p.gameState.propertyInvestments) continue;
+                const props = p.gameState.propertyInvestments.filter(inv => inv.id === "H05");
+
+                props.forEach(prop => {
+                    prop.monthlyReturn = (prop.monthlyReturn || 0) + passiveIncrease;
+                    p.gameState.passiveIncome = (p.gameState.passiveIncome || 0) + passiveIncrease;
+                    ctx.addTransactionRecord(
+                        p.playerName,
+                        { name: "求租香港工廈", type: "market_news", id: "M18" },
+                        "租金上漲", 0,
+                        `工廈每月被動收入 +$${passiveIncrease}`,
+                        null, p.gameState
+                    );
                 });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有香港工廈，無法受益。`;
+
+                if (props.length > 0) affected.push(p.playerName);
             }
-            
-            // 处理所有持有工廈的玩家（自动生效，无需选择）
-            let affectedPlayers = [];
-            let changes = [];
-            
-            for (const { ws: pWs, player: p, property, propertyIndex, oldMonthlyReturn, newMonthlyReturn } of playersWithProperty) {
-                // 更新每月租金收入（被動收入）
-                property.monthlyReturn = newMonthlyReturn;
-                property.rentIncreased = true;
-                property.increaseAmount = passiveIncomeIncrease;
-                
-                // 更新玩家的被動收入
-                p.gameState.passiveIncome = (p.gameState.passiveIncome || 0) + passiveIncomeIncrease;
-                
-                // 更新总資产（租金收入增加提升物業價值）
-                p.gameState.totalAssets = (p.gameState.totalAssets || 0) + (passiveIncomeIncrease * 12 * 10); // 簡單估值：年收入 × 10
-                
-                affectedPlayers.push(p.playerName);
-                changes.push(`${p.playerName}: 香港工廈租金上漲！每月租金 $${oldMonthlyReturn.toLocaleString()} → $${newMonthlyReturn.toLocaleString()}，被動收入 +$${passiveIncomeIncrease.toLocaleString()}/月`);
-                
-                // 记录交易
-                addTransactionRecord(
-                    p.playerName,
-                    { name: "求租香港工廈", type: "market_news", id: "M14" },
-                    "租金上漲",
-                    0,
-                    `香港工廈租金上漲！市場租金 $${rentIncrease.toLocaleString()}，每月被動收入增加 $${passiveIncomeIncrease.toLocaleString()} 元`,
-                    null,
-                    p.gameState
-                );
-                
-                // 通知该玩家
-                if (pWs && pWs !== ws) {
-                    pWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `🏭 市場消息：${currentPlayer.playerName} 觸發了「求租香港工廈」！你持有的香港工廈每月被動收入增加 $${passiveIncomeIncrease.toLocaleString()} 元！`
-                    }));
-                    pWs.send(JSON.stringify({
-                        type: 'state_updated',
-                        playerId: p.playerId,
-                        gameState: p.gameState
-                    }));
-                }
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `🏭 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n香港工廈每月被動收入增加 $${passiveIncomeIncrease.toLocaleString()} 元！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `🏭 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家的香港工廈租金上漲，每月被動收入 +$${passiveIncomeIncrease.toLocaleString()} 元。`
-            }));
-            
-            return `🏭 求租香港工廈成功！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `💰 市場租金：$${rentIncrease.toLocaleString()}/月\n` +
-                `📈 被動收入增加：+$${passiveIncomeIncrease.toLocaleString()}/月\n` +
-                `📊 詳細記錄：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有 H05，無影響`;
+
+            return `🏭 求租香港工廈！\n👥 受益玩家：${affected.join(', ')}\n💰 每月被動收入 +$${passiveIncrease}`;
         },
-        getEffectDescription: () => "市場消息：持有 H05 香港工廈的玩家，每月被動收入 +$6,000"
+        getEffectDescription: () => "市場消息：持有 H05 香港工廈的玩家每月被動收入 +$6,000"
     },
 
+    // ==================== M19 - Residential price down ====================
     {
         id: "M19",
         name: "香港住宅物業價格下跌",
@@ -2286,123 +921,57 @@ const marketNewsCards = [
         cost: 500,
         type: "market_news",
         category: "市場消息卡",
-        effect: (state, room, currentPlayer, ws, roomId, playerChoices) => {
-            let affectedPlayers = [];
-            let changes = [];
-            const priceDecreasePercent = 10; // 價格下跌10%
-            const passiveIncomeDecrease = 500; // 被動收入減少500
-            
-            // 住宅物業 ID 列表 (H01, H02, H03, H04)
-            const residentialPropertyIds = ["H01", "H02", "H03", "H04"];
-            
-            // 遍歷所有玩家
-            for (let [pWs, p] of room.players) {
-                let playerChanges = [];
-                let totalValueDecrease = 0;
-                let totalPassiveDecrease = 0;
-                let hasResidentialProperty = false;
-                
-                if (p.gameState.propertyInvestments && p.gameState.propertyInvestments.length > 0) {
-                    // 遍歷所有住宅物業
-                    for (let i = 0; i < p.gameState.propertyInvestments.length; i++) {
-                        const property = p.gameState.propertyInvestments[i];
-                        
-                        if (residentialPropertyIds.includes(property.id)) {
-                            hasResidentialProperty = true;
-                            
-                            // 計算價格下跌金額
-                            const oldTotalPrice = property.totalPrice;
-                            const decreaseAmount = Math.floor(oldTotalPrice * priceDecreasePercent / 100);
-                            const newTotalPrice = oldTotalPrice - decreaseAmount;
-                            totalValueDecrease += decreaseAmount;
-                            
-                            // 更新物業總價
-                            property.totalPrice = newTotalPrice;
-                            property.priceDecreased = true;
-                            property.decreasePercent = priceDecreasePercent;
-                            
-                            // 減少每月被動收入
-                            const oldMonthlyReturn = property.monthlyReturn || 0;
-                            const newMonthlyReturn = Math.max(0, oldMonthlyReturn - passiveIncomeDecrease);
-                            const monthlyDecrease = oldMonthlyReturn - newMonthlyReturn;
-                            totalPassiveDecrease += monthlyDecrease;
-                            
-                            property.monthlyReturn = newMonthlyReturn;
-                            
-                            playerChanges.push(`${property.name}: 總價 $${oldTotalPrice.toLocaleString()} → $${newTotalPrice.toLocaleString()} (下跌 $${decreaseAmount.toLocaleString()})，每月收入 $${oldMonthlyReturn.toLocaleString()} → $${newMonthlyReturn.toLocaleString()} (減少 $${monthlyDecrease.toLocaleString()})`);
-                        }
-                    }
-                    
-                    if (hasResidentialProperty) {
-                        // 更新總資產
-                        p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - totalValueDecrease);
-                        
-                        // 更新被動收入
-                        p.gameState.passiveIncome = Math.max(0, (p.gameState.passiveIncome || 0) - totalPassiveDecrease);
-                        
-                        // 幸运值下降（樓市下跌影響）
-                        p.gameState.luck = Math.max(0, p.gameState.luck - 1);
-                        
-                        affectedPlayers.push(p.playerName);
-                        changes.push(`${p.playerName}: 總資產減少 $${totalValueDecrease.toLocaleString()}，被動收入減少 $${totalPassiveDecrease.toLocaleString()}/月\n   ${playerChanges.join('\n   ')}`);
-                        
-                        // 记录交易
-                        addTransactionRecord(
-                            p.playerName,
-                            { name: "香港住宅物業價格下跌", type: "market_news", id: "M15" },
-                            "物業貶值",
-                            -totalValueDecrease,
-                            `香港住宅物業價格下跌！物業總價下跌 ${priceDecreasePercent}%，每月被動收入減少 $${totalPassiveDecrease.toLocaleString()} 元，幸運值 -1`,
-                            null,
-                            p.gameState
-                        );
-                        
-                        // 通知该玩家
-                        if (pWs && pWs !== ws) {
-                            pWs.send(JSON.stringify({
-                                type: 'notification',
-                                message: `📉 市場消息：${currentPlayer.playerName} 觸發了「香港住宅物業價格下跌」！你的住宅物業總價下跌 ${priceDecreasePercent}%，被動收入減少 $${totalPassiveDecrease.toLocaleString()} 元/月，幸運值 -1！`
-                            }));
-                            pWs.send(JSON.stringify({
-                                type: 'state_updated',
-                                playerId: p.playerId,
-                                gameState: p.gameState
-                            }));
-                        }
-                    }
+        scope: "team",
+        marketNewsMode: "automatic",
+        effect: (state) => `📉 市場消息：住宅物業價格下跌`,
+        applyAutomatic: (room, initiator, ctx) => {
+            const affected = [];
+            const decreasePercent = 10;
+            const passiveDecrease = 500;
+            const residentialIds = ["H01", "H02", "H03", "H04"];
+
+            for (const [, p] of room.players) {
+                if (!p.gameState.propertyInvestments) continue;
+                let totalValueLoss = 0;
+                let totalPassiveLoss = 0;
+                let hasResidential = false;
+
+                p.gameState.propertyInvestments.forEach(prop => {
+                    if (!residentialIds.includes(prop.id)) return;
+                    hasResidential = true;
+
+                    const valueLoss = Math.floor((prop.totalPrice || 0) * decreasePercent / 100);
+                    prop.totalPrice -= valueLoss;
+                    totalValueLoss += valueLoss;
+
+                    const oldReturn = prop.monthlyReturn || 0;
+                    const newReturn = Math.max(0, oldReturn - passiveDecrease);
+                    const passiveLoss = oldReturn - newReturn;
+                    prop.monthlyReturn = newReturn;
+                    totalPassiveLoss += passiveLoss;
+                });
+
+                if (hasResidential) {
+                    p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - totalValueLoss);
+                    p.gameState.passiveIncome = Math.max(0, (p.gameState.passiveIncome || 0) - totalPassiveLoss);
+                    p.gameState.luck = Math.max(0, p.gameState.luck - 1);
+                    affected.push(p.playerName);
+                    ctx.addTransactionRecord(
+                        p.playerName,
+                        { name: "住宅物業價格下跌", type: "market_news", id: "M19" },
+                        "物業貶值", -totalValueLoss,
+                        `住宅物業下跌 ${decreasePercent}%，被動收入 -$${totalPassiveLoss}/月`,
+                        null, p.gameState
+                    );
                 }
             }
-            
-            if (affectedPlayers.length === 0) {
-                broadcastToRoom(roomId, {
-                    type: 'notification',
-                    message: `📉 市場消息：${currentPlayer.playerName} 獲得了「${card.name}」，但沒有玩家持有香港住宅物業，沒有人受影響。`
-                });
-                return `📊 市場消息「${card.name}」生效，但沒有玩家持有香港住宅物業，沒有人受影響。`;
-            }
-            
-            // 广播给所有玩家
-            broadcastToRoom(roomId, {
-                type: 'notification',
-                message: `📉 ${currentPlayer.playerName} 觸發市場消息「${card.name}」！\n受影響玩家：${affectedPlayers.join(', ')}\n香港住宅物業價格下跌 ${priceDecreasePercent}%，被動收入每月減少 $500！`
-            });
-            
-            // 通知当前玩家结果
-            ws.send(JSON.stringify({
-                type: 'notification',
-                message: `📉 市場消息「${card.name}」生效！${affectedPlayers.length} 位玩家的住宅物業貶值，被動收入減少。`
-            }));
-            
-            return `📉 香港住宅物業價格下跌！\n` +
-                `👥 受影響玩家：${affectedPlayers.join(', ')}\n` +
-                `📊 物業總價下跌 ${priceDecreasePercent}%\n` +
-                `💰 每月被動收入減少 $${passiveIncomeDecrease.toLocaleString()}/月 (每個物業)\n` +
-                `🍀 受影響玩家幸運值 -1\n` +
-                `📊 詳細變化：\n${changes.join('\n')}`;
+
+            if (affected.length === 0) return `📊 沒有玩家持有住宅物業，無影響`;
+
+            return `📉 住宅物業價格下跌！\n👥 受影響玩家：${affected.join(', ')}\n📊 物業總價 -${decreasePercent}%\n💰 每月被動收入 -$${passiveDecrease}/物業\n🍀 幸運值 -1`;
         },
-        getEffectDescription: () => "市場消息：所有持有香港住宅物業 (H02/H03/H04) 的玩家，物業總價下跌10%，每月被動收入減少 $500，幸運值 -1"
-    }
-   
+        getEffectDescription: () => "市場消息：所有住宅物業總價 -10%，每月被動收入 -$500"
+    },
 ];
 
 // ==================== 錦囊卡 ====================

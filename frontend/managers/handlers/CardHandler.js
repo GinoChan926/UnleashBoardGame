@@ -11,6 +11,7 @@ import { AIStoreHandler }      from './cards/AIStoreHandler.js';
 import { TipCardHandler }      from './cards/TipCardHandler.js';
 import { EnergyTradeHandler }  from './cards/EnergyTradeHandler.js';
 import { PropertyHandler }     from './cards/PropertyHandler.js';
+import { PortfolioHandler } from './cards/PortfolioHandler.js';
 
 /**
  * Thin facade that delegates each message to the appropriate sub-handler.
@@ -31,6 +32,7 @@ export class CardHandler {
         this.tipCard     = new TipCardHandler(client);
         this.energyTrade = new EnergyTradeHandler(client);
         this.property    = new PropertyHandler(client);
+        this.portfolio   = new PortfolioHandler(client);
     }
 
     // ── Opportunity ───────────────────────────────────────────────────────
@@ -41,6 +43,7 @@ export class CardHandler {
     handleCardExecuted(m)          { this.opportunity.handleCardExecuted(m); }
     handleCardSkipped(m)           { this.opportunity.handleCardSkipped(m); }
     handlePurchaseFailed(m)        { this.opportunity.handlePurchaseFailed(m); }
+    handlePortfolioSnapshot(m) { this.portfolio.handlePortfolioSnapshot(m); }
 
     // ── Revelation ────────────────────────────────────────────────────────
     handleRevelationTypeSelection(m) { this.revelation.handleRevelationTypeSelection(m); }
@@ -50,6 +53,11 @@ export class CardHandler {
     handlePersonalCardResult(m) { this.revelation.handlePersonalCardResult(m); }
     handleTeamCardPrompt(m)     { this.revelation.handleTeamCardPrompt(m); }
     handleTeamCardResult(m)     { this.revelation.handleTeamCardResult(m); }
+    handleAssetChoicePrompt(m) { this.revelation.handleAssetChoicePrompt(m); }
+    handleMarketNewsResult(m)  { this.revelation.handleMarketNewsResult(m); }
+    handleStockMenu(m)         { this.opportunity.handleStockMenu(m); }
+    handleCryptoMenu(m)        { this.opportunity.handleCryptoMenu(m); }
+    handleFoodDeliveryMenu(m)  { this.opportunity.handleFoodDeliveryMenu(m); }
 
     // ── Volunteer ─────────────────────────────────────────────────────────
     handleVolunteerCardExecute(m) { this.volunteer.handleVolunteerCardExecute(m); }

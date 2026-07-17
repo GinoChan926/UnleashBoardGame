@@ -127,6 +127,11 @@ class GameClient {
         this.connection.send({ type: 'get_property_list' });
     }
 
+    showPortfolio() {
+        if (!this.isConnected) return;
+        this.connection.send({ type: 'get_portfolio' });
+    }
+
     // ==================== Connect / disconnect ====================
 
     showProfessionModal() {

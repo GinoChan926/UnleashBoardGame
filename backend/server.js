@@ -75,6 +75,8 @@ const {
 } = require('./server/systems/RevelationCardSystem.js');
 const { handleGiftCardTarget }        = require('./server/systems/GiftCardSystem.js');
 const { handleMoveForwardChoice }     = require('./server/systems/MoveForwardSystem.js');
+const { handleAssetChoice } = require('./server/systems/MarketNewsSystem.js');
+const { handleGetPortfolio } = require('./server/systems/PortfolioSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -325,6 +327,14 @@ wss.on('connection', (ws) => {
                             });
                         }
                     );
+                    break;
+
+                case 'asset_choice_response':
+                    handleAssetChoice(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                    
+                case 'get_portfolio':
+                    handleGetPortfolio(ws, data, playerRoomId, rooms);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

@@ -147,6 +147,14 @@ export class MessageRouter {
 
             'gift_card_prompt':                m => ch().handleGiftCardPrompt(m),
             'move_forward_choice_prompt':      m => ch().handleMoveForwardChoicePrompt(m),
+
+            'asset_choice_prompt':  m => ch().handleAssetChoicePrompt(m),
+
+            'stock_menu':          m => ch().handleStockMenu(m),
+            'crypto_menu':         m => ch().handleCryptoMenu(m),
+            'food_delivery_menu':  m => ch().handleFoodDeliveryMenu(m),
+
+            'portfolio_snapshot':  m => ch().handlePortfolioSnapshot(m),
             // ── System
             'notification': m => {
                 if (m.message) {

@@ -67,9 +67,21 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         return;
     }
 
+    // ✅ Deduct cash
     player.gameState.cash -= 500;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
+
+    // ✅ Record the transaction
+    addTransactionRecord(
+        player.playerName,
+        pendingEvent.card,
+        '購買啟示卡',
+        -500,
+        `支付 500 元購買「${pendingEvent.card.name}」`,
+        null,
+        player.gameState
+    );
 
     const card = pendingEvent.card;
     const serializableCard = {
@@ -80,13 +92,28 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         scope: card.scope || 'personal'
     };
 
+    // ✅ Send updated state to the purchaser
     ws.send(JSON.stringify({
-        type: 'revelation_card_purchased', card: serializableCard,
-        message: `已支付 500 元購買「${card.name}」`
+        type: 'revelation_card_purchased',
+        card: serializableCard,
+        message: `已支付 500 元購買「${card.name}」`,
+        gameState: player.gameState   // ← NEW: include updated state
     }));
+
+    // ✅ Broadcast state update to all players (so other players see reduced cash)
     broadcastToRoom(roomId, {
-        type: 'player_purchased_card', playerId: player.playerId, playerName: player.playerName,
-        cardName: card.name, message: `${player.playerName} 花費 500 元購買了「${card.name}」`
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+
+    // Notify others
+    broadcastToRoom(roomId, {
+        type: 'player_purchased_card',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        cardName: card.name,
+        message: `${player.playerName} 花費 500 元購買了「${card.name}」`
     }, ws);
 }
 
@@ -105,7 +132,7 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
     const execute = data.execute;
 
     if (!execute) {
-        // Player declined right away
+        // Declined
         const stateBefore = JSON.parse(JSON.stringify(player.gameState));
         addTransactionRecord(player.playerName, card, '放棄', -500, '放棄執行', stateBefore, player.gameState);
         broadcastToRoom(roomId, {
@@ -121,14 +148,29 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // ✅ Route by scope
     room.pendingRevelationEvents.delete(ws);
 
-    if (card.scope === 'team') {
-        // Team card - broadcast to all players
+    // ✅ Route by card type
+    if (card.type === 'market_news') {
+        // Market news cards - use MarketNewsSystem
+        const { startMarketNews } = require('../systems/MarketNewsSystem.js');
+
+        ws.send(JSON.stringify({
+            type: 'card_decision_result',
+            execute: true,
+            message: `📰 觸發市場消息「${card.name}」...`,
+            gameState: player.gameState,
+            cardName: card.name
+        }));
+
+        setTimeout(() => {
+            startMarketNews(ws, roomId, player, card, broadcastToRoom, rooms);
+        }, 300);
+
+    } else if (card.scope === 'team') {
+        // Team tip cards
         const { startTeamCard } = require('../systems/RevelationCardSystem.js');
 
-        // Send acknowledgment to initiator
         ws.send(JSON.stringify({
             type: 'card_decision_result',
             execute: true,
@@ -140,8 +182,9 @@ function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {
         setTimeout(() => {
             startTeamCard(ws, roomId, player, card, broadcastToRoom, rooms);
         }, 300);
+
     } else {
-        // Personal card - show to drawer only
+        // Personal tip cards
         const { startPersonalCard } = require('../systems/RevelationCardSystem.js');
 
         ws.send(JSON.stringify({

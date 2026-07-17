@@ -25,22 +25,33 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         return;
     }
 
-    // ── Extra dice from social card ───────────────────────────────────────────
     if (state.extraDice > 0 && !state._processingExtraDice) {
         state._processingExtraDice = true;
         state.extraDice--;
-        ws.send(JSON.stringify({ type: 'notification', message: `🎲 額外擲骰機會！剩餘 ${state.extraDice} 次` }));
-        setTimeout(() => { state._processingExtraDice = false; handleRoll(ws, data, roomId, rooms, deps); }, 300);
+        state.hasRolledThisTurn = false;  // ✅ Allow the extra roll
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🎲 額外擲骰機會！剩餘 ${state.extraDice} 次`
+        }));
+        setTimeout(() => {
+            state._processingExtraDice = false;
+            handleRoll(ws, data, roomId, rooms, deps);
+        }, 300);
         return;
     }
     state._processingExtraDice = false;
 
-    // ── Energy check ──────────────────────────────────────────────────────────
-    if (state.energy <= 0) {
-        ws.send(JSON.stringify({ type: 'error', message: '精力不足，無法擲骰' }));
+    // ── Already rolled this turn? ────────────────────────────────────────────
+    if (state.hasRolledThisTurn) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '你本回合已經擲過骰子了，請結束回合'
+        }));
         return;
     }
-    state.energy = Math.max(0, state.energy - 1);
+
+// Mark as rolled - no more rolls until turn ends
+    state.hasRolledThisTurn = true;
 
     // ── Dice roll ─────────────────────────────────────────────────────────────
     let diceCount = 1;

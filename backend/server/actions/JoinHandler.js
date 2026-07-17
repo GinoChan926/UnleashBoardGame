@@ -29,6 +29,7 @@ function handleJoin(ws, data, roomId, rooms) {
         currentTurnPlayer: playerName,
         volunteerCount:    0,
         contributionCount: 0,
+        hasRolledThisTurn: false,
     };
 
     room.players.set(ws, { playerId, playerName, gameState });
