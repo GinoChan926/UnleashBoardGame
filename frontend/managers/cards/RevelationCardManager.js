@@ -39,71 +39,30 @@ export class RevelationCardManager extends BaseCardManager {
         this._ensureModals();
         this.modalManager.openModal('revelationPurchaseModal');
 
+        const isBlind  = CardVisibility.isBlindCard(card);
         const cardType = card.cardType || card.type;
-        const isBlind = CardVisibility.isBlindCard(card);
 
-        // Set image (blind or real)
+        // Image
         const imgEl = document.getElementById('revelationPurchaseImg');
-        if (imgEl) {
-            if (isBlind) {
-                imgEl.src = CardVisibility.getBlindImage(cardType);
-                imgEl.style.filter = 'brightness(0.85)';
-                imgEl.style.border = '3px dashed #ff9800';
-                imgEl.onerror = () => {
-                    imgEl.style.display = 'none';
-                    const container = imgEl.parentElement;
-                    if (container) {
-                        container.innerHTML = `
-                        <div style="height: 200px; display: flex;
-                                    align-items: center; justify-content: center;
-                                    background: linear-gradient(135deg, #4a2a1a, #3a1a0a);
-                                    border-radius: 16px; border: 3px dashed #ff9800;">
-                            <div style="text-align: center; color: white;">
-                                <div style="font-size: 60px;">🔒</div>
-                                <div style="font-size: 14px; margin-top: 8px;">
-                                    ${CardVisibility.getBlindLabel(cardType)}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    }
-                };
-            } else {
-                RevelationTemplate.applyCardImage(imgEl, card);
-            }
+        if (isBlind) {
+            RevelationTemplate.applyBlindCardImage(imgEl, card);
+        } else {
+            RevelationTemplate.applyCardImage(imgEl, card);
         }
 
-        // Set body (blind or full)
+        // Body
         const body = document.getElementById('revelationPurchaseBody');
         if (body) {
-            if (isBlind) {
-                const label = CardVisibility.getBlindLabel(cardType);
-                const desc  = CardVisibility.getBlindDescription(cardType);
-                body.innerHTML = `
-                <div style="text-align: center;">
-                    <h3 style="color: #ff9800; margin-bottom: 10px; font-size: 22px;">
-                        ${label}
-                    </h3>
-                    <p style="color: #ffefc0; font-size: 14px; line-height: 1.6;">
-                        ${this.ui.escapeHtml(desc)}
-                    </p>
-                    <div style="background: rgba(255,152,0,0.15); padding: 10px;
-                                border-radius: 8px; margin-top: 12px;
-                                border: 2px dashed #ff9800;">
-                        <span style="color: #ff9800; font-size: 13px;">
-                            🔒 內容未揭曉 - 支付 500 元後才能查看詳情
-                        </span>
-                    </div>
-                </div>
-            `;
-            } else {
-                body.innerHTML = RevelationTemplate.buildCardBody(
-                    card, this.ui.escapeHtml.bind(this.ui)
-                );
-            }
+            body.innerHTML = isBlind
+                ? RevelationTemplate.buildBlindBody(cardType, this.ui.escapeHtml.bind(this.ui))
+                : RevelationTemplate.buildCardBody(card, this.ui.escapeHtml.bind(this.ui));
         }
 
-        // Bind buttons (unchanged)
+        // Cost
+        const multiplier = this.gameState?.cardCostMultiplier || 1;
+        RevelationTemplate.updatePurchaseCost(multiplier, canAfford);
+
+        // Buttons
         RevelationTemplate.bindPurchaseButtons(
             canAfford,
             () => {

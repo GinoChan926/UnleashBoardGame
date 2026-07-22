@@ -30,6 +30,8 @@ function handleJoin(ws, data, roomId, rooms) {
         volunteerCount:    0,
         contributionCount: 0,
         hasRolledThisTurn: false,
+        lentOut:    [],    
+        debtsOwed:  [],
     };
 
     room.players.set(ws, { playerId, playerName, gameState });

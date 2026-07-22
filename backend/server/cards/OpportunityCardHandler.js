@@ -97,7 +97,7 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
     ws.send(JSON.stringify({
         type:      'opportunity_card_draw',
         card:      serializableCard,
-        canAfford: player.gameState.cash >= 500
+        canAfford: player.gameState.cash >= (500 * (player.gameState.cardCostMultiplier || 1))
     }));
 
     console.log(`🎴 ${player.playerName} 選擇${cardTypeData.name}，抽到: ${originalCard.name} (ID: ${originalCard.id})`);
@@ -114,13 +114,18 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    if (player.gameState.cash < 500) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: '現金不足 500 元' }));
+    // ✅ Use multiplier if active
+    const baseCost = 500;
+    const multiplier = player.gameState.cardCostMultiplier || 1;
+    const actualCost = baseCost * multiplier;
+
+    if (player.gameState.cash < actualCost) {
+        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 ${actualCost} 元` }));
         room.pendingEvents.delete(ws);
         return;
     }
 
-    player.gameState.cash -= 500;
+    player.gameState.cash -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 

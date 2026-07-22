@@ -57,15 +57,16 @@ export class OpportunityCardManager extends BaseCardManager {
             card, this.ui.escapeHtml.bind(this.ui)
         );
 
-        // ✅ Use blind-aware image setter instead of _setupCardImage
+        // Set image
         OpportunityCardTemplate.applyPurchaseCardImage(
             document.getElementById('purchaseCardImg'), card
         );
 
-        // ... rest unchanged
-        const warning = document.getElementById('purchaseAffordWarning');
-        if (warning) warning.style.display = canAfford ? 'none' : 'inline';
+        // ✅ Set purchase cost (respects S08 multiplier)
+        const multiplier = this.gameState?.cardCostMultiplier || 1;
+        OpportunityCardTemplate.updatePurchaseCost(multiplier, canAfford);
 
+        // Bind buttons
         OpportunityCardTemplate.bindPurchaseButtons(
             canAfford,
             () => {

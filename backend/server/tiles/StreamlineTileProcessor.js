@@ -72,11 +72,19 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     let incomeMessage = '';
 
     if (!state.inReverse) {
-        totalIncome   = state.salary + state.sideIncome;
-        state.cash   += totalIncome;
-        state.totalAssets += Math.floor(totalIncome * 0.2);
-        incomeMessage = `獲得 ${totalIncome.toLocaleString()} 元現金流`;
-
+        if (state.skipSettlementIncome) {
+            incomeMessage = `⚠️ 因通貨膨脹影響，本次結算日沒有收入！`;
+            state.skipSettlementIncome = false;
+        } else if (state.nextSettlementHalfIncome) {
+            // ✅ S13: half income this settlement only
+            totalIncome   = Math.floor((state.salary + state.sideIncome) / 2);
+            state.cash   += totalIncome;
+            state.totalAssets += Math.floor(totalIncome * 0.2);
+            incomeMessage = `📉 公司減薪！本次月收入減半，獲得 ${totalIncome.toLocaleString()} 元`;
+            state.nextSettlementHalfIncome = false;
+        } else {
+            totalIncome   = state.salary + state.sideIncome;
+        }
         // ✅ Auto-collect pending debts from income
         if (room) {
             const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
@@ -120,6 +128,29 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
             incomeMessage += ` | ${teaRestaurantMessage}`;
             delete player._pendingTeaRestaurantMessage;
         }
+    }
+
+    // ✅ Process loan shark debts (S20)
+    if (!state.inReverse && state.loanSharkDebts) {
+        state.loanSharkDebts.forEach(debt => {
+            if (!debt.active) return;
+
+            debt.remainingAmount -= debt.monthlyPayment;
+            debt.totalPaid       += debt.monthlyPayment;
+
+            if (debt.remainingAmount <= 0) {
+                debt.remainingAmount = 0;
+                debt.active = false;
+
+                // Remove monthly expense
+                state.livingExpense = Math.max(0, state.livingExpense - debt.monthlyPayment);
+
+                incomeMessage += ` | 🦈 高利貸還清！月支出 -$${debt.monthlyPayment.toLocaleString()}`;
+            }
+        });
+
+        // Clean up fully paid debts
+        state.loanSharkDebts = state.loanSharkDebts.filter(d => d.active);
     }
 
     // ✅ Process property mortgages

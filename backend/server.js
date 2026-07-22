@@ -40,9 +40,14 @@ const { handleUseEmotionalSupport, handleSkipEmotionalSupport } = require('./ser
 
 // ── Card handlers ─────────────────────────────────────────────────────────────
 const { startAuction, handleAuctionBid, handleAuctionPass } = require('./server/cards/AuctionHandler.js');
-const { drawHardshipCard }    = require('./server/cards/HardshipCardHandler.js');
+const { drawHardshipCard, handleHardshipChoice } = require('./server/cards/HardshipCardHandler.js');
 const { drawAndExecuteLierCard, drawLierCard, executeLierCard } = require('./server/cards/LierCardHandler.js');
-const { drawVolunteerCard, executeVolunteerDonation, executeVolunteerChoice } = require('./server/cards/VolunteerCardHandler.js');
+const {
+    drawVolunteerCard,
+    executeVolunteerDonation,
+    executeVolunteerChoice,
+    handleVolunteerDonationResponse    // ← NEW
+} = require('./server/cards/VolunteerCardHandler.js');
 const { drawPoliceCard }      = require('./server/cards/PoliceCardHandler.js');
 const { showRevelationCardTypeSelection, handleRevelationCardTypeChoice,
     handlePurchaseRevelationCard, handleExecuteRevelationCard,
@@ -77,6 +82,12 @@ const { handleGiftCardTarget }        = require('./server/systems/GiftCardSystem
 const { handleMoveForwardChoice }     = require('./server/systems/MoveForwardSystem.js');
 const { handleAssetChoice } = require('./server/systems/MarketNewsSystem.js');
 const { handleGetPortfolio } = require('./server/systems/PortfolioSystem.js');
+const {
+    handleLendMoney,
+    handleRepayDebt,
+    handleGetLendingSummary
+} = require('./server/systems/LendingSystem.js');
+const { startGroupInvestment, handleGroupInvestmentResponse } = require('./server/systems/GroupInvestmentSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -108,22 +119,23 @@ function makeDeps(roomId) {
                 drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
                 drawVolunteerCard:            (ws, s, rId, p, exact) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, exact),
                 drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, {rooms}),
-                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),
                 rooms
             }),
         processReverseTile:           (state, tile, ws, rId, player) =>
             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast)),
+                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
         processFlowTile:              (state, tile, ws, rId, player, room) =>
             processFlowTile(state, tile, ws, rId, player, room, {
                 broadcastToRoom: broadcast,
                 startAuction:   (rId, card, player, ws) => startAuction(rId, card, player, ws, broadcast),
                 processSocialServiceTile: (s, ws, rId, p, t, r) => processSocialServiceTile(s, ws, rId, p, t, r),
-                investmentCards
+                investmentCards,
+                rooms
             }),
         triggerDreamCard:             (state, tile, ws, rId, player, old, pos) =>
             triggerDreamCard(state, tile, ws, rId, player, old, pos, getDreamCard, broadcast),
-        drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+        drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),
         handleEndTurn:                (ws, d, rId)   => handleEndTurn(ws, d, rId, rooms, broadcast)
     };
 }
@@ -277,12 +289,12 @@ wss.on('connection', (ws) => {
                                 drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
                                 drawVolunteerCard:            (ws, s, rId, p, exact) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, exact),
                                 drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, { rooms }),
-                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),
                                 rooms
                             }),
                         processReverseTile: (state, tile, ws, rId, player) =>
                             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast)),
+                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
                         processFlowTile: (state, tile, ws, rId, player, room) =>
                             processFlowTile(state, tile, ws, rId, player, room, {
                                 broadcastToRoom: broadcast,
@@ -322,7 +334,7 @@ wss.on('connection', (ws) => {
                                 drawAndExecuteLierCard:       (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
                                 drawVolunteerCard:            (ws, s, rId, p, e) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, e),
                                 drawPoliceCard:               (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, { rooms }),
-                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast),
+                                drawHardshipCard:             (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),
                                 rooms
                             });
                         }
@@ -335,6 +347,30 @@ wss.on('connection', (ws) => {
                     
                 case 'get_portfolio':
                     handleGetPortfolio(ws, data, playerRoomId, rooms);
+                    break;
+
+                case 'get_lending_summary':
+                    handleGetLendingSummary(ws, data, playerRoomId, rooms);
+                    break;
+
+                case 'lend_money':
+                    handleLendMoney(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'repay_debt':
+                    handleRepayDebt(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'group_investment_response':
+                    handleGroupInvestmentResponse(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'hardship_choice':
+                    handleHardshipChoice(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'volunteer_donation_response':
+                    handleVolunteerDonationResponse(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

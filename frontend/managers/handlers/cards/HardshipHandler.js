@@ -5,104 +5,150 @@ export class HardshipHandler {
         this.client = client;
     }
 
-    handleHardshipCardExecute(message) {
+    // ==================== Card execute ====================
+
+    async handleHardshipCardExecute(message) {
         const { client } = this;
-        client.logManager.addLog(`🎭 ${message.message || '逆境自強卡'}`, 'error');
-        client.logManager.showNotification(message.message || '逆境自強卡觸發', 'error');
-        if (message.card) {
-            client.cardModal.showHardshipCardModal(
-                message.card,
-                message.effectMessage || message.message || '逆境自強卡'
-            );
-        }
+        const { CardRevealTemplate } = await import('../../cards/templates/CardRevealTemplate.js');
+
+        // Apply state
         this._applyState(message);
+
+        // Log
+        client.logManager.addLog(
+            `🎭 ${message.effectMessage || message.message || '逆境自強卡'}`,
+            'error'
+        );
+
+        // ✅ Always show modal - don't depend on message.card existing
+        const old = document.getElementById('cardRevealModal');
+        if (old) old.remove();
+
+        const modalHtml = CardRevealTemplate.buildModal({
+            title:        '🎭 逆境自強卡',
+            subtitle:     '人生總有起伏，勇敢面對逆境',
+            primaryColor: '#f44336',
+            accentColor:  '#ffcdd2',
+            confirmText:  '💪 接受命運',
+            hint:         '💡 這張卡片的效果已經生效，點擊繼續遊戲'
+        });
+
+        client.modalManager.createModal('cardRevealModal', modalHtml);
+        client.modalManager.openModal('cardRevealModal');
+
+        // Build display card - works with or without message.card
+        const displayCard = message.card
+            ? {
+                ...message.card,
+                description: message.effectMessage || message.message || message.card.description
+            }
+            : {
+                name:        '逆境自強卡',
+                description: message.effectMessage || message.message || '逆境自強卡效果',
+                image:       null
+            };
+
+        CardRevealTemplate.populate(
+            displayCard,
+            null,
+            client.escapeHtml.bind(client)
+        );
+
+        CardRevealTemplate.bindConfirm(() => {
+            client.modalManager.closeModal('cardRevealModal');
+        });
     }
 
-    handleHardshipCardShielded(message) {
+    // ==================== Shield blocked ====================
+
+    async handleHardshipCardShielded(message) {
         const { client } = this;
+        const { CardRevealTemplate } = await import('../../cards/templates/CardRevealTemplate.js');
+
         this._applyState(message);
 
         client.logManager.addLog(`🛡️ ${message.shieldMessage}`, 'success');
         client.logManager.showNotification(message.shieldMessage, 'success');
 
-        this._showShieldBlockedModal(message.card, message.remainingShield);
-    }
-
-    _showShieldBlockedModal(card, remainingShield) {
-        const { client } = this;
+        // Show shield modal using template
         const old = document.getElementById('hardshipShieldModal');
         if (old) old.remove();
 
-        const cardImage = card.image
-            ? (card.image.startsWith('/') || card.image.startsWith('http') ? card.image : '/' + card.image)
-            : '';
-
-        const modalHtml = `
-        <div class="modal-content" style="max-width: 450px;
-             background: linear-gradient(135deg, #1a3a5c, #0d2b47);
-             border-radius: 24px; padding: 24px;
-             border: 2px solid #4fc3f7; text-align: center;">
-
-            <div class="modal-title" style="color: #4fc3f7; font-size: 22px;
-                 margin-bottom: 14px;">
-                🛡️ 家族辦公室 - 抵擋成功！
-            </div>
-
-            <div style="background: rgba(79,195,247,0.15); padding: 14px;
-                        border-radius: 12px; margin-bottom: 16px;">
-                <div style="color: #b3e5fc; font-size: 14px; margin-bottom: 10px;">
-                    你的家族辦公室專業團隊抵擋了以下逆境卡：
-                </div>
-                ${cardImage ? `
-                    <img src="${cardImage}" alt="${client.escapeHtml(card.name)}"
-                         style="max-width: 80%; max-height: 150px;
-                                border-radius: 12px; opacity: 0.6;
-                                filter: grayscale(50%);
-                                border: 2px dashed #ff5252;">
-                ` : ''}
-                <div style="color: #fff; font-size: 16px; font-weight: bold;
-                            margin-top: 10px;">
-                    ${client.escapeHtml(card.name)}
-                </div>
-                <div style="color: #ff5252; font-size: 12px; margin-top: 6px;">
-                    ❌ 已被抵擋 - 效果無效
-                </div>
-            </div>
-
-            <div style="background: rgba(0,0,0,0.3); padding: 10px;
-                        border-radius: 10px; margin-bottom: 16px;
-                        color: #ffd966; font-size: 13px;">
-                🛡️ 剩餘抵擋機會: <strong style="color: #4fc3f7; font-size: 16px;">
-                ${remainingShield}</strong> 次
-            </div>
-
-            <button id="closeShieldModalBtn"
-                    style="background: linear-gradient(135deg, #4fc3f7, #039be5);
-                           color: white; padding: 10px 30px; border: none;
-                           border-radius: 30px; cursor: pointer; font-size: 15px;
-                           transition: all 0.2s ease;
-                           box-shadow: 0 4px 12px rgba(79,195,247,0.3);">
-                太好了！
-            </button>
-        </div>
-    `;
+        const modalHtml = CardRevealTemplate.buildModal({
+            title:        '🛡️ 家族辦公室 - 抵擋成功！',
+            subtitle:     '你的專業團隊成功抵擋了逆境卡',
+            primaryColor: '#4fc3f7',
+            accentColor:  '#b3e5fc',
+            confirmText:  '太好了！',
+            hint:         `🛡️ 剩餘抵擋機會: ${message.remainingShield} 次`
+        });
 
         client.modalManager.createModal('hardshipShieldModal', modalHtml);
         client.modalManager.openModal('hardshipShieldModal');
 
-        setTimeout(() => {
-            const btn = document.getElementById('closeShieldModalBtn');
-            if (btn) {
-                btn.onclick = () => client.modalManager.closeModal('hardshipShieldModal');
-                btn.onmouseenter = () => { btn.style.transform = 'scale(1.03)'; };
-                btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; };
-            }
-        }, 100);
+        if (message.card) {
+            const displayCard = {
+                ...message.card,
+                description: `❌ 已被抵擋 - 效果無效\n\n原本效果: ${message.card.description || ''}`
+            };
+            CardRevealTemplate.populate(
+                displayCard,
+                null,
+                client.escapeHtml.bind(client)
+            );
+        }
 
+        CardRevealTemplate.bindConfirm(() => {
+            client.modalManager.closeModal('hardshipShieldModal');
+        });
+
+        // Auto-close after 30 seconds
         setTimeout(() => {
             client.modalManager.closeModal('hardshipShieldModal');
         }, 30000);
     }
+
+    // ==================== Choice cards (S19 etc) ====================
+
+    async handleHardshipChoicePrompt(message) {
+        const { client } = this;
+        const { CardRevealTemplate } = await import('../../cards/templates/CardRevealTemplate.js');
+
+        const old = document.getElementById('hardshipChoiceModal');
+        if (old) old.remove();
+
+        const modalHtml = CardRevealTemplate.buildChoiceModal(
+            message.cardName,
+            message.baseEffect,
+            message.choices,
+            client.escapeHtml.bind(client)
+        );
+
+        client.modalManager.createModal('hardshipChoiceModal', modalHtml);
+        client.modalManager.openModal('hardshipChoiceModal');
+
+        setTimeout(() => {
+            CardRevealTemplate.bindChoiceButtons((choice) => {
+                client.connection.send({
+                    type: 'hardship_choice',
+                    choice
+                });
+                client.modalManager.closeModal('hardshipChoiceModal');
+            });
+        }, 100);
+    }
+
+    handleHardshipChoiceResult(message) {
+        const { client } = this;
+        if (message.gameState) {
+            client.gameState = message.gameState;
+            client.updateUI();
+        }
+        client.logManager.addLog(message.message, 'success');
+        client.logManager.showNotification(message.message, 'success');
+    }
+
+    // ==================== Private ====================
 
     _applyState(message) {
         const { client } = this;

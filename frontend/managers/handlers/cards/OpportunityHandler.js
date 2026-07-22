@@ -190,4 +190,74 @@ export class OpportunityHandler {
             }
         );
     }
+
+    async handleGroupInvestmentPrompt(message) {
+        const { client } = this;
+        const { GroupInvestmentTemplate } = await import('../../cards/templates/GroupInvestmentTemplate.js');
+
+        const old = document.getElementById('groupInvestmentModal');
+        if (old) old.remove();
+
+        client.modalManager.createModal(
+            'groupInvestmentModal',
+            GroupInvestmentTemplate.buildModal()
+        );
+
+        client.modalManager.openModal('groupInvestmentModal');
+        GroupInvestmentTemplate.populate(message, client.escapeHtml.bind(client));
+
+        const timerId = GroupInvestmentTemplate.startCountdown(
+            message.timeout || 45,
+            () => {
+                GroupInvestmentTemplate.disableSubmit();
+                // Auto-submit 0 units on timeout
+                client.connection.send({
+                    type: 'group_investment_response',
+                    groupId: message.groupId,
+                    units: 0
+                });
+                client.modalManager.closeModal('groupInvestmentModal');
+                client.logManager.addLog('🏗️ 投資超時，自動放棄', 'warning');
+            }
+        );
+
+        GroupInvestmentTemplate.bindSubmit(
+            message.groupId,
+            message.unitPrice,
+            message.playerCash,
+            message.playerEnergy,
+            message.energyCostToJoin,
+            message.isInitiator,
+            (units) => {
+                if (timerId) clearInterval(timerId);
+                GroupInvestmentTemplate.disableSubmit();
+                client.connection.send({
+                    type: 'group_investment_response',
+                    groupId: message.groupId,
+                    units
+                });
+                client.modalManager.closeModal('groupInvestmentModal');
+
+                if (units > 0) {
+                    client.logManager.addLog(
+                        `🏗️ 你投資了 ${units} 份「${message.card.name}」`,
+                        'success'
+                    );
+                } else {
+                    client.logManager.addLog('🏗️ 你選擇不參與投資', 'info');
+                }
+            }
+        );
+
+        client.logManager.addLog(message.message, 'event');
+    }
+
+    handleGroupInvestmentResult(message) {
+        const { client } = this;
+        client.logManager.addLog(message.message, 'event');
+        client.logManager.showNotification(
+            `🏗️ 投資「${message.cardName}」完成！`,
+            'success'
+        );
+    }
 }

@@ -73,59 +73,55 @@ export class OpportunityCardTemplate {
 
     static buildPurchaseModal() {
         return `
-            <div class="modal-content" style="max-width: 500px;
-                 background: linear-gradient(135deg, #fff9e6, #fff3d6);
-                 border-radius: 20px; padding: 24px;">
+        <div class="modal-content" style="max-width: 500px;
+             background: linear-gradient(135deg, #fff9e6, #fff3d6);
+             border-radius: 20px; padding: 24px;">
 
-                <div class="modal-title" style="text-align: center; color: #ff9800;
-                     font-size: 24px; margin-bottom: 12px;">
-                    💰 購買機會卡
-                </div>
-
-                <div id="purchaseCardImage" style="text-align: center; margin: 15px 0;">
-                    <img id="purchaseCardImg" src="" alt="機會卡"
-                         style="max-width: 100%; border-radius: 16px;
-                                box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-                                border: 3px solid #ffb347;">
-                </div>
-
-                <div class="modal-body" id="purchaseModalBody"
-                     style="font-size: 16px; line-height: 1.5;">
-                </div>
-
-                <div id="purchaseCardTypeBadge" style="text-align: center; margin: 10px 0;">
-                    <span id="purchaseCardTypeSpan"
-                          style="display: inline-block; padding: 5px 12px;
-                                 border-radius: 20px; font-size: 12px; color: white;">
-                    </span>
-                </div>
-
-                <div style="background: #ffecb3; padding: 12px; border-radius: 12px;
-                            margin: 15px 0; text-align: center;">
-                    <span style="font-size: 18px; font-weight: bold;">💰 購買費用: 500 元</span>
-                    <span id="purchaseAffordWarning"
-                          style="color: #d32f2f; display: none; margin-left: 10px;">
-                        (現金不足)
-                    </span>
-                </div>
-
-                <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                    <button id="cancelPurchaseBtn"
-                            style="background: #9e9e9e; padding: 12px 24px; font-size: 16px;
-                                   border-radius: 30px; cursor: pointer; border: none; color: white;
-                                   transition: all 0.2s ease;">
-                        ❌ 放棄購買
-                    </button>
-                    <button id="confirmPurchaseBtn"
-                            style="background: #ff9800; padding: 12px 24px; font-size: 16px;
-                                   border-radius: 30px; cursor: pointer; border: none; color: white;
-                                   transition: all 0.2s ease;
-                                   box-shadow: 0 4px 12px rgba(255,152,0,0.3);">
-                        💰 支付500購買
-                    </button>
-                </div>
+            <div class="modal-title" style="text-align: center; color: #ff9800;
+                 font-size: 24px; margin-bottom: 12px;">
+                💰 購買機會卡
             </div>
-        `;
+
+            <div id="purchaseCardImage" style="text-align: center; margin: 15px 0;">
+                <img id="purchaseCardImg" src="" alt="機會卡"
+                     style="max-width: 100%; border-radius: 16px;
+                            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                            border: 3px solid #ffb347;">
+            </div>
+
+            <div class="modal-body" id="purchaseModalBody"
+                 style="font-size: 16px; line-height: 1.5;">
+            </div>
+
+            <div id="purchaseCardTypeBadge" style="text-align: center; margin: 10px 0;">
+                <span id="purchaseCardTypeSpan"
+                      style="display: inline-block; padding: 5px 12px;
+                             border-radius: 20px; font-size: 12px; color: white;">
+                </span>
+            </div>
+
+            <!-- ✅ Cost display - now has an ID so we can update it dynamically -->
+            <div id="purchaseCostDisplay" style="background: #ffecb3; padding: 12px;
+                        border-radius: 12px; margin: 15px 0; text-align: center;">
+            </div>
+
+            <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
+                <button id="cancelPurchaseBtn"
+                        style="background: #9e9e9e; padding: 12px 24px; font-size: 16px;
+                               border-radius: 30px; cursor: pointer; border: none; color: white;
+                               transition: all 0.2s ease;">
+                    ❌ 放棄購買
+                </button>
+                <button id="confirmPurchaseBtn"
+                        style="background: #ff9800; padding: 12px 24px; font-size: 16px;
+                               border-radius: 30px; cursor: pointer; border: none; color: white;
+                               transition: all 0.2s ease;
+                               box-shadow: 0 4px 12px rgba(255,152,0,0.3);">
+                    💰 支付購買
+                </button>
+            </div>
+        </div>
+    `;
     }
 
     static buildEffectModal() {
@@ -517,6 +513,53 @@ export class OpportunityCardTemplate {
             imgEl.style.filter = 'none';
             imgEl.style.border = '3px solid #ffb347';
             imgEl.onerror = () => { imgEl.style.display = 'none'; };
+        }
+    }
+
+    /**
+     * Update the purchase cost display based on card cost multiplier.
+     * @param {number} multiplier - 1 for normal, 2 for doubled (S08)
+     * @param {boolean} canAfford - whether player can afford
+     */
+    static updatePurchaseCost(multiplier, canAfford) {
+        const costDisplay = document.getElementById('purchaseCostDisplay');
+        const confirmBtn  = document.getElementById('confirmPurchaseBtn');
+
+        if (!costDisplay) return;
+
+        const baseCost   = 500;
+        const actualCost = baseCost * multiplier;
+
+        if (multiplier > 1) {
+            costDisplay.innerHTML = `
+            <span style="font-size: 18px; font-weight: bold;">
+                💰 購買費用:
+                <s style="color: #999; font-size: 14px;">$${baseCost}</s>
+                <span style="color: #f44336; font-size: 20px;">$${actualCost.toLocaleString()}</span> 元
+            </span>
+            <div style="font-size: 12px; color: #e65100; margin-top: 4px;">
+                ⚔️ 因中東禁運，費用翻倍
+            </div>
+            <span id="purchaseAffordWarning"
+                  style="color: #d32f2f; display: ${canAfford ? 'none' : 'inline'};">
+                (現金不足)
+            </span>
+        `;
+        } else {
+            costDisplay.innerHTML = `
+            <span style="font-size: 18px; font-weight: bold;">
+                💰 購買費用: $${baseCost} 元
+            </span>
+            <span id="purchaseAffordWarning"
+                  style="color: #d32f2f; display: ${canAfford ? 'none' : 'inline'}; margin-left: 10px;">
+                (現金不足)
+            </span>
+        `;
+        }
+
+        // Update confirm button text
+        if (confirmBtn) {
+            confirmBtn.textContent = `💰 支付$${actualCost.toLocaleString()}購買`;
         }
     }
 }

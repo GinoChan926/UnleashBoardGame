@@ -28,6 +28,9 @@ export class PlayerActionSender {
         const { client } = this;
         if (!client.isConnected || client.gameOver) return;
 
+        if (client._endTurnSent) return;
+        client._endTurnSent = true;
+
         client.connection.send({ type: 'end_turn', playerId: client.playerId });
         client.logManager.addLog('🔄 結束回合', 'info');
     }

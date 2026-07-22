@@ -132,6 +132,10 @@ class GameClient {
         this.connection.send({ type: 'get_portfolio' });
     }
 
+    showLendingPanel() {
+        if (!this.isConnected) return;
+        this.connection.send({ type: 'get_lending_summary' });
+    }
     // ==================== Connect / disconnect ====================
 
     showProfessionModal() {
@@ -145,7 +149,17 @@ class GameClient {
     // ==================== Player actions ====================
 
     rollDice()          { this.actions.rollDice(); }
-    endTurn()           { this.actions.endTurn(); }
+    endTurn() {
+        // ✅ Disable button immediately to prevent double-click
+        const btn = document.getElementById('btnEndTurn');
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.4';
+            btn.style.cursor = 'not-allowed';
+        }
+
+        this.actions.endTurn();
+    }
     applyLoan()         { this.actions.applyLoan(); }
     repayLoan()         { this.actions.repayLoan(); }
     useFourLeafClover() { this.actions.useFourLeafClover(); }

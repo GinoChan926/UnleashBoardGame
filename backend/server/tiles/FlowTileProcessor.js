@@ -95,6 +95,7 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
         image: card.image || '', cost: card.cost || 500,
         investmentCost: card.investmentCost || 0, energyCost: card.energyCost || 0,
         monthlyReturn: card.monthlyReturn || 0,
+        pricePerUnit: card.pricePerUnit || card.investmentCost || 0,
         cardType: 'investment', cardTypeName: '投資', cardTypeIcon: '🏗️', type: 'investment'
     };
 
@@ -111,15 +112,45 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
         isInvestmentCard: true, tileName: tile.name
     });
 
-    ws.send(JSON.stringify({
-        type: 'opportunity_card_draw', card: serializableCard, canAfford: canPurchase,
-        message: `🏗️ 你踩中了「${tile.name}」格子！抽到一張投資卡！`
-    }));
+    // ✅ Check if any OTHER flow layer player exists for group investment
+    let hasOtherFlowPlayers = false;
+    room.players.forEach((p) => {
+        if (p.playerId !== player.playerId && p.gameState.inFlow) {
+            hasOtherFlowPlayers = true;
+        }
+    });
 
-    broadcastToRoom(roomId, {
-        type: 'notification',
-        message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在查看投資機會...`
-    }, ws);
+    if (hasOtherFlowPlayers) {
+        // ✅ Multiple flow players - trigger group investment
+        // Send card info to initiator first
+        ws.send(JSON.stringify({
+            type: 'opportunity_card_draw', card: serializableCard, canAfford: canPurchase,
+            message: `🏗️ 你踩中了「${tile.name}」格子！抽到一張投資卡！其他順流層玩家可以加入團購`
+        }));
+
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在發起團購投資...`
+        }, ws);
+
+        // Start group investment after a brief delay
+        const { startGroupInvestment } = require('../systems/GroupInvestmentSystem.js');
+        setTimeout(() => {
+            startGroupInvestment(ws, roomId, player, fullCard, broadcastToRoom, rooms);
+        }, 1000);
+
+    } else {
+        // ✅ Solo flow player - normal individual investment flow
+        ws.send(JSON.stringify({
+            type: 'opportunity_card_draw', card: serializableCard, canAfford: canPurchase,
+            message: `🏗️ 你踩中了「${tile.name}」格子！抽到一張投資卡！`
+        }));
+
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在查看投資機會...`
+        }, ws);
+    }
 
     return null;
 }

@@ -153,7 +153,7 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
 }
 
 function _findStepsToIncomeTile(state, streamlineTiles) {
-    const targetNames = ['升職加薪', '副業發展', '創業啟動'];
+    const targetNames = ['結算日', '副業發展', '創業啟動'];
     const currentPos = state.streamlinePos;
 
     for (let i = 1; i <= streamlineTiles.length; i++) {

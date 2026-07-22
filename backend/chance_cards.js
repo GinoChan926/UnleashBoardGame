@@ -10,6 +10,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             state.sideIncome += 6000;
             state.energy = Math.max(0, state.energy - 3);
@@ -28,6 +29,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 4,
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);
@@ -43,6 +45,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 4,
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);
@@ -59,6 +62,7 @@ const partTimeCards = [
         investmentCost: 10000,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             if (state.cash >= 10000) {
                 state.cash -= 10000;
@@ -79,6 +83,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 6,
         effect: (state) => {
             state.sideIncome += 6000;
             state.energy = Math.max(0, state.energy - 6);
@@ -94,6 +99,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             state.sideIncome += 3500;
             state.energy = Math.max(0, state.energy - 3);
@@ -116,6 +122,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             state.sideIncome += 2000;
             state.energy = Math.max(0, state.energy - 3);
@@ -132,6 +139,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             state.sideIncome += 3000;
             state.energy = Math.max(0, state.energy - 3);
@@ -150,6 +158,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 4,
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);
@@ -165,6 +174,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 5,
         hasPoliceCardFeature: true,
         effect: (state) => {
             state.sideIncome += 4000;
@@ -181,6 +191,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 3,
         effect: (state) => {
             state.sideIncome += 3000;
             state.energy = Math.max(0, state.energy - 3);
@@ -196,6 +207,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 4,
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);
@@ -211,6 +223,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 2,
         effect: (state) => {
             const diceRoll = Math.floor(Math.random() * 6) + 1;
             let baseIncome = diceRoll * 1000;
@@ -234,6 +247,7 @@ const partTimeCards = [
         cost: 500,
         type: "part_time",
         category: "兼職",
+        energyCost: 4,
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);

@@ -19,6 +19,8 @@ export class TurnHandler {
         const isMyTurn = client.gameState.isMyTurn === true;
         client.isMyTurn = isMyTurn;
 
+        client._endTurnSent = false;
+
         client.buttonState.refresh(client.gameState);
         this._updateStatusBar(isMyTurn);
         this._notifyOnTurnStart(isMyTurn);

@@ -34,7 +34,7 @@ export class CardVisibility {
             hardship:    '../cards/hardship/back.png',
             market_news: '../cards/revelation/market/back.png',
             awareness:   '../cards/revelation/tip/back.png',
-            tip:         '../cards/revelation/tip/IN00.png',
+            tip:         '../cards/revelation/tip/back.png',
             part_time:   '../cards/cover/part_time.png',
             finance:     '../cards/cover/finance.png',
             business:    '../cards/cover/business.png',

@@ -155,6 +155,20 @@ export class MessageRouter {
             'food_delivery_menu':  m => ch().handleFoodDeliveryMenu(m),
 
             'portfolio_snapshot':  m => ch().handlePortfolioSnapshot(m),
+
+            'lending_summary':   m => ch().handleLendingSummary(m),
+            'lending_success':   m => ch().handleLendingSuccess(m),
+            'lending_received':  m => ch().handleLendingReceived(m),
+            'repay_success':     m => ch().handleRepaySuccess(m),
+            'repay_received':    m => ch().handleRepayReceived(m),
+
+            'group_investment_prompt': m => ch().handleGroupInvestmentPrompt(m),
+            'group_investment_result': m => ch().handleGroupInvestmentResult(m),
+
+            'hardship_choice_prompt': m => ch().handleHardshipChoicePrompt(m),
+            'hardship_choice_result': m => ch().handleHardshipChoiceResult(m),
+
+            'volunteer_donation_prompt': m => ch().handleVolunteerDonationPrompt(m),
             // ── System
             'notification': m => {
                 if (m.message) {

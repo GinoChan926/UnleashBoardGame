@@ -5,7 +5,22 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     const player = room?.players.get(ws);
     if (!room || !player) return;
 
-    // ── Reset roll flag for next time this player has their turn ──────────
+    // ✅ Only the current turn player can end their turn
+    if (!player.gameState.isMyTurn) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '不是你的回合，無法結束'
+        }));
+        return;
+    }
+
+    // ✅ Prevent double end-turn
+    if (player.gameState._endingTurn) {
+        return;  // silently ignore
+    }
+    player.gameState._endingTurn = true;
+
+    // ── Reset roll flag ───────────────────────────────────────────────────
     player.gameState.hasRolledThisTurn = false;
 
     // ── Restore energy ────────────────────────────────────────────────────
@@ -20,6 +35,7 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     const nextPlayer   = playersArray[(currentIndex + 1) % playersArray.length];
 
     player.gameState.isMyTurn     = false;
+    player.gameState._endingTurn  = false;  // ✅ Reset for next time
     nextPlayer.gameState.isMyTurn = true;
     room.currentTurnPlayer        = nextPlayer.playerName;
 

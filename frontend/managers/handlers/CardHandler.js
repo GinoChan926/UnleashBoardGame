@@ -12,6 +12,7 @@ import { TipCardHandler }      from './cards/TipCardHandler.js';
 import { EnergyTradeHandler }  from './cards/EnergyTradeHandler.js';
 import { PropertyHandler }     from './cards/PropertyHandler.js';
 import { PortfolioHandler } from './cards/PortfolioHandler.js';
+import { LendingHandler } from './cards/LendingHandler.js';
 
 /**
  * Thin facade that delegates each message to the appropriate sub-handler.
@@ -33,6 +34,7 @@ export class CardHandler {
         this.energyTrade = new EnergyTradeHandler(client);
         this.property    = new PropertyHandler(client);
         this.portfolio   = new PortfolioHandler(client);
+        this.lending = new LendingHandler(client);
     }
 
     // ── Opportunity ───────────────────────────────────────────────────────
@@ -44,6 +46,16 @@ export class CardHandler {
     handleCardSkipped(m)           { this.opportunity.handleCardSkipped(m); }
     handlePurchaseFailed(m)        { this.opportunity.handlePurchaseFailed(m); }
     handlePortfolioSnapshot(m) { this.portfolio.handlePortfolioSnapshot(m); }
+    handleLendingSummary(m)  { this.lending.handleLendingSummary(m); }
+    handleLendingSuccess(m)  { this.lending.handleLendingSuccess(m); }
+    handleLendingReceived(m) { this.lending.handleLendingReceived(m); }
+    handleRepaySuccess(m)    { this.lending.handleRepaySuccess(m); }
+    handleRepayReceived(m)   { this.lending.handleRepayReceived(m); }
+    handleGroupInvestmentPrompt(m) { this.opportunity.handleGroupInvestmentPrompt(m); }
+    handleGroupInvestmentResult(m) { this.opportunity.handleGroupInvestmentResult(m); }
+    handleHardshipChoicePrompt(m) { this.hardship.handleHardshipChoicePrompt(m); }
+    handleHardshipChoiceResult(m) { this.hardship.handleHardshipChoiceResult(m); }
+    handleVolunteerDonationPrompt(m) { this.volunteer.handleVolunteerDonationPrompt(m); }
 
     // ── Revelation ────────────────────────────────────────────────────────
     handleRevelationTypeSelection(m) { this.revelation.handleRevelationTypeSelection(m); }

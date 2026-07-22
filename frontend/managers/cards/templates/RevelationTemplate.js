@@ -1,5 +1,7 @@
 "use strict";
 
+import { CardVisibility } from './CardVisibility.js';
+
 // ── Type configuration ────────────────────────────────────────────────────────
 
 const TYPE_CONFIG = {
@@ -53,55 +55,54 @@ export class RevelationTemplate {
 
     static buildPurchaseModal() {
         return `
-            <div class="modal-content" style="max-width: 500px;
-                 background: linear-gradient(135deg, #4a2a1a, #3a1a0a);
-                 border-radius: 24px; text-align: center;
-                 border: 2px solid #ff9800; padding: 24px;">
+        <div class="modal-content" style="max-width: 500px;
+             background: linear-gradient(135deg, #4a2a1a, #3a1a0a);
+             border-radius: 24px; text-align: center;
+             border: 2px solid #ff9800; padding: 24px;">
 
-                <div class="modal-title" style="color: #ff9800; font-size: 24px;
-                     margin-bottom: 12px;">
-                    🧘 察覺卡
-                </div>
-
-                <div style="text-align: center; margin: 15px 0;">
-                    <img id="revelationPurchaseImg" src="" alt="察覺卡"
-                         style="max-width: 100%; border-radius: 16px;
-                                border: 3px solid #ff9800;
-                                box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
-                </div>
-
-                <div class="modal-body" id="revelationPurchaseBody"
-                     style="font-size: 14px; line-height: 1.5; color: #ffefc0;">
-                </div>
-
-                <div style="background: rgba(255,152,0,0.15); padding: 12px;
-                            border-radius: 12px; margin: 15px 0;
-                            border: 1px solid rgba(255,152,0,0.3);">
-                    <span style="font-size: 18px; font-weight: bold; color: #ff9800;">
-                        💰 購買費用: 500 元
-                    </span>
-                </div>
-
-                <div class="modal-buttons" style="display: flex; gap: 15px;
-                     justify-content: center;">
-                    <button id="cancelRevelationPurchaseBtn"
-                            style="background: #9e9e9e; padding: 12px 24px;
-                                   border-radius: 30px; cursor: pointer;
-                                   border: none; color: white; font-size: 15px;
-                                   transition: all 0.2s ease;">
-                        ❌ 放棄購買
-                    </button>
-                    <button id="confirmRevelationPurchaseBtn"
-                            style="background: linear-gradient(135deg, #ff9800, #f57c00);
-                                   padding: 12px 24px; border-radius: 30px; cursor: pointer;
-                                   border: none; color: white; font-size: 15px;
-                                   transition: all 0.2s ease;
-                                   box-shadow: 0 4px 12px rgba(255,152,0,0.3);">
-                        💰 支付500購買
-                    </button>
-                </div>
+            <div class="modal-title" style="color: #ff9800; font-size: 24px;
+                 margin-bottom: 12px;">
+                🧘 察覺卡
             </div>
-        `;
+
+            <div style="text-align: center; margin: 15px 0;">
+                <img id="revelationPurchaseImg" src="" alt="察覺卡"
+                     style="max-width: 100%; border-radius: 16px;
+                            border: 3px solid #ff9800;
+                            box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+            </div>
+
+            <div class="modal-body" id="revelationPurchaseBody"
+                 style="font-size: 14px; line-height: 1.5; color: #ffefc0;">
+            </div>
+
+            <!-- ✅ Dynamic cost display -->
+            <div id="revelationCostDisplay"
+                 style="background: rgba(255,152,0,0.15); padding: 12px;
+                        border-radius: 12px; margin: 15px 0;
+                        border: 1px solid rgba(255,152,0,0.3);">
+            </div>
+
+            <div class="modal-buttons" style="display: flex; gap: 15px;
+                 justify-content: center;">
+                <button id="cancelRevelationPurchaseBtn"
+                        style="background: #9e9e9e; padding: 12px 24px;
+                               border-radius: 30px; cursor: pointer;
+                               border: none; color: white; font-size: 15px;
+                               transition: all 0.2s ease;">
+                    ❌ 放棄購買
+                </button>
+                <button id="confirmRevelationPurchaseBtn"
+                        style="background: linear-gradient(135deg, #ff9800, #f57c00);
+                               padding: 12px 24px; border-radius: 30px; cursor: pointer;
+                               border: none; color: white; font-size: 15px;
+                               transition: all 0.2s ease;
+                               box-shadow: 0 4px 12px rgba(255,152,0,0.3);">
+                    💰 支付購買
+                </button>
+            </div>
+        </div>
+    `;
     }
 
     static buildEffectModal() {
@@ -359,5 +360,87 @@ export class RevelationTemplate {
             declineBtn.onmouseenter = () => { declineBtn.style.transform = 'scale(1.02)'; };
             declineBtn.onmouseleave = () => { declineBtn.style.transform = 'scale(1)'; };
         }
+    }
+
+    /**
+     * Update the revelation purchase cost display based on card cost multiplier.
+     * @param {number} multiplier - 1 for normal, 2 for doubled (S08)
+     * @param {boolean} canAfford - whether player can afford
+     */
+    static updatePurchaseCost(multiplier, canAfford) {
+        const costDisplay = document.getElementById('revelationCostDisplay');
+        const confirmBtn  = document.getElementById('confirmRevelationPurchaseBtn');
+
+        if (!costDisplay) return;
+
+        const baseCost   = 500;
+        const actualCost = baseCost * multiplier;
+
+        if (multiplier > 1) {
+            costDisplay.innerHTML = `
+            <span style="font-size: 18px; font-weight: bold; color: #ff9800;">
+                💰 購買費用:
+                <s style="color: #999; font-size: 14px;">$${baseCost}</s>
+                <span style="color: #f44336; font-size: 20px;">$${actualCost.toLocaleString()}</span> 元
+            </span>
+            <div style="font-size: 12px; color: #ffab00; margin-top: 4px;">
+                ⚔️ 因中東禁運，費用翻倍
+            </div>
+        `;
+        } else {
+            costDisplay.innerHTML = `
+            <span style="font-size: 18px; font-weight: bold; color: #ff9800;">
+                💰 購買費用: $${baseCost} 元
+            </span>
+        `;
+        }
+
+        // Update button text
+        if (confirmBtn) {
+            confirmBtn.textContent = `💰 支付$${actualCost.toLocaleString()}購買`;
+            confirmBtn.disabled      = !canAfford;
+            confirmBtn.style.opacity = canAfford ? '1' : '0.5';
+            confirmBtn.style.cursor  = canAfford ? 'pointer' : 'not-allowed';
+        }
+    }
+
+    /**
+     * Build body HTML for blind cards (content hidden before purchase).
+     */
+    static buildBlindBody(cardType, escapeHtml) {
+        const label = CardVisibility.getBlindLabel(cardType);
+        const desc  = CardVisibility.getBlindDescription(cardType);
+
+        return `
+        <div style="text-align: center;">
+            <div style="font-size: 60px; margin-bottom: 12px;">🔒</div>
+            <h3 style="color: #ff9800; margin-bottom: 10px; font-size: 22px;">
+                ${label}
+            </h3>
+            <p style="color: #ffefc0; font-size: 14px; line-height: 1.6;">
+                ${escapeHtml(desc)}
+            </p>
+            <div style="background: rgba(255,152,0,0.15); padding: 10px;
+                        border-radius: 8px; margin-top: 12px;
+                        border: 2px dashed #ff9800;">
+                <span style="color: #ff9800; font-size: 13px;">
+                    🔒 內容未揭曉 - 支付後才能查看詳情
+                </span>
+            </div>
+        </div>
+    `;
+    }
+
+    /**
+     * Apply card image with blind card handling for revelation cards.
+     */
+    static applyBlindCardImage(imgEl, card) {
+        if (!imgEl) return;
+
+        const cardType = card.cardType || card.type;
+        imgEl.src = CardVisibility.getBlindImage(cardType);
+        imgEl.style.filter = 'brightness(0.85)';
+        imgEl.style.border = '3px dashed #ff9800';
+        imgEl.onerror = () => { imgEl.style.display = 'none'; };
     }
 }

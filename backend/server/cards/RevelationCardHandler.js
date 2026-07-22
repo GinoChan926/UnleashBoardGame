@@ -8,7 +8,7 @@ function showRevelationCardTypeSelection(ws, state, roomId, player, marketNewsCa
         { id: 'tip',         name: '錦囊卡',     icon: '🎁', color: '#9c27b0', cards: tipCards }
     ];
     ws.send(JSON.stringify({
-        type: 'revelation_type_selection', cardTypes, canAfford: state.cash >= 500
+        type: 'revelation_type_selection', cardTypes, canAfford: state.cash >= (500 * (state.cardCostMultiplier || 1))
     }));
     if (!room.pendingRevelationSelections) room.pendingRevelationSelections = new Map();
     room.pendingRevelationSelections.set(ws, { playerId: player.playerId, timestamp: Date.now() });
@@ -45,7 +45,7 @@ function handleRevelationCardTypeChoice(ws, data, roomId, rooms, marketNewsCards
     });
 
     ws.send(JSON.stringify({
-        type: 'revelation_card_draw', card: serializableCard, canAfford: player.gameState.cash >= 500
+        type: 'revelation_card_draw', card: serializableCard, canAfford: player.gameState.cash >= (500 * (player.gameState.cardCostMultiplier || 1))
     }));
     console.log(`📜 ${player.playerName} 選擇${serializableCard.cardTypeName}，抽到: ${card.name}`);
 }
@@ -55,30 +55,36 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
     const player = room?.players.get(ws);
     if (!room || !player) return;
 
+    // ✅ Get the pending event - THIS WAS MISSING
     const pendingEvent = room.pendingRevelationEvents?.get(ws);
     if (!pendingEvent || pendingEvent.type !== 'revelation_card') {
         ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的啟示卡' }));
         return;
     }
 
-    if (player.gameState.cash < 500) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 500 元` }));
+    // Use multiplier if active
+    const baseCost   = 500;
+    const multiplier = player.gameState.cardCostMultiplier || 1;
+    const actualCost = baseCost * multiplier;
+
+    if (player.gameState.cash < actualCost) {
+        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 ${actualCost} 元` }));
         room.pendingRevelationEvents.delete(ws);
         return;
     }
 
-    // ✅ Deduct cash
-    player.gameState.cash -= 500;
+    // Deduct cash
+    player.gameState.cash -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 
-    // ✅ Record the transaction
+    // Record transaction
     addTransactionRecord(
         player.playerName,
         pendingEvent.card,
         '購買啟示卡',
-        -500,
-        `支付 500 元購買「${pendingEvent.card.name}」`,
+        -actualCost,
+        `支付 ${actualCost} 元購買「${pendingEvent.card.name}」`,
         null,
         player.gameState
     );
@@ -92,15 +98,15 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         scope: card.scope || 'personal'
     };
 
-    // ✅ Send updated state to the purchaser
+    // Send updated state to purchaser
     ws.send(JSON.stringify({
         type: 'revelation_card_purchased',
         card: serializableCard,
-        message: `已支付 500 元購買「${card.name}」`,
-        gameState: player.gameState   // ← NEW: include updated state
+        message: `已支付 ${actualCost} 元購買「${card.name}」`,
+        gameState: player.gameState
     }));
 
-    // ✅ Broadcast state update to all players (so other players see reduced cash)
+    // Broadcast state update
     broadcastToRoom(roomId, {
         type: 'state_updated',
         playerId: player.playerId,
@@ -113,7 +119,7 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         playerId: player.playerId,
         playerName: player.playerName,
         cardName: card.name,
-        message: `${player.playerName} 花費 500 元購買了「${card.name}」`
+        message: `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
     }, ws);
 }
 

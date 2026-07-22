@@ -63,13 +63,133 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     }
 
 // Roll individual dice values
+    // Roll individual dice values
     const diceValues = [];
     for (let i = 0; i < diceCount; i++) {
         diceValues.push(Math.floor(Math.random() * 6) + 1);
     }
 
-    const originalSteps = diceValues[0];  // for display purposes
+    const originalSteps = diceValues[0];
     const steps = diceValues.reduce((sum, v) => sum + v, 0);
+
+// ✅ Check contract dispute (S14)
+    if (state.contractDispute && state.contractDispute.active) {
+        const disputeCost = state.contractDispute.monthlyCost;
+
+        // Pay the ongoing cost
+        if (state.cash >= disputeCost) {
+            state.cash -= disputeCost;
+        } else {
+            const shortfall = disputeCost - state.cash;
+            state.cash = 0;
+            state.pendingDebts = state.pendingDebts || [];
+            state.pendingDebts.push({
+                id:           `debt_S14_${Date.now()}`,
+                amount:       shortfall,
+                source:       '合約糾紛費用',
+                creditor:     'bank',
+                creditorName: '律師',
+                createdAt:    Date.now()
+            });
+        }
+
+        // Check if ANY dice shows 4, 5, or 6 → dispute resolved
+        const resolved = diceValues.some(v => v >= 4);
+
+        if (resolved) {
+            state.contractDispute.active = false;
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `⚖️ 合約糾紛解決！擲到 ${diceValues.join(', ')} (含 ≥4)，支付最後 $${disputeCost.toLocaleString()} 後結束`
+            }));
+
+            broadcastToRoom(roomId, {
+                type: 'notification',
+                message: `⚖️ ${player.playerName} 的合約糾紛已解決！`
+            }, ws);
+
+            console.log(`⚖️ ${player.playerName} 合約糾紛解決 (擲到 ${diceValues.join(', ')})`);
+        } else {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `⚖️ 合約糾紛持續！擲到 ${diceValues.join(', ')} (全部 ≤3)，支付 $${disputeCost.toLocaleString()}，下回合繼續`
+            }));
+
+            console.log(`⚖️ ${player.playerName} 合約糾紛持續 (擲到 ${diceValues.join(', ')})`);
+        }
+    }
+    // ✅ Check confused state (S18)
+    if (state.confused && state.confused.active) {
+        const highestDice = Math.max(...diceValues);
+
+        if (highestDice < state.confused.minDiceToAct) {
+            // Failed to act - turn wasted
+            state.confused.turnsRemaining--;
+
+            // Check if confusion ends
+            if (state.confused.turnsRemaining <= 0) {
+                state.confused.active = false;
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `😵 迷茫結束！你擲了 ${diceValues.join(', ')} (未達 ${state.confused.minDiceToAct})，但迷茫期已過，下回合恢復正常`
+                }));
+            } else {
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `😵 對前途迷茫！擲了 ${diceValues.join(', ')} (需 ≥${state.confused.minDiceToAct})，無法行動！剩餘 ${state.confused.turnsRemaining} 回合`
+                }));
+            }
+
+            broadcastToRoom(roomId, {
+                type: 'notification',
+                message: `😵 ${player.playerName} 因迷茫無法行動 (擲了 ${diceValues.join(', ')})`
+            }, ws);
+
+            // ✅ Send dice result for animation but don't move
+            const result = {
+                type: 'dice_result',
+                playerId: player.playerId,
+                playerName: player.playerName,
+                steps: 0,
+                originalSteps: 0,
+                multiplierUsed: false,
+                diceValues,
+                diceCount: diceValues.length,
+                diceType: 'normal',
+                gameState: state,
+                tile: null,
+                eventMessage: `😵 迷茫中，無法行動`,
+                multiplierMessage: ''
+            };
+            ws.send(JSON.stringify(result));
+            broadcastToRoom(roomId, result, ws);
+
+            // Update state
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: player.playerId,
+                gameState: state
+            });
+
+            console.log(`😵 ${player.playerName} 迷茫中，擲了 ${diceValues.join(',')} 無法行動 (剩 ${state.confused.turnsRemaining} 回合)`);
+            return;  // ← skip all movement logic
+        }
+
+        // Rolled high enough - can act this turn
+        state.confused.turnsRemaining--;
+
+        if (state.confused.turnsRemaining <= 0) {
+            state.confused.active = false;
+        }
+
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `💪 擺脫迷茫！擲了 ${diceValues.join(', ')} (≥${state.confused.minDiceToAct})，可以行動！${state.confused.active ? `剩餘 ${state.confused.turnsRemaining} 回合迷茫` : '迷茫期結束！'}`
+        }));
+
+        console.log(`💪 ${player.playerName} 擺脫迷茫行動 (擲了 ${diceValues.join(',')})`);
+        // Continue with normal movement below...
+    }
 
     let multiplierMessage = '';
     if (state.diceMultiplierActive) {
@@ -245,7 +365,20 @@ function _processStreamlinePassthrough(state, player, ws, roomId, steps, room, b
 }
 
 function _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, isExactLanding, deps) {
-    const totalIncome  = state.salary + state.sideIncome;
+    // ✅ Check skip flag
+    if (state.skipSettlementIncome) {
+        state.skipSettlementIncome = false;
+        const { totalExpense } = calculateReducedExpense(state);
+        state.cash -= totalExpense;
+        return;
+    }
+
+// ✅ S13: half income on passthrough too
+    let totalIncome = state.salary + state.sideIncome;
+    if (state.nextSettlementHalfIncome) {
+        totalIncome = Math.floor(totalIncome / 2);
+        state.nextSettlementHalfIncome = false;
+    }
     state.cash        += totalIncome;
     state.totalAssets += Math.floor(totalIncome * 0.2);
 
@@ -297,6 +430,7 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     };
     ws.send(JSON.stringify(settlementMsg));
     broadcastToRoom(roomId, settlementMsg, ws);
+
 }
 
 module.exports = { handleRoll };
