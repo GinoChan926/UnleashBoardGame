@@ -246,7 +246,9 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             }
 
             const tileAtPos = room.reverseTiles[newReversePos];
-            if (tileAtPos.type !== 'settlement') {
+            const isLanding = (i === steps) || completedReverse;
+
+            if (isLanding && tileAtPos.type !== 'settlement') {
                 const msg = processReverseTile(state, tileAtPos, ws, roomId, player,
                     room.streamlineTiles, broadcastToRoom, deps.drawHardshipCard);
                 if (msg) ws.send(JSON.stringify({ type: 'notification', message: `${player.playerName}: ${msg}` }));

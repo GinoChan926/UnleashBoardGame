@@ -36,7 +36,6 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
     const player = room?.players.get(ws);
     if (!room || !player) return;
 
-    // ── Find the card type ────────────────────────────────────────────────────
     const cardTypeData = Object.values(CARD_TYPES).find(t => t.id === data.cardType);
     if (!cardTypeData) {
         ws.send(JSON.stringify({ type: 'error', message: '無效的卡片類型' }));
@@ -50,44 +49,48 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
 
     room.pendingTypeSelections?.delete(ws);
 
-    // ── Pick a random card ────────────────────────────────────────────────────
     const originalCard = cardTypeData.cards[Math.floor(Math.random() * cardTypeData.cards.length)];
 
-    // ✅ Use Object.create to preserve prototype chain, then set extra props
-    // This keeps all methods (including non-enumerable ones) intact
     const card = Object.create(originalCard);
     card.cardType     = cardTypeData.id;
     card.cardTypeName = cardTypeData.name;
     card.cardTypeIcon = cardTypeData.icon;
 
-    // ── Build serializable version for frontend ───────────────────────────────
+    // ✅ Lock price at draw time for stock/crypto cards
+    if (originalCard.getCurrentPrice) {
+        const lockedPrice = originalCard.currentPrice || 0;
+        card._lockedPrice = lockedPrice;
+        card.getCurrentPrice = function() {
+            return this._lockedPrice;
+        };
+        console.log(`🔒 鎖定價格: ${originalCard.name} @ $${lockedPrice}`);
+    }
+
     const serializableCard = {
-        id:           originalCard.id,
-        name:         originalCard.name,
-        description:  originalCard.description,
-        image:        originalCard.image,
-        cost:         originalCard.cost,
+        id:             originalCard.id,
+        name:           originalCard.name,
+        description:    originalCard.description,
+        image:          originalCard.image,
+        cost:           originalCard.cost,
         investmentCost: originalCard.investmentCost || 0,
-        energyCost:   originalCard.energyCost || 0,
-        cardType:     cardTypeData.id,
-        cardTypeName: cardTypeData.name,
-        cardTypeIcon: cardTypeData.icon,
-        // Finance card specific fields
-        pricePerUnit:  originalCard.pricePerUnit,
-        monthlyReturn: originalCard.monthlyReturn,
-        minUnits:      originalCard.minUnits,
-        maxUnits:      originalCard.maxUnits,
-        stockCode:     originalCard.stockCode,
-        currentPrice:  originalCard.currentPrice,
-        cryptoCode:    originalCard.cryptoCode,
-        type:          originalCard.type
+        energyCost:     originalCard.energyCost || 0,
+        cardType:       cardTypeData.id,
+        cardTypeName:   cardTypeData.name,
+        cardTypeIcon:   cardTypeData.icon,
+        pricePerUnit:   originalCard.pricePerUnit,
+        monthlyReturn:  originalCard.monthlyReturn,
+        minUnits:       originalCard.minUnits,
+        maxUnits:       originalCard.maxUnits,
+        stockCode:      originalCard.stockCode,
+        currentPrice:   card._lockedPrice || originalCard.currentPrice,  // ✅ Use locked price
+        cryptoCode:     originalCard.cryptoCode,
+        type:           originalCard.type
     };
 
-    // ── Save to pending events ────────────────────────────────────────────────
     if (!room.pendingEvents) room.pendingEvents = new Map();
     room.pendingEvents.set(ws, {
         type:      'opportunity_card',
-        card,                           // ← the Object.create version keeps all methods
+        card,
         cardType:  cardTypeData,
         playerId:  player.playerId,
         purchased: false,
@@ -100,7 +103,7 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
         canAfford: player.gameState.cash >= (500 * (player.gameState.cardCostMultiplier || 1))
     }));
 
-    console.log(`🎴 ${player.playerName} 選擇${cardTypeData.name}，抽到: ${originalCard.name} (ID: ${originalCard.id})`);
+    console.log(`🎴 ${player.playerName} 選擇${cardTypeData.name}，抽到: ${originalCard.name} (ID: ${originalCard.id})${card._lockedPrice ? ` @ $${card._lockedPrice}` : ''}`);
 }
 
 function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
@@ -114,8 +117,7 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // ✅ Use multiplier if active
-    const baseCost = 500;
+    const baseCost   = 500;
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
 
@@ -125,7 +127,7 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    player.gameState.cash -= actualCost;
+    player.gameState.cash    -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 
@@ -133,20 +135,38 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
     const effectPreview = _getCardEffectPreview(card, player.gameState);
 
     const serializableCard = {
-        id: card.id, name: card.name, description: card.description, image: card.image,
-        investmentCost: card.investmentCost || 0, energyCost: card.energyCost || 0,
-        cardType:     pendingEvent.cardType?.id   || 'general',
-        cardTypeName: pendingEvent.cardType?.name || '機會卡',
-        cardTypeIcon: pendingEvent.cardType?.icon || '🎴'
+        id:             card.id,
+        name:           card.name,
+        description:    card.description,
+        image:          card.image,
+        investmentCost: card.investmentCost || 0,
+        energyCost:     card.energyCost || 0,
+        cardType:       pendingEvent.cardType?.id   || 'general',
+        cardTypeName:   pendingEvent.cardType?.name || '機會卡',
+        cardTypeIcon:   pendingEvent.cardType?.icon || '🎴',
+        currentPrice:   card._lockedPrice || card.currentPrice || 0  // ✅ Include locked price
     };
 
     ws.send(JSON.stringify({
-        type: 'card_purchased', card: serializableCard, effectPreview,
-        message: `已支付 500 元購買「${card.name}」`
+        type: 'card_purchased',
+        card: serializableCard,
+        effectPreview,
+        message: `已支付 ${actualCost} 元購買「${card.name}」`,
+        gameState: player.gameState
     }));
+
     broadcastToRoom(roomId, {
-        type: 'player_purchased_card', playerId: player.playerId, playerName: player.playerName,
-        cardName: card.name, message: `${player.playerName} 花费 500 元購買了「${card.name}」`
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+
+    broadcastToRoom(roomId, {
+        type: 'player_purchased_card',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        cardName: card.name,
+        message: `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
     }, ws);
 }
 
@@ -377,6 +397,27 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             }, 500);
 
             return;
+        }
+        // ✅ Trigger group finance for stock/crypto cards after buy
+        const isFinanceBuy = (data.stockAction === 'buy' || data.cryptoAction === 'buy');
+        const isFinanceCard = !!(card.stockCode || card.cryptoCode || card.getCurrentPrice);
+
+        if (isFinanceBuy && isFinanceCard) {
+            const { startGroupFinance } = require('../systems/GroupFinanceSystem.js');
+
+            // ✅ Get the price the drawer actually paid (from their latest transaction)
+            let lockedPrice = 0;
+            if (card.stockCode && player.gameState.stockHoldings?.[card.id]) {
+                lockedPrice = player.gameState.stockHoldings[card.id].lastPrice ||
+                    player.gameState.stockHoldings[card.id].purchasePrice;
+            } else if (card.cryptoCode && player.gameState.cryptoHoldings?.[card.id]) {
+                lockedPrice = player.gameState.cryptoHoldings[card.id].lastPrice ||
+                    player.gameState.cryptoHoldings[card.id].averagePrice;
+            }
+
+            setTimeout(() => {
+                startGroupFinance(ws, roomId, player, card, broadcastToRoom, rooms, lockedPrice);
+            }, 1000);
         }
     } else {
         resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;

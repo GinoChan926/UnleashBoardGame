@@ -81,7 +81,6 @@ function handleMoveForwardChoice(ws, data, roomId, rooms, broadcastToRoom, tileP
 function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, tileProcessor) {
     const state = player.gameState;
 
-    // Only works on streamline layer for now
     if (state.inFlow || state.inReverse) {
         ws.send(JSON.stringify({
             type: 'notification',
@@ -93,26 +92,44 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
     const oldPos = state.streamlinePos;
     const newPos = (oldPos + steps) % room.streamlineTiles.length;
 
-    // Process settlement tiles passed
+    // ✅ Process ALL tiles passed through (including settlement)
     for (let i = 1; i < steps; i++) {
-        const passPos = (oldPos + i) % room.streamlineTiles.length;
+        const passPos  = (oldPos + i) % room.streamlineTiles.length;
         const passTile = room.streamlineTiles[passPos];
-        if (passTile.type === 'settlement') {
+        const isLanding = (i === steps);
+
+        // Settlement tiles passed through (not landed on) - give income
+        if (passTile.type === 'settlement' && !isLanding) {
             const totalIncome = state.salary + state.sideIncome;
-            state.cash += totalIncome;
+            state.cash       += totalIncome;
             state.totalAssets += Math.floor(totalIncome * 0.2);
 
             const { totalExpense } = calculateReducedExpense(state);
             state.cash -= totalExpense;
 
+            // Bakery energy
+            if (state.bakeryCount > 0) {
+                state.energy = Math.min(state.maxEnergy, state.energy + state.bakeryCount);
+            }
+
+            // Half income check (S13)
+            if (state.nextSettlementHalfIncome) {
+                state.nextSettlementHalfIncome = false;
+            }
+
             const repayment = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
             if (repayment) {
                 ws.send(JSON.stringify(repayment));
             }
+
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `💰 經過結算日！獲得收入 $${totalIncome.toLocaleString()}`
+            }));
         }
     }
 
-    // Move to new position
+    // Move to final position
     state.streamlinePos = newPos;
     const landedTile = room.streamlineTiles[newPos];
 
@@ -140,9 +157,11 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         multiplierMessage: ''
     });
 
-    // Process the landed tile (unless it's settlement - already handled above)
-    if (landedTile.type !== 'settlement' && tileProcessor) {
-        tileProcessor(state, landedTile, ws, roomId, player, false);
+    // ✅ Process the LANDED tile (including settlement)
+    if (tileProcessor) {
+        setTimeout(() => {
+            tileProcessor(state, landedTile, ws, roomId, player, landedTile.type === 'settlement');
+        }, 500);
     }
 
     broadcastToRoom(roomId, {

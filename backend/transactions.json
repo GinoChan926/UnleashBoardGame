@@ -1,485 +1,86 @@
 [
   {
-    "id": "1784729803413_9ygcit",
-    "timestamp": "22/7/2026 下午10:16:43",
-    "playerName": "Player_1784729531779",
-    "cardType": "volunteer",
-    "cardName": "集體善事探望長者",
-    "action": "義工卡",
-    "amountChange": 0,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": {
-      "type": "collect_energy_donations",
-      "message": "👴 集體善事探望長者\n\n現金最少的玩家是：Player_1784729531779\n\n請每位玩家選擇是否捐贈 2 精力給 TA？\n\n捐贈精力的玩家將獲得幸運值 +1 獎勵！",
-      "donationAmount": 2,
-      "donationType": "energy",
-      "targetPlayer": "Player_1784729531779",
-      "isSelfTarget": true,
-      "playersToAsk": [
-        {
-          "ws": {
-            "_events": {
-              "close": [
-                null,
-                null
-              ]
-            },
-            "_eventsCount": 2,
-            "_binaryType": "nodebuffer",
-            "_closeCode": 1001,
-            "_closeFrameReceived": true,
-            "_closeFrameSent": true,
-            "_closeMessage": {
-              "type": "Buffer",
-              "data": []
-            },
-            "_closeTimer": {
-              "_idleTimeout": -1,
-              "_idlePrev": null,
-              "_idleNext": null,
-              "_idleStart": 966661,
-              "_onTimeout": null,
-              "_repeat": null,
-              "_destroyed": true
-            },
-            "_errorEmitted": false,
-            "_extensions": {},
-            "_paused": false,
-            "_protocol": "",
-            "_readyState": 3,
-            "_receiver": {
-              "_events": {},
-              "_writableState": {
-                "highWaterMark": 16384,
-                "length": 0,
-                "corked": 0,
-                "writelen": 0,
-                "bufferedIndex": 0,
-                "pendingcb": 0
-              },
-              "_allowSynchronousEvents": true,
-              "_binaryType": "nodebuffer",
-              "_extensions": {},
-              "_isServer": true,
-              "_maxBufferedChunks": 1048576,
-              "_maxFragments": 131072,
-              "_maxPayload": 104857600,
-              "_skipUTF8Validation": false,
-              "_bufferedBytes": 0,
-              "_buffers": [],
-              "_compressed": false,
-              "_payloadLength": 2,
-              "_mask": {
-                "type": "Buffer",
-                "data": [
-                  100,
-                  133,
-                  214,
-                  247
-                ]
-              },
-              "_fragmented": 0,
-              "_masked": true,
-              "_fin": true,
-              "_opcode": 8,
-              "_totalPayloadLength": 0,
-              "_messageLength": 0,
-              "_fragments": [],
-              "_errored": false,
-              "_loop": false,
-              "_state": 0,
-              "_eventsCount": 0
-            },
-            "_sender": {
-              "_extensions": {},
-              "_socket": {
-                "connecting": false,
-                "_hadError": false,
-                "_parent": null,
-                "_host": null,
-                "_closeAfterHandlingError": false,
-                "_events": {},
-                "_readableState": {
-                  "highWaterMark": 16384,
-                  "buffer": [],
-                  "bufferIndex": 0,
-                  "length": 0,
-                  "pipes": [],
-                  "awaitDrainWriters": null
-                },
-                "_writableState": {
-                  "highWaterMark": 16384,
-                  "length": 0,
-                  "corked": 0,
-                  "writelen": 0,
-                  "bufferedIndex": 0,
-                  "pendingcb": 0
-                },
-                "allowHalfOpen": true,
-                "_eventsCount": 2,
-                "_sockname": null,
-                "_pendingData": null,
-                "_pendingEncoding": "",
-                "server": {
-                  "requestTimeout": 300000,
-                  "headersTimeout": 60000,
-                  "keepAliveTimeout": 5000,
-                  "connectionsCheckingInterval": 30000,
-                  "requireHostHeader": true,
-                  "rejectNonStandardBodyWrites": false,
-                  "_events": {
-                    "listening": [
-                      null,
-                      null
-                    ]
-                  },
-                  "_eventsCount": 5,
-                  "_connections": 0,
-                  "_handle": {
-                    "reading": false
-                  },
-                  "_usingWorkers": false,
-                  "_workers": [],
-                  "_unref": false,
-                  "_listeningId": 2,
-                  "allowHalfOpen": true,
-                  "pauseOnConnect": false,
-                  "noDelay": true,
-                  "keepAlive": false,
-                  "keepAliveInitialDelay": 0,
-                  "highWaterMark": 16384,
-                  "httpAllowHalfOpen": false,
-                  "timeout": 0,
-                  "maxHeadersCount": null,
-                  "maxRequestsPerSocket": 0,
-                  "_connectionKey": "4:0.0.0.0:8080"
-                },
-                "_server": {
-                  "requestTimeout": 300000,
-                  "headersTimeout": 60000,
-                  "keepAliveTimeout": 5000,
-                  "connectionsCheckingInterval": 30000,
-                  "requireHostHeader": true,
-                  "rejectNonStandardBodyWrites": false,
-                  "_events": {
-                    "listening": [
-                      null,
-                      null
-                    ]
-                  },
-                  "_eventsCount": 5,
-                  "_connections": 0,
-                  "_handle": {
-                    "reading": false
-                  },
-                  "_usingWorkers": false,
-                  "_workers": [],
-                  "_unref": false,
-                  "_listeningId": 2,
-                  "allowHalfOpen": true,
-                  "pauseOnConnect": false,
-                  "noDelay": true,
-                  "keepAlive": false,
-                  "keepAliveInitialDelay": 0,
-                  "highWaterMark": 16384,
-                  "httpAllowHalfOpen": false,
-                  "timeout": 0,
-                  "maxHeadersCount": null,
-                  "maxRequestsPerSocket": 0,
-                  "_connectionKey": "4:0.0.0.0:8080"
-                },
-                "parser": null,
-                "_paused": false,
-                "timeout": 0
-              },
-              "_firstFragment": true,
-              "_compress": false,
-              "_bufferedBytes": 0,
-              "_queue": [],
-              "_state": 0
-            },
-            "_socket": {
-              "connecting": false,
-              "_hadError": false,
-              "_parent": null,
-              "_host": null,
-              "_closeAfterHandlingError": false,
-              "_events": {},
-              "_readableState": {
-                "highWaterMark": 16384,
-                "buffer": [],
-                "bufferIndex": 0,
-                "length": 0,
-                "pipes": [],
-                "awaitDrainWriters": null
-              },
-              "_writableState": {
-                "highWaterMark": 16384,
-                "length": 0,
-                "corked": 0,
-                "writelen": 0,
-                "bufferedIndex": 0,
-                "pendingcb": 0
-              },
-              "allowHalfOpen": true,
-              "_eventsCount": 2,
-              "_sockname": null,
-              "_pendingData": null,
-              "_pendingEncoding": "",
-              "server": {
-                "requestTimeout": 300000,
-                "headersTimeout": 60000,
-                "keepAliveTimeout": 5000,
-                "connectionsCheckingInterval": 30000,
-                "requireHostHeader": true,
-                "rejectNonStandardBodyWrites": false,
-                "_events": {
-                  "listening": [
-                    null,
-                    null
-                  ]
-                },
-                "_eventsCount": 5,
-                "_connections": 0,
-                "_handle": {
-                  "reading": false
-                },
-                "_usingWorkers": false,
-                "_workers": [],
-                "_unref": false,
-                "_listeningId": 2,
-                "allowHalfOpen": true,
-                "pauseOnConnect": false,
-                "noDelay": true,
-                "keepAlive": false,
-                "keepAliveInitialDelay": 0,
-                "highWaterMark": 16384,
-                "httpAllowHalfOpen": false,
-                "timeout": 0,
-                "maxHeadersCount": null,
-                "maxRequestsPerSocket": 0,
-                "_connectionKey": "4:0.0.0.0:8080"
-              },
-              "_server": {
-                "requestTimeout": 300000,
-                "headersTimeout": 60000,
-                "keepAliveTimeout": 5000,
-                "connectionsCheckingInterval": 30000,
-                "requireHostHeader": true,
-                "rejectNonStandardBodyWrites": false,
-                "_events": {
-                  "listening": [
-                    null,
-                    null
-                  ]
-                },
-                "_eventsCount": 5,
-                "_connections": 0,
-                "_handle": {
-                  "reading": false
-                },
-                "_usingWorkers": false,
-                "_workers": [],
-                "_unref": false,
-                "_listeningId": 2,
-                "allowHalfOpen": true,
-                "pauseOnConnect": false,
-                "noDelay": true,
-                "keepAlive": false,
-                "keepAliveInitialDelay": 0,
-                "highWaterMark": 16384,
-                "httpAllowHalfOpen": false,
-                "timeout": 0,
-                "maxHeadersCount": null,
-                "maxRequestsPerSocket": 0,
-                "_connectionKey": "4:0.0.0.0:8080"
-              },
-              "parser": null,
-              "_paused": false,
-              "timeout": 0
-            },
-            "_autoPong": true,
-            "_closeTimeout": 30000,
-            "_isServer": true
-          },
-          "playerName": "Player_1784729534180",
-          "energy": 1,
-          "maxEnergy": 100
-        }
-      ],
-      "cardId": "V12",
-      "cardName": "集體善事探望長者"
-    }
-  },
-  {
-    "id": "1784729771780_j2fv4v",
-    "timestamp": "22/7/2026 下午10:16:11",
-    "playerName": "Player_1784729534180",
-    "cardType": "part_time",
-    "cardName": "補習功課導師",
-    "action": "執行",
-    "amountChange": 0,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 3000,
-    "salaryChange": 0,
-    "energyChange": -3,
-    "details": "家教服務开始！副業收入增加 3000 元"
-  },
-  {
-    "id": "1784729689467_2ua2k9",
-    "timestamp": "22/7/2026 下午10:14:49",
-    "playerName": "Player_1784729534180",
-    "cardType": "hardship",
-    "cardName": "通貨膨脹屋租上漲",
-    "action": "屋租上漲",
-    "amountChange": 0,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "沒有買房，屋租支出增加 $2,000/月"
-  },
-  {
-    "id": "1784729689467_aaa7wz",
-    "timestamp": "22/7/2026 下午10:14:49",
-    "playerName": "Player_1784729531779",
-    "cardType": "hardship",
-    "cardName": "通貨膨脹屋租上漲",
-    "action": "屋租上漲",
-    "amountChange": 0,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "沒有買房，屋租支出增加 $2,000/月"
-  },
-  {
-    "id": "1784729689464_orp5ez",
-    "timestamp": "22/7/2026 下午10:14:49",
-    "playerName": "Player_1784729531779",
-    "cardType": "hardship",
-    "cardName": "失業",
-    "action": "失業",
-    "amountChange": -15000,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "失業！損失 15,000 元，月薪歸零，精力 +6"
-  },
-  {
-    "id": "1784729677164_9t3zin",
-    "timestamp": "22/7/2026 下午10:14:37",
-    "playerName": "Player_1784729534180",
+    "id": "1784778987648_7lryh0",
+    "timestamp": "23/7/2026 上午11:56:27",
+    "playerName": "Player_1784778892214",
     "cardType": "tip",
-    "cardName": "黑馬思維 - 微動力",
-    "action": "黑馬思維移動",
-    "amountChange": 0,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "前進 1 格 (3 → 4)，踩中「機會卡」"
-  },
-  {
-    "id": "1784729676661_ox5jyi",
-    "timestamp": "22/7/2026 下午10:14:36",
-    "playerName": "Player_1784729534180",
-    "cardType": "tip",
-    "cardName": "黑馬思維 - 微動力",
+    "cardName": "時間管理",
     "action": "個人錦囊執行",
     "amountChange": 0,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
-    "energyChange": -1,
-    "details": "🐴 黑馬思維！將隨機前進 1-3 格"
+    "energyChange": 1,
+    "details": "⏰ 時間管理生效！\n✨ 獲得一個額外回合！\n⚡ 精力 +1\n📌 結束目前回合後，你將立即進行下一回合！"
   },
   {
-    "id": "1784729663295_nixrve",
-    "timestamp": "22/7/2026 下午10:14:23",
-    "playerName": "Player_1784729534180",
+    "id": "1784778980228_ydx4ok",
+    "timestamp": "23/7/2026 上午11:56:20",
+    "playerName": "Player_1784778892214",
     "cardType": "tip",
-    "cardName": "黑馬思維 - 微動力",
+    "cardName": "時間管理",
     "action": "購買啟示卡",
     "amountChange": -500,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "支付 500 元購買「黑馬思維 - 微動力」"
+    "details": "支付 500 元購買「時間管理」"
   },
   {
-    "id": "1784729585469_hjppwp",
-    "timestamp": "22/7/2026 下午10:13:05",
-    "playerName": "Player_1784729531779",
-    "cardType": "hardship",
-    "cardName": "生意失敗",
-    "action": "生意失敗",
-    "amountChange": -1002750,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "損失 1,002,750 元，幸運值 -2"
-  },
-  {
-    "id": "1784729585464_rf25h5",
-    "timestamp": "22/7/2026 下午10:13:05",
-    "playerName": "Player_1784729534180",
-    "cardType": "hardship",
-    "cardName": "大量裁員潮",
-    "action": "裁員潮損失",
-    "amountChange": -11500,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "擲 3 點 (平流層)，額外支出 $11,500"
-  },
-  {
-    "id": "1784729557634_gxud1u",
-    "timestamp": "22/7/2026 下午10:12:37",
-    "playerName": "Player_1784729534180",
-    "cardType": "lier",
-    "cardName": "投資加密貨幣平台",
-    "action": "騙子卡",
-    "amountChange": -200000,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "🎲 擲出 3 點！投資失敗，損失 200,000 元 (現金的10%)，幸運值 -1"
-  },
-  {
-    "id": "1784729536878_1asvtb",
-    "timestamp": "22/7/2026 下午10:12:16",
-    "playerName": "Player_1784729534180",
-    "cardType": "hardship",
-    "cardName": "通貨膨脹屋租上漲",
-    "action": "屋租上漲",
+    "id": "1784778945731_7ytebz",
+    "timestamp": "23/7/2026 上午11:55:45",
+    "playerName": "Player_1784778895028",
+    "cardType": "tip",
+    "cardName": "黑馬思維 - 突破限制",
+    "action": "黑馬思維移動",
     "amountChange": 0,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "沒有買房，屋租支出增加 $2,000/月"
+    "details": "前進 3 格 (3 → 6)，踩中「機會卡」"
   },
   {
-    "id": "1784729536820_3zksgh",
-    "timestamp": "22/7/2026 下午10:12:16",
-    "playerName": "Player_1784729531779",
-    "cardType": "hardship",
-    "cardName": "通貨膨脹屋租上漲",
-    "action": "屋租上漲",
+    "id": "1784778945214_6ulddn",
+    "timestamp": "23/7/2026 上午11:55:45",
+    "playerName": "Player_1784778895028",
+    "cardType": "tip",
+    "cardName": "黑馬思維 - 突破限制",
+    "action": "個人錦囊執行",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": -1,
+    "details": "🐴 黑馬思維！將前進到最近玩家的位置"
+  },
+  {
+    "id": "1784778935013_e6wss8",
+    "timestamp": "23/7/2026 上午11:55:35",
+    "playerName": "Player_1784778895028",
+    "cardType": "tip",
+    "cardName": "黑馬思維 - 突破限制",
+    "action": "購買啟示卡",
+    "amountChange": -500,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "支付 500 元購買「黑馬思維 - 突破限制」"
+  },
+  {
+    "id": "1784778915849_685l6o",
+    "timestamp": "23/7/2026 上午11:55:15",
+    "playerName": "Player_1784778892214",
+    "cardType": "part_time",
+    "cardName": "WEB3公司員工",
+    "action": "執行",
     "amountChange": 0,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "沒有買房，屋租支出增加 $2,000/月"
+    "details": ""
   }
 ]

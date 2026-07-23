@@ -260,4 +260,51 @@ export class OpportunityHandler {
             'success'
         );
     }
+    async handleGroupFinancePrompt(message) {
+        const { client } = this;
+        const { GroupFinanceTemplate } = await import('../../cards/templates/GroupFinanceTemplate.js');
+
+        const old = document.getElementById('groupFinanceModal');
+        if (old) old.remove();
+
+        client.modalManager.createModal('groupFinanceModal', GroupFinanceTemplate.buildModal());
+        client.modalManager.openModal('groupFinanceModal');
+        GroupFinanceTemplate.populate(message, client.escapeHtml.bind(client));
+
+        const timerId = GroupFinanceTemplate.startCountdown(
+            message.timeout || 45,
+            () => {
+                GroupFinanceTemplate.disableSubmit();
+                client.connection.send({
+                    type: 'group_finance_response',
+                    groupId: message.groupId,
+                    units: 0
+                });
+                client.modalManager.closeModal('groupFinanceModal');
+            }
+        );
+
+        GroupFinanceTemplate.bindSubmit(message, (units) => {
+            if (timerId) clearInterval(timerId);
+            GroupFinanceTemplate.disableSubmit();
+            client.connection.send({
+                type: 'group_finance_response',
+                groupId: message.groupId,
+                units
+            });
+            client.modalManager.closeModal('groupFinanceModal');
+            client.logManager.addLog(
+                units > 0
+                    ? `📊 團購 ${units} ${message.unit}「${message.cardName}」`
+                    : '📊 不參與團購',
+                units > 0 ? 'success' : 'info'
+            );
+        });
+    }
+
+    handleGroupFinanceResult(message) {
+        const { client } = this;
+        client.logManager.addLog(message.message, 'event');
+        client.logManager.showNotification(`📊 團購「${message.cardName}」完成`, 'success');
+    }
 }

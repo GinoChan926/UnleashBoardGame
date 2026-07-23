@@ -103,15 +103,33 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
     if (card.hasMoveForwardFeature) {
         const { startMoveForward } = require('./MoveForwardSystem.js');
         setTimeout(() => {
-            // tileProcessor from deps - simplified callback
-            const tileProcessor = (state, tile, ws, rId, p, exact) => {
-                broadcastToRoom(rId, {
-                    type: 'notification',
-                    message: `踩中「${tile.name}」，效果將稍後執行`
-                });
-            };
+            // ✅ Use the real tile processor from deps
+            const tileProcessor = global._streamlineTileProcessor || null;
             startMoveForward(ws, roomId, player, card, broadcastToRoom, rooms, tileProcessor);
         }, 500);
+    }
+    // ✅ IN07/IN11 - Draw hardship card after personal card executes
+    if (card._pendingHardshipDraw || player.gameState._pendingHardshipDraw) {
+        delete player.gameState._pendingHardshipDraw;
+
+        let hardshipCardsData = [];
+        try {
+            hardshipCardsData = require('../../hardship_cards.js').hardshipCards || [];
+        } catch (e) {
+            console.log('⚠️ 無法載入逆境卡');
+        }
+
+        if (hardshipCardsData.length > 0) {
+            // Filter out collective cards to avoid chain reactions
+            const nonCollective = hardshipCardsData.filter(c => !c.isCollective);
+
+            if (nonCollective.length > 0) {
+                const { drawHardshipCard } = require('../../cards/HardshipCardHandler.js');
+                setTimeout(() => {
+                    drawHardshipCard(ws, player.gameState, roomId, player, nonCollective, broadcastToRoom, rooms);
+                }, 1500);
+            }
+        }
     }
 }
 

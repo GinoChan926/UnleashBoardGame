@@ -56,6 +56,8 @@ export class CardHandler {
     handleHardshipChoicePrompt(m) { this.hardship.handleHardshipChoicePrompt(m); }
     handleHardshipChoiceResult(m) { this.hardship.handleHardshipChoiceResult(m); }
     handleVolunteerDonationPrompt(m) { this.volunteer.handleVolunteerDonationPrompt(m); }
+    handleGroupFinancePrompt(m) { this.opportunity.handleGroupFinancePrompt(m); }
+    handleGroupFinanceResult(m) { this.opportunity.handleGroupFinanceResult(m); }
 
     // ── Revelation ────────────────────────────────────────────────────────
     handleRevelationTypeSelection(m) { this.revelation.handleRevelationTypeSelection(m); }

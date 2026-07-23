@@ -169,6 +169,9 @@ export class MessageRouter {
             'hardship_choice_result': m => ch().handleHardshipChoiceResult(m),
 
             'volunteer_donation_prompt': m => ch().handleVolunteerDonationPrompt(m),
+
+            'group_finance_prompt': m => ch().handleGroupFinancePrompt(m),
+            'group_finance_result': m => ch().handleGroupFinanceResult(m),
             // ── System
             'notification': m => {
                 if (m.message) {

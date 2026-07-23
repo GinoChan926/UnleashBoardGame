@@ -88,6 +88,7 @@ const {
     handleGetLendingSummary
 } = require('./server/systems/LendingSystem.js');
 const { startGroupInvestment, handleGroupInvestmentResponse } = require('./server/systems/GroupInvestmentSystem.js');
+const { handleGroupFinanceResponse } = require('./server/systems/GroupFinanceSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -139,6 +140,20 @@ function makeDeps(roomId) {
         handleEndTurn:                (ws, d, rId)   => handleEndTurn(ws, d, rId, rooms, broadcast)
     };
 }
+
+// ✅ Store the streamline tile processor globally so systems can access it
+global._streamlineTileProcessor = (state, tile, ws, rId, player, exact) => {
+    processStreamlineTile(state, tile, ws, rId, player, exact, {
+        broadcastToRoom: broadcast,
+        showCardTypeSelection: (ws, s, rId, p) => showCardTypeSelection(ws, s, rId, p, CARD_TYPES, rooms.get(rId)),
+        showRevelationCardTypeSelection: (ws, s, rId, p) => showRevelationCardTypeSelection(ws, s, rId, p, marketNewsCards, tipCards, rooms.get(rId)),
+        drawAndExecuteLierCard: (ws, s, rId, p) => drawAndExecuteLierCard(ws, s, rId, p, lierCards, broadcast, rooms),
+        drawVolunteerCard: (ws, s, rId, p, exact) => drawVolunteerCard(ws, s, rId, p, volunteerCards, rooms.get(rId), broadcast, exact),
+        drawPoliceCard: (ws, s, rId, p) => drawPoliceCard(ws, s, rId, p, policeCards, broadcast, { rooms }),
+        drawHardshipCard: (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),
+        rooms
+    });
+};
 
 // ── HTTP server ───────────────────────────────────────────────────────────────
 const server = createHttpServer(projectRoot, rooms, getTransactions, clearTransactions);
@@ -371,6 +386,10 @@ wss.on('connection', (ws) => {
 
                 case 'volunteer_donation_response':
                     handleVolunteerDonationResponse(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'group_finance_response':
+                    handleGroupFinanceResponse(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));
