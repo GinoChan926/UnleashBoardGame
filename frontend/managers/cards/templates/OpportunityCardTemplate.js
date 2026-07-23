@@ -124,69 +124,92 @@ export class OpportunityCardTemplate {
     `;
     }
 
-    static buildEffectModal() {
+    static buildEffectModal(activationOnly = false) {
+        const titleText   = activationOnly ? '🏗️ 項目投資 - 是否啟動？' : '✨ 卡片效果預覽';
+        const titleColor  = activationOnly ? '#ff6f00' : '#2e7d32';
+        const bgGradient  = activationOnly
+            ? 'linear-gradient(135deg, #fff3e0, #ffe0b2)'
+            : 'linear-gradient(135deg, #e8f5e9, #c8e6c9)';
+        const confirmText = activationOnly ? '🚀 啟動投資'  : '✅ 確認執行';
+        const declineText = activationOnly ? '❌ 不啟動'    : '❌ 不執行';
+        const footerText  = activationOnly
+            ? '💡 順流層投資項目，免費查看，不啟動無需支付任何費用'
+            : '(已支付 500 元，不執行費用不退還)';
+        const footerColor = activationOnly ? '#ff6f00' : '#666';
+        const confirmBg   = activationOnly ? '#ff6f00' : '#4caf50';
+        const confirmShadow = activationOnly
+            ? 'rgba(255,111,0,0.3)'
+            : 'rgba(76,175,80,0.3)';
+        const imgBorder   = activationOnly ? '#ff6f00' : '#4caf50';
+
         return `
-            <div class="modal-content" style="max-width: 550px;
-                 background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-                 border-radius: 20px; padding: 24px;">
+        <div class="modal-content" style="max-width: 550px;
+             background: ${bgGradient};
+             border-radius: 20px; padding: 24px;">
 
-                <div class="modal-title" style="text-align: center; color: #2e7d32;
-                     font-size: 24px; margin-bottom: 12px;">
-                    ✨ 卡片效果預覽
-                </div>
-
-                <div id="effectCardImage" style="text-align: center; margin: 15px 0;">
-                    <img id="effectCardImg" src="" alt="機會卡"
-                         style="max-width: 100%; border-radius: 16px;
-                                box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-                                border: 3px solid #4caf50;">
-                </div>
-
-                <div id="effectCardTypeBadge" style="text-align: center; margin: 10px 0;">
-                    <span id="effectCardTypeSpan"
-                          style="display: inline-block; padding: 5px 12px;
-                                 border-radius: 20px; font-size: 12px; color: white;">
-                    </span>
-                </div>
-
-                <div class="modal-body" id="effectModalBody"
-                     style="font-size: 16px; line-height: 1.5;">
-                </div>
-
-                <div id="effectChanges" style="background: #ffffff; padding: 15px;
-                     border-radius: 12px; margin: 15px 0; font-size: 14px;">
-                    <strong>📊 效果預覽:</strong>
-                    <div id="effectChangesList"></div>
-                </div>
-
-                <div style="background: #fff3e0; padding: 12px; border-radius: 12px;
-                            margin: 15px 0; text-align: center;">
-                    <span style="font-size: 16px; font-weight: bold;">
-                        ⚠️ 注意：執行後無法撤銷！
-                    </span>
-                </div>
-
-                <div class="modal-buttons" style="display: flex; gap: 15px; justify-content: center;">
-                    <button id="declineExecuteBtn"
-                            style="background: #9e9e9e; padding: 12px 24px; font-size: 16px;
-                                   border-radius: 30px; cursor: pointer; border: none; color: white;
-                                   transition: all 0.2s ease;">
-                        ❌ 不執行
-                    </button>
-                    <button id="confirmExecuteBtn"
-                            style="background: #4caf50; padding: 12px 24px; font-size: 16px;
-                                   border-radius: 30px; cursor: pointer; border: none; color: white;
-                                   transition: all 0.2s ease;
-                                   box-shadow: 0 4px 12px rgba(76,175,80,0.3);">
-                        ✅ 確認執行
-                    </button>
-                </div>
-
-                <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #666;">
-                    (已支付 500 元，不執行費用不退還)
-                </div>
+            <div class="modal-title" style="text-align: center; color: ${titleColor};
+                 font-size: 24px; margin-bottom: 12px;">
+                ${titleText}
             </div>
-        `;
+
+            <div id="effectCardImage" style="text-align: center; margin: 15px 0;">
+                <img id="effectCardImg" src="" alt="機會卡"
+                     style="max-width: 100%; border-radius: 16px;
+                            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                            border: 3px solid ${imgBorder};">
+            </div>
+
+            <div id="effectCardTypeBadge" style="text-align: center; margin: 10px 0;">
+                <span id="effectCardTypeSpan"
+                      style="display: inline-block; padding: 5px 12px;
+                             border-radius: 20px; font-size: 12px; color: white;">
+                </span>
+            </div>
+
+            <div class="modal-body" id="effectModalBody"
+                 style="font-size: 16px; line-height: 1.5;">
+            </div>
+
+            <div id="effectChanges" style="background: #ffffff; padding: 15px;
+                 border-radius: 12px; margin: 15px 0; font-size: 14px;">
+                <strong>📊 效果預覽:</strong>
+                <div id="effectChangesList"></div>
+            </div>
+
+            ${!activationOnly ? `
+            <div style="background: #fff3e0; padding: 12px; border-radius: 12px;
+                        margin: 15px 0; text-align: center;">
+                <span style="font-size: 16px; font-weight: bold;">
+                    ⚠️ 注意：執行後無法撤銷！
+                </span>
+            </div>
+            ` : ''}
+
+            <div class="modal-buttons"
+                 style="display: flex; gap: 15px; justify-content: center;">
+                <button id="declineExecuteBtn"
+                        style="background: #9e9e9e; padding: 12px 24px;
+                               font-size: 16px; border-radius: 30px;
+                               cursor: pointer; border: none; color: white;
+                               transition: all 0.2s ease;">
+                    ${declineText}
+                </button>
+                <button id="confirmExecuteBtn"
+                        style="background: ${confirmBg}; padding: 12px 24px;
+                               font-size: 16px; border-radius: 30px;
+                               cursor: pointer; border: none; color: white;
+                               transition: all 0.2s ease;
+                               box-shadow: 0 4px 12px ${confirmShadow};">
+                    ${confirmText}
+                </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 10px;
+                        font-size: 12px; color: ${footerColor};">
+                ${footerText}
+            </div>
+        </div>
+    `;
     }
 
     // ==================== Card Type Grid ====================

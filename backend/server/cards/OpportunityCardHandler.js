@@ -117,6 +117,43 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
+    // ✅ Flow layer investment tiles are free to reveal — skip $500 charge
+    if (pendingEvent.skipPurchaseCost) {
+        pendingEvent.purchased    = true;
+        pendingEvent.purchaseTime = Date.now();
+
+        const card          = pendingEvent.card;
+        const effectPreview = _getCardEffectPreview(card, player.gameState);
+
+        const serializableCard = {
+            id:             card.id,
+            name:           card.name,
+            description:    card.description,
+            image:          card.image,
+            investmentCost: card.investmentCost || 0,
+            energyCost:     card.energyCost     || 0,
+            cardType:       pendingEvent.cardType?.id   || 'investment',
+            cardTypeName:   pendingEvent.cardType?.name || '投資',
+            cardTypeIcon:   pendingEvent.cardType?.icon || '🏗️',
+            currentPrice:   card._lockedPrice || card.currentPrice || 0,
+            activationOnly: true   // ✅ tell client to show "啟動" not "購買"
+        };
+
+        ws.send(JSON.stringify({
+            type:           'card_purchased',
+            card:           serializableCard,
+            effectPreview,
+            activationOnly: true,
+            message:        `免費查看「${card.name}」，是否啟動？`,
+            gameState:      player.gameState
+        }));
+
+        // ✅ No broadcastToRoom here — other players don't need to know yet
+        console.log(`🏗️ ${player.playerName} 免費查看順流層投資卡: ${card.name}`);
+        return;
+    }
+
+    // ── Normal $500 purchase flow ─────────────────────────────────────────────
     const baseCost   = 500;
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
@@ -140,33 +177,33 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         description:    card.description,
         image:          card.image,
         investmentCost: card.investmentCost || 0,
-        energyCost:     card.energyCost || 0,
+        energyCost:     card.energyCost     || 0,
         cardType:       pendingEvent.cardType?.id   || 'general',
         cardTypeName:   pendingEvent.cardType?.name || '機會卡',
         cardTypeIcon:   pendingEvent.cardType?.icon || '🎴',
-        currentPrice:   card._lockedPrice || card.currentPrice || 0  // ✅ Include locked price
+        currentPrice:   card._lockedPrice || card.currentPrice || 0
     };
 
     ws.send(JSON.stringify({
-        type: 'card_purchased',
-        card: serializableCard,
+        type:      'card_purchased',
+        card:      serializableCard,
         effectPreview,
-        message: `已支付 ${actualCost} 元購買「${card.name}」`,
+        message:   `已支付 ${actualCost} 元購買「${card.name}」`,
         gameState: player.gameState
     }));
 
     broadcastToRoom(roomId, {
-        type: 'state_updated',
-        playerId: player.playerId,
+        type:      'state_updated',
+        playerId:  player.playerId,
         gameState: player.gameState
     });
 
     broadcastToRoom(roomId, {
-        type: 'player_purchased_card',
-        playerId: player.playerId,
+        type:       'player_purchased_card',
+        playerId:   player.playerId,
         playerName: player.playerName,
-        cardName: card.name,
-        message: `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
+        cardName:   card.name,
+        message:    `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
     }, ws);
 }
 
@@ -420,11 +457,27 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             }, 1000);
         }
     } else {
-        resultMessage = `❌ 你決定不執行「${card.name}」，500 元不退還。`;
-        addTransactionRecord(player.playerName, card, '放棄', -500, '放棄執行', stateBefore, player.gameState);
+        // ✅ Flow layer cards were free — don't say "$500 不退還"
+        const wasFree = !!pendingEvent.skipPurchaseCost;
+
+        resultMessage = wasFree
+            ? `❌ 你決定不啟動「${card.name}」`
+            : `❌ 你決定不執行「${card.name}」，500 元不退還。`;
+
+        addTransactionRecord(
+            player.playerName, card, '放棄',
+            wasFree ? 0 : -500,   // ✅ no loss if it was free
+            '放棄執行',
+            stateBefore,
+            player.gameState
+        );
+
         broadcastToRoom(roomId, {
-            type: 'card_skipped', playerId: player.playerId, playerName: player.playerName,
-            cardName: card.name, message: resultMessage
+            type:       'card_skipped',
+            playerId:   player.playerId,
+            playerName: player.playerName,
+            cardName:   card.name,
+            message:    resultMessage
         });
     }
 

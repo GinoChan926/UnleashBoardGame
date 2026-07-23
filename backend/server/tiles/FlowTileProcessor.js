@@ -91,28 +91,48 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
     }
 
     const serializableCard = {
-        id: card.id, name: card.name, description: card.description,
-        image: card.image || '', cost: card.cost || 500,
-        investmentCost: card.investmentCost || 0, energyCost: card.energyCost || 0,
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        image: card.image || '',
+        cost: 0,   // ✅ free in flow layer
+        investmentCost: card.investmentCost || 0,
+        energyCost: card.energyCost || 0,
         monthlyReturn: card.monthlyReturn || 0,
         pricePerUnit: card.pricePerUnit || card.investmentCost || 0,
-        cardType: 'investment', cardTypeName: '投資', cardTypeIcon: '🏗️', type: 'investment'
+        cardType: 'investment',
+        cardTypeName: '投資',
+        cardTypeIcon: '🏗️',
+        type: 'investment',
+        freeReveal: true,
+        activationOnly: true
     };
 
-    const canPurchase = state.cash >= 500;
+    const canPurchase = true; // ✅ no need to have $500 just to view
 
     if (!room.pendingEvents) room.pendingEvents = new Map();
-    const fullCard = { ...card, cardType: 'investment', cardTypeName: '投資', cardTypeIcon: '🏗️' };
+    const fullCard = {
+        ...card,
+        cost: 0, // ✅ force free reveal
+        cardType: 'investment',
+        cardTypeName: '投資',
+        cardTypeIcon: '🏗️'
+    };
     if (card.effect) fullCard.effect = card.effect.bind(card);
 
     room.pendingEvents.set(ws, {
-        type: 'opportunity_card', card: fullCard,
+        type: 'opportunity_card',
+        card: fullCard,
         cardType: { id: 'investment', name: '投資', icon: '🏗️', color: '#ff6f00' },
-        playerId: player.playerId, purchased: false, timestamp: Date.now(),
-        isInvestmentCard: true, tileName: tile.name
+        playerId: player.playerId,
+        purchased: false,
+        timestamp: Date.now(),
+        isInvestmentCard: true,
+        tileName: tile.name,
+        skipPurchaseCost: true,   // ✅ tells purchase handler not to charge
+        activationOnly: true
     });
 
-    // ✅ Check if any OTHER flow layer player exists for group investment
     let hasOtherFlowPlayers = false;
     room.players.forEach((p) => {
         if (p.playerId !== player.playerId && p.gameState.inFlow) {
@@ -121,11 +141,13 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
     });
 
     if (hasOtherFlowPlayers) {
-        // ✅ Multiple flow players - trigger group investment
-        // Send card info to initiator first
         ws.send(JSON.stringify({
-            type: 'opportunity_card_draw', card: serializableCard, canAfford: canPurchase,
-            message: `🏗️ 你踩中了「${tile.name}」格子！抽到一張投資卡！其他順流層玩家可以加入團購`
+            type: 'opportunity_card_draw',
+            card: serializableCard,
+            canAfford: canPurchase,
+            freeReveal: true,
+            activationOnly: true,
+            message: `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？其他順流層玩家可以加入團購`
         }));
 
         broadcastToRoom(roomId, {
@@ -133,17 +155,19 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
             message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在發起團購投資...`
         }, ws);
 
-        // Start group investment after a brief delay
         const { startGroupInvestment } = require('../systems/GroupInvestmentSystem.js');
         setTimeout(() => {
             startGroupInvestment(ws, roomId, player, fullCard, broadcastToRoom, rooms);
         }, 1000);
 
     } else {
-        // ✅ Solo flow player - normal individual investment flow
         ws.send(JSON.stringify({
-            type: 'opportunity_card_draw', card: serializableCard, canAfford: canPurchase,
-            message: `🏗️ 你踩中了「${tile.name}」格子！抽到一張投資卡！`
+            type: 'opportunity_card_draw',
+            card: serializableCard,
+            canAfford: canPurchase,
+            freeReveal: true,
+            activationOnly: true,
+            message: `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？`
         }));
 
         broadcastToRoom(roomId, {

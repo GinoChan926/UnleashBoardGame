@@ -120,59 +120,78 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
     const totalPrice     = card.totalPrice || finalDownPayment;
     const mortgageAmount = totalPrice - finalDownPayment;
     const monthlyPayment = card.monthlyPayment || 0;
-    const monthlyRent    = card.monthlyReturn || 0;
+    const monthlyRent    = card.monthlyReturn  || 0;
 
     state.cash        -= finalDownPayment;
     state.totalAssets += totalPrice;
 
-    // Add mortgage to expenses (will be deducted each settlement)
+    // ── Expense: mortgage payment (always, if has mortgage) ──────────────────
     if (monthlyPayment > 0) {
         state.livingExpense = (state.livingExpense || 0) + monthlyPayment;
     }
 
-    // Add rent income (only if renting out)
+    // ── Income: rent (only if renting out) ───────────────────────────────────
+    // ✅ passiveIncome gets the FULL rent
+    // ✅ livingExpense already has the FULL mortgage
+    // ✅ Net = passiveIncome - livingExpense (handled by UI/settlement)
     if (usage === 'rent_out' && monthlyRent > 0) {
-        state.passiveIncome += monthlyRent;
+        state.passiveIncome = (state.passiveIncome || 0) + monthlyRent;
     }
 
-    // Create property record with mortgage tracking
+    // ── Property record ───────────────────────────────────────────────────────
     state.propertyInvestments = state.propertyInvestments || [];
     const propertyRecord = {
-        instanceId:        `${card.id}_${Date.now()}`,   // unique ID for this instance
-        id:                card.id,
-        name:              card.name,
-        image:             card.image,
-        totalPrice:        totalPrice,
-        downPayment:       finalDownPayment,
-        mortgageAmount:    mortgageAmount,
-        remainingBalance:  mortgageAmount,               // ← starts at full mortgage
-        monthlyPayment:    monthlyPayment,
-        monthlyReturn:     usage === 'rent_out' ? monthlyRent : 0,
-        originalRent:      monthlyRent,                  // ← preserved for later conversion
-        monthsPaid:        0,
-        totalPaid:         finalDownPayment,             // includes down payment
-        usage:             usage,
-        paidOff:           mortgageAmount === 0,         // true if no mortgage (H01, H05)
-        hasDiscount:       discount > 0,
-        purchasedAt:       Date.now()
+        instanceId:       `${card.id}_${Date.now()}`,
+        id:               card.id,
+        name:             card.name,
+        image:            card.image,
+        totalPrice,
+        downPayment:      finalDownPayment,
+        mortgageAmount,
+        remainingBalance: mortgageAmount,
+        monthlyPayment,
+        // ✅ Only track rent income if renting out
+        monthlyReturn:    usage === 'rent_out' ? monthlyRent : 0,
+        originalRent:     monthlyRent,
+        monthsPaid:       0,
+        totalPaid:        finalDownPayment,
+        usage,
+        paidOff:          mortgageAmount === 0,
+        hasDiscount:      discount > 0,
+        purchasedAt:      Date.now()
     };
 
     state.propertyInvestments.push(propertyRecord);
     state.residentialCount = (state.residentialCount || 0) + 1;
     state.hasPropertySkill = true;
 
+    // ── Return message ────────────────────────────────────────────────────────
     const discountMsg = discount > 0 ? ` (折扣 ${discount}%)` : '';
     const usageLabel  = usage === 'self_use' ? '自用' : '出租';
+    const rentIncome  = usage === 'rent_out' ? monthlyRent : 0;
 
     if (monthlyPayment > 0) {
-        const netMonthly = (usage === 'rent_out' ? monthlyRent : 0) - monthlyPayment;
+        // ✅ Net = rent income - mortgage cost (correct sign)
+        const netMonthly = rentIncome - monthlyPayment;
         const netStr = netMonthly >= 0
             ? `+$${netMonthly.toLocaleString()}`
             : `-$${Math.abs(netMonthly).toLocaleString()}`;
-        return `✅ ${usageLabel}「${card.name}」！\n   💰 首期: $${finalDownPayment.toLocaleString()}${discountMsg}\n   🏦 貸款: $${mortgageAmount.toLocaleString()}\n   📅 月供: $${monthlyPayment.toLocaleString()}\n   🏠 租金: $${(usage === 'rent_out' ? monthlyRent : 0).toLocaleString()}/月\n   📊 淨月現金流: ${netStr}/月`;
-    } else {
-        return `✅ ${usageLabel}「${card.name}」！\n   💰 支付: $${finalDownPayment.toLocaleString()}${discountMsg}\n   🏠 租金: $${(usage === 'rent_out' ? monthlyRent : 0).toLocaleString()}/月`;
+
+        return [
+            `✅ ${usageLabel}「${card.name}」！`,
+            `   💰 首期: $${finalDownPayment.toLocaleString()}${discountMsg}`,
+            `   🏦 貸款: $${mortgageAmount.toLocaleString()}`,
+            `   📅 月供: -$${monthlyPayment.toLocaleString()}`,
+            `   🏠 租金: +$${rentIncome.toLocaleString()}/月`,
+            `   📊 淨月現金流: ${netStr}/月`
+        ].join('\n');
     }
+
+    return [
+        `✅ ${usageLabel}「${card.name}」！`,
+        `   💰 支付: $${finalDownPayment.toLocaleString()}${discountMsg}`,
+        `   🏠 租金: +$${rentIncome.toLocaleString()}/月`
+    ].join('\n');
 }
 
 // ==================== Settlement processing ====================

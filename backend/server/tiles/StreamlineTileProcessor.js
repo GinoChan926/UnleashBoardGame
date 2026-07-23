@@ -29,11 +29,11 @@ function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
             return null;
 
         case 'reverse_entry':
-            state.inReverse = true;
-            state.inFlow    = false;
-            state.reversePos = 0;
+            // state.inReverse = true;
+            // state.inFlow    = false;
+            // state.reversePos = 0;
             drawHardshipCard(ws, state, roomId, player);
-            return `🌀 你進入了逆流層！並抽到了一張逆境自強卡！`;
+            return `🌀 你抽到了一張逆境自強卡！`;
 
         case 'reverse_exit':
             if (state.inReverse) {
@@ -84,6 +84,9 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
             state.nextSettlementHalfIncome = false;
         } else {
             totalIncome   = state.salary + state.sideIncome;
+            state.cash   += totalIncome;
+            state.totalAssets += Math.floor(totalIncome * 0.2);
+            incomeMessage = `獲得 ${totalIncome.toLocaleString()} 元現金流`;
         }
         // ✅ Auto-collect pending debts from income
         if (room) {

@@ -993,40 +993,49 @@ const tipCards = [
 
             const investors = [];
             const insufficientCash = [];
+            const declined = [];
 
             for (const [playerName, willInvest] of Object.entries(playerChoices || {})) {
-                if (!willInvest) continue;
-
                 let playerObj = null;
                 for (const [, p] of room.players) {
-                    if (p.playerName === playerName) {
+                    if (p.playerId === playerName || p.playerName === playerName) {
                         playerObj = p;
                         break;
                     }
                 }
                 if (!playerObj) continue;
 
-                if (playerObj.gameState.cash < monthlyCost) {
-                    insufficientCash.push(playerName);
+                if (!willInvest) {
+                    declined.push(playerObj.playerName);
                     continue;
                 }
 
-                playerObj.gameState.cash -= monthlyCost;
+                const pState = playerObj.gameState;
 
-                if (!playerObj.gameState.healthInvestment) {
-                    playerObj.gameState.healthInvestment = {
-                        active: true,
-                        monthlyCost,
-                        energyBonus,
-                        startTurn: playerObj.gameState.totalTurns || 0
-                    };
+                if (pState.cash < monthlyCost) {
+                    insufficientCash.push(playerObj.playerName);
+                    continue;
                 }
 
-                playerObj.gameState.energy = Math.min(
-                    playerObj.gameState.maxEnergy,
-                    playerObj.gameState.energy + energyBonus
+                // ✅ Activate recurring investment
+                pState.healthInvestment = {
+                    active: true,
+                    monthlyCost,
+                    energyBonus,
+                    startTurn: pState.totalTurns || 0
+                };
+
+                // ✅ Add to livingExpense so UI shows the cost immediately
+                pState.livingExpense = (pState.livingExpense || 0) + monthlyCost;
+
+                // ✅ Give immediate energy bonus for joining
+                // (monthly deduction starts at next settlement via processHealthInvestment)
+                pState.energy = Math.min(
+                    pState.maxEnergy || 100,
+                    (pState.energy || 0) + energyBonus
                 );
-                investors.push(playerName);
+
+                investors.push(playerObj.playerName);
             }
 
             if (investors.length === 0 && insufficientCash.length === 0) {
@@ -1034,12 +1043,22 @@ const tipCards = [
             }
 
             let msg = `💪 團隊錦囊「健康投資」完成！\n`;
+
             if (investors.length > 0) {
-                msg += `👥 投資玩家：${investors.join(', ')}\n💰 每月支出：$${monthlyCost.toLocaleString()}\n⚡ 每月獲得：精力 +${energyBonus}`;
+                msg += `👥 投資玩家：${investors.join(', ')}\n` +
+                    `💰 每月支出：$${monthlyCost.toLocaleString()}\n` +
+                    `⚡ 即時獲得：精力 +${energyBonus}\n` +
+                    `📅 下次結算起每月自動扣款`;
             }
+
             if (insufficientCash.length > 0) {
                 msg += `\n⚠️ 現金不足未能參與：${insufficientCash.join(', ')}`;
             }
+
+            if (declined.length > 0) {
+                msg += `\n❌ 選擇不參與：${declined.join(', ')}`;
+            }
+
             return msg;
         },
         getEffectDescription: () => "團隊錦囊：每位玩家可自願投資 $1,000/月，獲得每月精力 +1"

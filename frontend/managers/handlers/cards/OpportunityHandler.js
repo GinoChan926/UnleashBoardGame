@@ -13,22 +13,33 @@ export class OpportunityHandler {
     }
 
     handleOpportunityCardDraw(message) {
-        if (message.card) {
-            this.client.cardModal.showPurchaseConfirm(message.card, message.canAfford);
+        const { client } = this;
+        if (!message.card) return;
+
+        // ✅ Flow-layer investment: skip purchase modal, auto-confirm for free
+        if (message.activationOnly || message.freeReveal || message.card?.activationOnly) {
+            client.connection.send({ type: 'purchase_card' });
+            return;
         }
+
+        client.cardModal.showPurchaseConfirm(message.card, message.canAfford);
     }
 
     handleCardPurchased(message) {
         const { client } = this;
 
-        // ✅ Apply state update
         if (message.gameState) {
             client.gameState = message.gameState;
             client.updateUI();
         }
 
         if (message.card && message.effectPreview) {
-            client.cardModal.showEffectConfirm(message.card, message.effectPreview);
+            // ✅ Pass activationOnly flag through to showEffectConfirm
+            client.cardModal.showEffectConfirm(
+                message.card,
+                message.effectPreview,
+                message.activationOnly || false
+            );
         }
     }
     handleCardDecisionResult(message) {

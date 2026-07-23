@@ -84,7 +84,7 @@ export class OpportunityCardManager extends BaseCardManager {
 
     // ==================== Effect Confirm ====================
 
-    showEffectConfirm(card, effectPreview) {
+    showEffectConfirm(card, effectPreview, activationOnly = false) {
         // Finance cards with units use prompt() flow
         if (card.type === 'finance' && card.pricePerUnit && card.monthlyReturn > 0 && card.id !== 'F06') {
             this._handleFinanceCardUnits(card);
@@ -94,13 +94,13 @@ export class OpportunityCardManager extends BaseCardManager {
             this._handleP2PCardUnits(card);
             return;
         }
-        this._showStandardEffectConfirm(card, effectPreview);
+        this._showStandardEffectConfirm(card, effectPreview, activationOnly);
     }
 
     // ==================== Private ====================
 
-    _showStandardEffectConfirm(card, effectPreview) {
-        this._ensureModals();
+    _showStandardEffectConfirm(card, effectPreview, activationOnly = false) {
+        this._ensureModals(activationOnly);
         this.modalManager.openModal('effectConfirmModal');
 
         // Set type badge
@@ -125,17 +125,27 @@ export class OpportunityCardManager extends BaseCardManager {
             );
         }
 
-        // Bind buttons
+        // ✅ Bind buttons with activationOnly-aware labels
         OpportunityCardTemplate.bindEffectButtons(
-            // On confirm execute
             () => {
                 this._sendExecuteCard(true);
                 this.modalManager.closeModal('effectConfirmModal');
+                this.ui.addLog(
+                    activationOnly
+                        ? `🚀 啟動投資「${card.name}」`
+                        : `✅ 執行「${card.name}」`,
+                    'success'
+                );
             },
-            // On decline
             () => {
                 this._sendExecuteCard(false);
                 this.modalManager.closeModal('effectConfirmModal');
+                this.ui.addLog(
+                    activationOnly
+                        ? `❌ 放棄啟動「${card.name}」`
+                        : `❌ 不執行「${card.name}」`,
+                    'warning'
+                );
             }
         );
     }
@@ -221,7 +231,7 @@ export class OpportunityCardManager extends BaseCardManager {
         }
     }
 
-    _ensureModals() {
+    _ensureModals(activationOnly = false) {
         if (!document.getElementById('cardTypeModal')) {
             this.modalManager.createModal('cardTypeModal',
                 OpportunityCardTemplate.buildCardTypeModal());
@@ -230,9 +240,12 @@ export class OpportunityCardManager extends BaseCardManager {
             this.modalManager.createModal('purchaseConfirmModal',
                 OpportunityCardTemplate.buildPurchaseModal());
         }
-        if (!document.getElementById('effectConfirmModal')) {
-            this.modalManager.createModal('effectConfirmModal',
-                OpportunityCardTemplate.buildEffectModal());
-        }
+
+        // ✅ Always rebuild effectConfirmModal so buttons/text reflect activationOnly
+        const existing = document.getElementById('effectConfirmModal');
+        if (existing) existing.remove();
+
+        this.modalManager.createModal('effectConfirmModal',
+            OpportunityCardTemplate.buildEffectModal(activationOnly));
     }
 }
