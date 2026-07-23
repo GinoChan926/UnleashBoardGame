@@ -1,16 +1,1 @@
-[
-  {
-    "id": "1784815654878_4qto9g",
-    "timestamp": "23/7/2026 下午10:07:34",
-    "playerName": "Player_1784815648903",
-    "cardType": "lier",
-    "cardName": "被游說買了大量運動套票",
-    "action": "騙子卡",
-    "amountChange": -1000000,
-    "passiveIncomeChange": 0,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": -2,
-    "details": "💪 被游說買運動套票，健身室倒閉！損失 1,000,000 元（一半現金），精力 -2，幸運值 -1"
-  }
-]
+[]
