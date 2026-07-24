@@ -9,47 +9,38 @@ export class DiceAnimationTemplate {
     /**
      * Show dice rolling animation, then reveal final values.
      * @param {Array}   diceValues - final dice values [3, 5] for example
-     * @param {string}  diceType   - 'normal' | 'clover' | 'lucky_star'
+     * @param {string}  diceType   - 'normal' | 'clover' | 'lucky_star' | 'flow'
      * @param {Function} onComplete - called after animation ends
      */
     static async show(diceValues, diceType, playerName, onComplete) {
         const overlay = this._createOverlay(diceType, playerName);
         document.body.appendChild(overlay);
 
-        // Get dice container inside overlay
         const container = overlay.querySelector('.dice-container');
 
-        // Create dice elements
         diceValues.forEach((finalValue, index) => {
-            const dice = this._createDice(index, finalValue);
+            const dice = this._createDice(index, finalValue, diceType);
             container.appendChild(dice);
         });
 
-        // Wait a tick so browser renders
         await this._sleep(50);
 
-        // Start rolling animation
         overlay.querySelectorAll('.dice').forEach(d => d.classList.add('rolling'));
 
-        // Rolling duration
         const ROLL_DURATION = 1800;
         await this._sleep(ROLL_DURATION);
 
-        // Stop rolling, show final values
         overlay.querySelectorAll('.dice').forEach((d, i) => {
             d.classList.remove('rolling');
             d.classList.add('landed');
             d.textContent = this._getDiceFace(diceValues[i]);
         });
 
-        // Show total
         const total = diceValues.reduce((sum, v) => sum + v, 0);
         this._showTotal(overlay, total, diceType);
 
-        // Wait so player can read
         await this._sleep(1500);
 
-        // Fade out
         overlay.style.transition = 'opacity 0.4s ease';
         overlay.style.opacity = '0';
         await this._sleep(400);
@@ -64,18 +55,23 @@ export class DiceAnimationTemplate {
         const overlay = document.createElement('div');
         overlay.id = 'diceAnimationOverlay';
 
-        // Color scheme based on dice type
-        const bgColor = diceType === 'lucky_star'
-            ? 'rgba(255, 152, 0, 0.85)'
-            : diceType === 'clover'
-                ? 'rgba(76, 175, 80, 0.85)'
-                : 'rgba(0, 0, 0, 0.85)';
+        // ✅ Added 'flow' color scheme
+        const BG_COLORS = {
+            lucky_star: 'rgba(255, 152, 0, 0.85)',
+            clover:     'rgba(76, 175, 80, 0.85)',
+            flow:       'rgba(33, 150, 243, 0.85)',
+            normal:     'rgba(0, 0, 0, 0.85)'
+        };
 
-        let label = diceType === 'lucky_star'
-            ? '⭐ 幸運星！3 顆骰子！'
-            : diceType === 'clover'
-                ? '🍀 四葉草！2 顆骰子！'
-                : '🎲 擲骰子';
+        const LABELS = {
+            lucky_star: '⭐ 幸運星！3 顆骰子！',
+            clover:     '🍀 四葉草！2 顆骰子！',
+            flow:       '🌊 順流層！2 顆骰子！',
+            normal:     '🎲 擲骰子'
+        };
+
+        const bgColor = BG_COLORS[diceType] || BG_COLORS.normal;
+        let label     = LABELS[diceType]    || LABELS.normal;
 
         if (playerName) {
             label = `${playerName} - ${label}`;
@@ -96,6 +92,16 @@ export class DiceAnimationTemplate {
             backdrop-filter: blur(4px);
             transition: opacity 0.3s ease;
         `;
+
+        // ✅ Added flow-specific dice glow color
+        const DICE_GLOW = {
+            lucky_star: '0 0 20px rgba(255, 152, 0, 0.6)',
+            clover:     '0 0 20px rgba(76, 175, 80, 0.6)',
+            flow:       '0 0 20px rgba(33, 150, 243, 0.6)',
+            normal:     'none'
+        };
+
+        const glowShadow = DICE_GLOW[diceType] || DICE_GLOW.normal;
 
         overlay.innerHTML = `
             <style>
@@ -126,6 +132,10 @@ export class DiceAnimationTemplate {
                     0%   { transform: scale(0);   opacity: 0; }
                     60%  { transform: scale(1.3); opacity: 1; }
                     100% { transform: scale(1);   opacity: 1; }
+                }
+                @keyframes flowWave {
+                    0%, 100% { transform: translateY(0); }
+                    50%      { transform: translateY(-6px); }
                 }
 
                 .dice-label {
@@ -158,15 +168,28 @@ export class DiceAnimationTemplate {
                     box-shadow:
                         0 12px 24px rgba(0,0,0,0.4),
                         inset 0 -4px 0 rgba(0,0,0,0.1),
-                        inset 0 4px 0 rgba(255,255,255,0.5);
+                        inset 0 4px 0 rgba(255,255,255,0.5),
+                        ${glowShadow};
                     transform-style: preserve-3d;
                     user-select: none;
+                }
+
+                .dice.flow-dice {
+                    border: 3px solid rgba(33, 150, 243, 0.6);
+                    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
                 }
 
                 .dice.rolling {
                     animation:
                         diceRoll 0.6s linear infinite,
                         diceShake 0.15s ease infinite;
+                }
+
+                .dice.flow-dice.rolling {
+                    animation:
+                        diceRoll 0.6s linear infinite,
+                        diceShake 0.15s ease infinite,
+                        flowWave 0.8s ease infinite;
                 }
 
                 .dice.landed {
@@ -189,17 +212,21 @@ export class DiceAnimationTemplate {
 
             <div class="dice-label">${label}</div>
             <div class="dice-container"></div>
-            <div class="dice-label">${label}</div>
             <div class="dice-total"></div>
         `;
 
         return overlay;
     }
 
-    static _createDice(index, finalValue) {
+    static _createDice(index, finalValue, diceType) {
         const dice = document.createElement('div');
         dice.className = 'dice';
-        // Start with a random face while rolling
+
+        // ✅ Add flow-specific class for styling
+        if (diceType === 'flow') {
+            dice.classList.add('flow-dice');
+        }
+
         dice.textContent = this._getDiceFace(Math.floor(Math.random() * 6) + 1);
         dice.style.animationDelay = `${index * 0.1}s`;
         return dice;
@@ -214,14 +241,15 @@ export class DiceAnimationTemplate {
         const totalEl = overlay.querySelector('.dice-total');
         if (!totalEl) return;
 
-        let text = `總步數: ${total}`;
-        if (diceType === 'lucky_star') {
-            text = `⭐ 總計 ${total} 步！`;
-        } else if (diceType === 'clover') {
-            text = `🍀 總計 ${total} 步！`;
-        }
+        // ✅ Added flow label
+        const TOTAL_LABELS = {
+            lucky_star: `⭐ 總計 ${total} 步！`,
+            clover:     `🍀 總計 ${total} 步！`,
+            flow:       `🌊 總計 ${total} 步！`,
+            normal:     `總步數: ${total}`
+        };
 
-        totalEl.textContent = text;
+        totalEl.textContent = TOTAL_LABELS[diceType] || TOTAL_LABELS.normal;
         totalEl.classList.add('show');
     }
 

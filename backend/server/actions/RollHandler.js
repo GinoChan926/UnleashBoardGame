@@ -57,8 +57,12 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     let diceCount = 1;
     let diceType  = 'normal';
 
-    if (state.diceMultiplierActive) {
-        diceCount = state.diceMultiplier || 1;   // 2 for clover, 3 for lucky star
+// ✅ Flow layer always uses 2 dice
+    if (state.inFlow) {
+        diceCount = 2;
+        diceType  = 'flow';
+    } else if (state.diceMultiplierActive) {
+        diceCount = state.diceMultiplier || 1;
         diceType  = state.diceMultiplier === 2 ? 'clover' : 'lucky_star';
     }
 
@@ -192,7 +196,15 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     }
 
     let multiplierMessage = '';
-    if (state.diceMultiplierActive) {
+    if (state.inFlow && !state.diceMultiplierActive) {
+        // ✅ Flow layer always rolls 2 dice — no special message needed,
+        //    but we can show a brief note
+        multiplierMessage = `🌊 順流層！擲了 2 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`;
+    } else if (state.diceMultiplierActive) {
+        // ✅ Flow layer + clover/star = even more dice
+        if (state.inFlow) {
+            diceCount = Math.max(diceCount, 2);  // at least 2 in flow
+        }
         multiplierMessage = diceType === 'clover'
             ? `🍀 四葉草生效！擲了 ${diceCount} 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`
             : `⭐ 幸運星生效！擲了 ${diceCount} 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`;
@@ -207,7 +219,7 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
     // ── Flow layer movement ───────────────────────────────────────────────────
     if (state.inFlow) {
-        const flowSteps      = steps * 2;
+        const flowSteps      = steps;
         let   currentPos     = state.flowPos;
         let   lastDreamPos   = -1;
         const startPos       = currentPos;
