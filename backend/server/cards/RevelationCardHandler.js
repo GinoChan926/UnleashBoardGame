@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal }   = require('../utils/CardBroadcastHelper.js');
 
 function showRevelationCardTypeSelection(ws, state, roomId, player, marketNewsCards, tipCards, room) {
     const cardTypes = [
@@ -55,14 +56,12 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
     const player = room?.players.get(ws);
     if (!room || !player) return;
 
-    // ✅ Get the pending event - THIS WAS MISSING
     const pendingEvent = room.pendingRevelationEvents?.get(ws);
     if (!pendingEvent || pendingEvent.type !== 'revelation_card') {
         ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的啟示卡' }));
         return;
     }
 
-    // Use multiplier if active
     const baseCost   = 500;
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
@@ -73,12 +72,10 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         return;
     }
 
-    // Deduct cash
-    player.gameState.cash -= actualCost;
+    player.gameState.cash    -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 
-    // Record transaction
     addTransactionRecord(
         player.playerName,
         pendingEvent.card,
@@ -98,7 +95,6 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         scope: card.scope || 'personal'
     };
 
-    // Send updated state to purchaser
     ws.send(JSON.stringify({
         type: 'revelation_card_purchased',
         card: serializableCard,
@@ -106,14 +102,12 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         gameState: player.gameState
     }));
 
-    // Broadcast state update
     broadcastToRoom(roomId, {
         type: 'state_updated',
         playerId: player.playerId,
         gameState: player.gameState
     });
 
-    // Notify others
     broadcastToRoom(roomId, {
         type: 'player_purchased_card',
         playerId: player.playerId,
@@ -121,6 +115,26 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         cardName: card.name,
         message: `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
     }, ws);
+
+    // ✅ NEW: Broadcast card reveal to other players
+    const typeName = pendingEvent.cardType === 'market_news' ? '市場消息卡' : '錦囊卡';
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card: {
+            id:           card.id,
+            name:         card.name,
+            description:  card.description,
+            image:        card.image,
+            cardType:     pendingEvent.cardType,
+            cardTypeName: typeName
+        },
+        action:        `花費 $${actualCost.toLocaleString()} 購買了${typeName}`,
+        effectMessage: '',
+        broadcastToRoom
+    });
 }
 
 function handleExecuteRevelationCard(ws, data, roomId, rooms, broadcastToRoom) {

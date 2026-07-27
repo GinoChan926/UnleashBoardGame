@@ -22,6 +22,7 @@ export class ButtonStateManager {
         const stars    = gameState.luckyStarCount   || 0;
 
         this._set('btnRoll',        canRoll);
+        this._set('btnRollTop',        canRoll);
         this._set('btnEndTurn',     isMyTurn);
         this._set('btnLoan',        canLoan);
         this._set('btnRepayLoan',   canRepay);
@@ -60,7 +61,7 @@ export class ButtonStateManager {
     }
 
     _disableAll() {
-        ['btnRoll','btnEndTurn','btnLoan',
+        ['btnRoll', 'canRollTop', 'btnEndTurn','btnLoan',
             'btnRepayLoan','btnUseClover','btnUseLuckyStar']
             .forEach(id => this._set(id, false));
     }

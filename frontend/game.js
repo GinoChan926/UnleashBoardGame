@@ -8,6 +8,11 @@ import { BoardRenderer }         from './managers/BoardRenderer.js';
 import { PlayerPanelRenderer }   from './managers/PlayerPanelRenderer.js';
 import { CardModalManager }      from './managers/CardModalManager.js';
 import { MessageRouter }         from './managers/MessageRouter.js';
+import { RenameManager }         from './managers/RenameManager.js';
+import { TurnIndicator } from './managers/TurnIndicator.js';
+import { TileLandingManager } from './managers/TileLandingManager.js';
+import { SettlementRollManager } from './managers/SettlementRollManager.js';
+import { CardBroadcastManager } from './managers/CardBroadcastManager.js';
 
 import { GameLifecycleManager }  from './managers/lifecycle/GameLifecycleManager.js';
 import { PlayerActionSender }    from './managers/actions/PlayerActionSender.js';
@@ -32,7 +37,8 @@ class GameClient {
         this.boardRenderer = new BoardRenderer();
         this.playerPanel   = new PlayerPanelRenderer(this);
         this.cardModal     = new CardModalManager(this.modalManager, this);
-
+        this.turnIndicator  = new TurnIndicator();
+        this.tileLandingManager = new TileLandingManager(this.modalManager);
         // Expose ButtonStateManager so lifecycle/handlers can call it directly
         this.buttonState = this.playerPanel.buttons;
 
@@ -43,6 +49,11 @@ class GameClient {
         this.financeHandler = new FinanceHandler(this);
         this.itemHandler    = new ItemHandler(this);
         this.marketHandler  = new MarketHandler(this);
+        this.renameManager  = new RenameManager(this);
+        this.renameManager      = new RenameManager(this);
+        this.tileLandingManager = new TileLandingManager(this);
+        this.settlementRollManager = new SettlementRollManager(this);
+        this.cardBroadcast = new CardBroadcastManager(this);
 
         // ── Actions & lifecycle ───────────────────────────────────────────
         this.actions   = new PlayerActionSender(this);
@@ -146,6 +157,15 @@ class GameClient {
     connect()    { this.lifecycle.doConnect(); }
     disconnect() { this.lifecycle.disconnect(); }
 
+    // ==================== Rename delegate ====================  ✅ ADD THIS
+
+    showRenameModal()        { this.renameManager.show(); }
+    handleRenameSuccess(msg) { this.renameManager.handleRenameSuccess(msg); }
+    handlePlayerRenamed(msg) { this.renameManager.handlePlayerRenamed(msg); }
+    // ==================== Settlement roll delegate ====================
+    showSettlementRoll()               { this.settlementRollManager.show(); }
+    handleSettlementRollResult(msg)    { this.settlementRollManager.handleResult(msg); }
+
     // ==================== Player actions ====================
 
     rollDice()          { this.actions.rollDice(); }
@@ -183,6 +203,7 @@ class GameClient {
         on('btnDisconnect',   () => this.disconnect());
         on('btnUseClover',    () => this.useFourLeafClover());
         on('btnUseLuckyStar', () => this.useLuckyStar());
+        on('btnRename',       () => this.showRenameModal());
     }
 }
 

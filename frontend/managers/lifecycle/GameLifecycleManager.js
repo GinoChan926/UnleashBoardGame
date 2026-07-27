@@ -31,6 +31,9 @@ export class GameLifecycleManager {
                 `👤 玩家: ${client.playerName} (${client.selectedProfession.data.name})`,
                 'event'
             );
+
+            // ✅ Show rename button, hide connect button
+            this._toggleConnectionButtons(true);
         });
 
         client.connection.onMessage((message) => client.router.route(message));
@@ -40,6 +43,10 @@ export class GameLifecycleManager {
             client.updateNetworkStatus(false);
             client.logManager.addLog('❌ 與服務器連接已斷開', 'error');
             client.buttonState.disableAll();
+            client.turnIndicator.reset();
+
+            // ✅ Hide rename button, show connect button
+            this._toggleConnectionButtons(false);
         });
 
         const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
@@ -71,5 +78,15 @@ export class GameLifecycleManager {
 
     isGameOver() {
         return this.client.gameOver;
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────
+
+    _toggleConnectionButtons(connected) {
+        const renameBtn  = document.getElementById('btnRename');
+        const connectBtn = document.getElementById('btnConnect');
+
+        if (renameBtn)  renameBtn.style.display  = connected ? 'inline-block' : 'none';
+        if (connectBtn) connectBtn.style.display = connected ? 'none'         : 'inline-block';
     }
 }

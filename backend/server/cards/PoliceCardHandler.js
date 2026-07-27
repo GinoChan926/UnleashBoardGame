@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 function drawPoliceCard(ws, state, roomId, player, policeCards, broadcastToRoom, deps) {
     if (policeCards.length === 0) {
@@ -35,6 +36,16 @@ function drawPoliceCard(ws, state, roomId, player, policeCards, broadcastToRoom,
         type: 'police_card_execute', card: serializableCard,
         effectMessage: effectResult, gameState: player.gameState
     }));
+    broadcastCardReveal({
+        roomId,
+        drawerWs: ws,
+        drawerName: player.playerName,
+        drawerId: player.playerId,
+        card,
+        action: '抽到警察卡',
+        effectMessage: effectResult,
+        broadcastToRoom
+    });
 
     broadcastToRoom(roomId, {
         type: 'notification',

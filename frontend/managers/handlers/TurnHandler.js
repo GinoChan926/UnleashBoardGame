@@ -2,9 +2,9 @@
 
 export class TurnHandler {
     constructor(client) {
-        this.client          = client;
-        this.lastTurnWasMine = false;
-        this.turnNumber      = 1;
+        this.client            = client;
+        this.lastTurnWasMine   = false;
+        this.turnNumber        = 1;
         this.currentTurnPlayer = null;
     }
 
@@ -13,6 +13,7 @@ export class TurnHandler {
 
         if (!client.gameState) {
             client.buttonState.disableAll();
+            this._refreshIndicator();   // ✅ still update indicator
             return;
         }
 
@@ -24,6 +25,7 @@ export class TurnHandler {
         client.buttonState.refresh(client.gameState);
         this._updateStatusBar(isMyTurn);
         this._notifyOnTurnStart(isMyTurn);
+        this._refreshIndicator();   // ✅ NEW
 
         this.lastTurnWasMine = isMyTurn;
     }
@@ -31,13 +33,18 @@ export class TurnHandler {
     handleTurnStatus(message) {
         const { client } = this;
 
-        this.turnNumber        = message.roundNumber     || this.turnNumber || 1;
+        this.turnNumber        = message.roundNumber      || this.turnNumber || 1;
         this.currentTurnPlayer = message.currentPlayerName || message.currentTurnPlayer;
 
         if (!client.gameState) client.gameState = {};
 
-        if (message.currentPlayerId) {
-            client.gameState.isMyTurn          = (message.currentPlayerId === client.playerId);
+        // ✅ Support both currentPlayerId and currentTurnPlayerId
+        const targetId = message.currentPlayerId || message.currentTurnPlayerId;
+        if (targetId) {
+            client.gameState.isMyTurn = (targetId === client.playerId);
+        }
+
+        if (this.currentTurnPlayer) {
             client.gameState.currentTurnPlayer = this.currentTurnPlayer;
         }
 
@@ -63,7 +70,6 @@ export class TurnHandler {
             console.log(`⚡ Other player ${message.playerId} energy: ${message.gameState.energy}`);
         }
 
-        // ✅ Pass otherPlayers so tokens render correctly
         client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
@@ -81,9 +87,13 @@ export class TurnHandler {
         } else if (message.playerId && message.gameState) {
             client.otherPlayers.set(message.playerId, message.gameState);
             console.log(`👤 Other player ${message.playerId} state updated`);
+
+            // ✅ If the updated player is the current turn player, sync my view
+            if (message.gameState.currentTurnPlayer && client.gameState) {
+                client.gameState.currentTurnPlayer = message.gameState.currentTurnPlayer;
+            }
         }
 
-        // ✅ Pass otherPlayers so tokens render correctly
         client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         this.updateTurnStatus();
@@ -92,9 +102,7 @@ export class TurnHandler {
     async handleDiceResult(message) {
         const { client } = this;
 
-        // ✅ Show dice animation FIRST before updating anything
         if (message.diceValues && message.diceValues.length > 0) {
-            // Only show animation for own rolls
             const { DiceAnimationTemplate } = await import('../cards/templates/DiceAnimationTemplate.js');
 
             await new Promise(resolve => {
@@ -107,7 +115,6 @@ export class TurnHandler {
             });
         }
 
-        // Now apply state updates (after animation completes)
         if (message.playerId === client.playerId && message.gameState) {
             client.gameState = message.gameState;
         } else if (message.gameState) {
@@ -119,9 +126,13 @@ export class TurnHandler {
         client.updatePlayersList();
         this.updateTurnStatus();
 
-        // Show multiplier message if any
         if (message.multiplierMessage) {
             client.logManager.showNotification(message.multiplierMessage, 'success');
+        }
+
+        // ✅ Show landing modal for the roller (auto-skips card-trigger tiles)
+        if (message.playerId === client.playerId && message.tile) {
+            client.tileLandingManager.show(message.tile, message.eventMessage);
         }
     }
 
@@ -135,6 +146,24 @@ export class TurnHandler {
 
     // ── Private ───────────────────────────────────────────────────────
 
+    _refreshIndicator() {
+        const { client } = this;
+        if (!client.turnIndicator) return;
+
+        // Figure out who's turn it is right now
+        const currentTurn =
+            client.gameState?.currentTurnPlayer ||
+            this.currentTurnPlayer ||
+            null;
+
+        client.turnIndicator.update(
+            currentTurn,
+            client.playerName,
+            client.isMyTurn === true,
+            client.gameState
+        );
+    }
+
     _updateStatusBar(isMyTurn) {
         const { client } = this;
         const bar = client.getElement('networkStatus');
@@ -144,16 +173,16 @@ export class TurnHandler {
 
         if (isMyTurn) {
             if (client.gameState.energy <= 0) {
-                bar.textContent  = '🟡 你的回合 - 精力耗盡，請結束回合';
-                bar.style.color  = '#ff9800';
+                bar.textContent = '🟡 你的回合 - 精力耗盡，請結束回合';
+                bar.style.color = '#ff9800';
             } else {
-                bar.textContent  = '🟢 你的回合 - 可以行動';
-                bar.style.color  = '#4caf50';
+                bar.textContent = '🟢 你的回合 - 可以行動';
+                bar.style.color = '#4caf50';
             }
         } else {
-            const waiting       = client.gameState.currentTurnPlayer || '其他玩家';
-            bar.textContent     = `⏳ 等待 ${waiting} 的回合`;
-            bar.style.color     = '#ff9800';
+            const waiting   = client.gameState.currentTurnPlayer || '其他玩家';
+            bar.textContent = `⏳ 等待 ${waiting} 的回合`;
+            bar.style.color = '#ff9800';
         }
     }
 

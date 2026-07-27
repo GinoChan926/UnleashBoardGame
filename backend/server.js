@@ -37,6 +37,9 @@ const { handleLoan, handleRepayLoan }       = require('./server/systems/LoanSyst
 const { handleFlowLayerChoice }             = require('./server/systems/FlowLayerSystem.js');
 const { executeAssetTrust }                 = require('./server/systems/AssetTrustSystem.js');
 const { handleUseEmotionalSupport, handleSkipEmotionalSupport } = require('./server/systems/EmotionalSupportSystem.js');
+const { handleRenamePlayer } = require('./server/actions/RenameHandler.js');
+const { handleSettlementRoll } = require('./server/actions/SettlementRollHandler.js');
+const { handleLierAck } = require('./server/actions/LierAckHandler.js');
 
 // ── Card handlers ─────────────────────────────────────────────────────────────
 const { startAuction, handleAuctionBid, handleAuctionPass } = require('./server/cards/AuctionHandler.js');
@@ -390,6 +393,18 @@ wss.on('connection', (ws) => {
 
                 case 'group_finance_response':
                     handleGroupFinanceResponse(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'rename_player':
+                    handleRenamePlayer(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'settlement_roll':
+                    handleSettlementRoll(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'lier_ack':
+                    handleLierAck(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

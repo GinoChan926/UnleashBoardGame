@@ -1,5 +1,6 @@
 "use strict";
 
+const { broadcastCardReveal }  = require('../utils/CardBroadcastHelper.js');
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 
 function drawHardshipCard(ws, state, roomId, player, hardshipCards, broadcastToRoom, rooms) {
@@ -9,9 +10,9 @@ function drawHardshipCard(ws, state, roomId, player, hardshipCards, broadcastToR
     }
 
     const card = hardshipCards[Math.floor(Math.random() * hardshipCards.length)];
+    const room = rooms ? rooms.get(roomId) : null;
 
     // ✅ Reset card cost multiplier for ALL players when any hardship card is drawn
-    const room = rooms ? rooms.get(roomId) : null;
     if (room) {
         let wasMultiplied = false;
         room.players.forEach((p, pWs) => {
@@ -82,17 +83,33 @@ function drawHardshipCard(ws, state, roomId, player, hardshipCards, broadcastToR
     const stateBefore  = JSON.parse(JSON.stringify(player.gameState));
     const effectResult = card.effect(player.gameState);
 
-    addTransactionRecord(player.playerName, card, '逆境自強卡',
-        player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
+    addTransactionRecord(
+        player.playerName, card, '逆境自強卡',
+        player.gameState.cash - stateBefore.cash,
+        effectResult, stateBefore, player.gameState
+    );
 
     const dr = _buildDiceResult(player, { name: "逆境自強卡", type: "hardship" });
     ws.send(JSON.stringify(dr));
     broadcastToRoom(roomId, dr, ws);
 
     ws.send(JSON.stringify({
-        type: 'hardship_card_execute', card: _serializeCard(card),
-        effectMessage: effectResult, gameState: player.gameState
+        type: 'hardship_card_execute',
+        card: _serializeCard(card),
+        effectMessage: effectResult,
+        gameState: player.gameState
     }));
+
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card,
+        action:        '抽到逆境自強卡',
+        effectMessage: effectResult,
+        broadcastToRoom
+    });
 
     broadcastToRoom(roomId, {
         type: 'notification',
@@ -106,81 +123,77 @@ function drawHardshipCard(ws, state, roomId, player, hardshipCards, broadcastToR
 
     // ✅ Check if card triggers additional lier card draws (S11 etc)
     if (card.drawLierCount && card.drawLierCount > 0) {
-        let lierCards = [];
-        try {
-            lierCards = require('../../lier_cards.js').lierCards || [];
-        } catch (e) {
-            console.log('⚠️ 無法載入騙子卡');
-        }
+        _handleLierDraws(ws, roomId, player, card, rooms, broadcastToRoom, room);
+    }
 
-        if (lierCards.length > 0) {
-            const {drawAndExecuteLierCard} = require('./LierCardHandler.js');
+    // ✅ Check if card has optional choice (S19 etc)
+    if (card.hasChoice && card.applyChoice) {
+        _handleHardshipChoice(ws, roomId, player, card, effectResult, room, rooms);
+    }
+}
 
-            for (let i = 0; i < card.drawLierCount; i++) {
-                setTimeout(() => {
-                    console.log(`🎭 ${player.playerName} 因「${card.name}」抽第 ${i + 1} 張騙子卡`);
-                    drawAndExecuteLierCard(
-                        ws,
-                        player.gameState,
-                        roomId,
-                        player,
-                        lierCards,
-                        broadcastToRoom,
-                        rooms
-                    );
-                }, (i + 1) * 2000);  // 2 second delay between each
-            }
-        }
-        // ✅ Check if card has optional choice (S19 etc)
-        if (card.hasChoice && card.applyChoice) {
-            // Send choice prompt to player after showing the base effect
-            setTimeout(() => {
-                ws.send(JSON.stringify({
-                    type: 'hardship_choice_prompt',
-                    cardId: card.id,
-                    cardName: card.name,
-                    baseEffect: effectResult,
-                    choices: [
-                        {
-                            id: 'hire',
-                            label: '💼 聘請稅務顧問',
-                            description: '支出 $10,000，精力 +2',
-                            cost: 10000,
-                            canAfford: player.gameState.cash >= 10000
-                        },
-                        {
-                            id: 'skip',
-                            label: '❌ 不聘請',
-                            description: '維持現狀',
-                            cost: 0,
-                            canAfford: true
-                        }
-                    ],
-                    gameState: player.gameState
-                }));
-            }, 1500);  // delay so player reads the base effect first
+// ==================== Helper: Lier draws (S11 etc) ====================
 
-            // Store pending choice
-            if (!room) {
-                const roomObj = rooms ? rooms.get(roomId) : null;
-                if (roomObj) {
-                    if (!roomObj.pendingHardshipChoices) roomObj.pendingHardshipChoices = new Map();
-                    roomObj.pendingHardshipChoices.set(ws, { card, playerId: player.playerId });
+function _handleLierDraws(ws, roomId, player, card, rooms, broadcastToRoom, room) {
+    let lierCards = [];
+    try {
+        lierCards = require('../../lier_cards.js').lierCards || [];
+    } catch (e) {
+        console.log('⚠️ 無法載入騙子卡');
+    }
+
+    if (lierCards.length === 0) return;
+
+    // Use the provided room, or fall back to looking it up
+    const roomObj = room || (rooms ? rooms.get(roomId) : null);
+    if (!roomObj) return;
+
+    _queueLierDraws(roomObj, ws, player, card, lierCards);
+
+    // Start with the first one after a delay so player reads hardship card first
+    setTimeout(() => {
+        _drawNextQueuedLier(ws, roomId, player, rooms, broadcastToRoom);
+    }, 2000);
+}
+
+// ==================== Helper: Choice prompt (S19 etc) ====================
+
+function _handleHardshipChoice(ws, roomId, player, card, effectResult, room, rooms) {
+    setTimeout(() => {
+        ws.send(JSON.stringify({
+            type: 'hardship_choice_prompt',
+            cardId: card.id,
+            cardName: card.name,
+            baseEffect: effectResult,
+            choices: [
+                {
+                    id: 'hire',
+                    label: '💼 聘請稅務顧問',
+                    description: '支出 $10,000，精力 +2',
+                    cost: 10000,
+                    canAfford: player.gameState.cash >= 10000
+                },
+                {
+                    id: 'skip',
+                    label: '❌ 不聘請',
+                    description: '維持現狀',
+                    cost: 0,
+                    canAfford: true
                 }
-            } else {
-                // room might not be directly available here - use rooms
-                const roomObj = rooms ? rooms.get(roomId) : null;
-                if (roomObj) {
-                    if (!roomObj.pendingHardshipChoices) roomObj.pendingHardshipChoices = new Map();
-                    roomObj.pendingHardshipChoices.set(ws, { card, playerId: player.playerId });
-                }
-            }
-        }
+            ],
+            gameState: player.gameState
+        }));
+    }, 1500);
+
+    // Store pending choice
+    const roomObj = room || (rooms ? rooms.get(roomId) : null);
+    if (roomObj) {
+        if (!roomObj.pendingHardshipChoices) roomObj.pendingHardshipChoices = new Map();
+        roomObj.pendingHardshipChoices.set(ws, { card, playerId: player.playerId });
     }
 }
 
 // ==================== Collective card handler ====================
-// ✅ No if/else chain - each card defines its own applyCollective method
 
 function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms) {
     const room = rooms ? rooms.get(roomId) : null;
@@ -192,18 +205,15 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
         addTransactionRecord,
         broadcastToRoom: (msg, excl) => broadcastToRoom(roomId, msg, excl),
         serializeCard: _serializeCard,
-        _pendingLierDraws: []    // ✅ Cards can queue lier draws here
+        _pendingLierDraws: []
     };
 
-    // Run the card's own collective logic
     const results = card.applyCollective(room, player, ctx);
 
-    // Send dice result for the drawer
     const dr = _buildDiceResult(player, { name: "逆境自強卡", type: "hardship" });
     ws.send(JSON.stringify(dr));
     broadcastToRoom(roomId, dr, ws);
 
-    // Broadcast summary
     const summaryMsg = typeof results === 'string'
         ? results
         : `🌪️ 集體逆境「${card.name}」觸發！`;
@@ -213,7 +223,6 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
         message: summaryMsg
     });
 
-    // Update all players' states
     room.players.forEach(p => {
         broadcastToRoom(roomId, {
             type: 'state_updated',
@@ -226,7 +235,6 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
     if (ctx._pendingLierDraws && ctx._pendingLierDraws.length > 0) {
         console.log(`🎭 處理 ${ctx._pendingLierDraws.length} 張待抽騙子卡`);
 
-        // Load lier cards
         let lierCards = [];
         try {
             lierCards = require('../../lier_cards.js').lierCards || [];
@@ -240,33 +248,26 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
                 message: '⚠️ 暫無騙子卡資料'
             });
         } else {
-            // Draw lier cards for each queued player with delay between each
             ctx._pendingLierDraws.forEach(({ ws: pWs, player: p, playerName }, index) => {
                 setTimeout(() => {
                     if (pWs && pWs.readyState === 1) {
                         console.log(`🎭 ${playerName} 因 ${card.name} 抽騙子卡`);
-
-                        // Use the existing drawAndExecuteLierCard if available
                         try {
                             const { drawAndExecuteLierCard } = require('./LierCardHandler.js');
                             drawAndExecuteLierCard(
-                                pWs,
-                                p.gameState,
-                                roomId,
-                                p,
-                                lierCards,
-                                broadcastToRoom,
-                                rooms
+                                pWs, p.gameState, roomId, p,
+                                lierCards, broadcastToRoom, rooms
                             );
                         } catch (e) {
                             console.error(`❌ 騙子卡抽取失敗: ${playerName}`, e);
                         }
                     }
-                }, (index + 1) * 2000);   // 2 second delay between each draw
+                }, (index + 1) * 2000);
             });
         }
     }
 
+    // ✅ Process queued hardship draws (S10 etc)
     if (ctx._pendingHardshipDraws && ctx._pendingHardshipDraws.length > 0) {
         console.log(`🎭 處理 ${ctx._pendingHardshipDraws.length} 張待抽逆境卡`);
 
@@ -283,7 +284,6 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
                 message: '⚠️ 暫無逆境卡資料'
             });
         } else {
-            // Filter out the current collective card to avoid infinite loop
             const nonCollectiveCards = hardshipCardsData.filter(c => !c.isCollective);
 
             if (nonCollectiveCards.length === 0) {
@@ -297,14 +297,12 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
                         if (pWs && pWs.readyState === 1) {
                             console.log(`🎭 ${playerName} 因 ${card.name} 再抽逆境卡`);
 
-                            // Draw a random NON-collective hardship card
                             const randomCard = nonCollectiveCards[
                                 Math.floor(Math.random() * nonCollectiveCards.length)
                                 ];
 
                             const cardStateBefore = JSON.parse(JSON.stringify(p.gameState));
 
-                            // Check shield first
                             if (p.gameState.hardshipShield && p.gameState.hardshipShield > 0) {
                                 p.gameState.hardshipShield--;
 
@@ -321,7 +319,6 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
                                     message: `🛡️ ${playerName} 的家族辦公室抵擋了逆境卡「${randomCard.name}」！`
                                 }, pWs);
                             } else {
-                                // Execute the card
                                 const effectResult = randomCard.effect(p.gameState);
 
                                 addTransactionRecord(
@@ -349,7 +346,7 @@ function _handleCollectiveCard(ws, roomId, player, card, broadcastToRoom, rooms)
                                 gameState: p.gameState
                             });
                         }
-                    }, (index + 1) * 2500);  // 2.5 second delay between each
+                    }, (index + 1) * 2500);
                 });
             }
         }
@@ -419,4 +416,48 @@ function handleHardshipChoice(ws, data, roomId, rooms, broadcastToRoom) {
     console.log(`⚖️ ${player.playerName} 逆境卡選擇: ${choice} → ${choiceResult}`);
 }
 
-module.exports = { drawHardshipCard, handleHardshipChoice };
+// ==================== Sequential lier draw queue ====================
+
+function _queueLierDraws(room, ws, player, sourceCard, lierCards) {
+    if (!room.pendingLierQueue) room.pendingLierQueue = new Map();
+
+    const remaining = sourceCard.drawLierCount || 0;
+
+    room.pendingLierQueue.set(ws, {
+        playerId:   player.playerId,
+        sourceCard: sourceCard.name,
+        remaining,
+        lierCards
+    });
+
+    console.log(`📥 佇列 ${remaining} 張騙子卡給 ${player.playerName}`);
+}
+
+function _drawNextQueuedLier(ws, roomId, player, rooms, broadcastToRoom) {
+    const room = rooms.get(roomId);
+    if (!room?.pendingLierQueue) return;
+
+    const queueEntry = room.pendingLierQueue.get(ws);
+    if (!queueEntry || queueEntry.remaining <= 0) {
+        room.pendingLierQueue?.delete(ws);
+        return;
+    }
+
+    const { drawAndExecuteLierCard } = require('./LierCardHandler.js');
+    const { lierCards, sourceCard } = queueEntry;
+
+    console.log(`🎭 ${player.playerName} 因「${sourceCard}」抽騙子卡 (剩 ${queueEntry.remaining})`);
+
+    queueEntry.remaining--;
+
+    drawAndExecuteLierCard(
+        ws, player.gameState, roomId, player,
+        lierCards, broadcastToRoom, rooms
+    );
+}
+
+module.exports = {
+    drawHardshipCard,
+    handleHardshipChoice,
+    _drawNextQueuedLier
+};

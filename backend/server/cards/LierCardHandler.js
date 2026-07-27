@@ -3,6 +3,7 @@
 const { addTransactionRecord }            = require('../records/TransactionRecorder.js');
 const { checkAndNotifyEmotionalSupport }  = require('../systems/EmotionalSupportSystem.js');
 const { getWsByPlayerId }                 = require('../utils/helpers.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastToRoom, rooms) {
     const room = rooms.get(roomId);
@@ -113,6 +114,26 @@ function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastT
             type: 'lier_card_auto_execute', card: serializableCard,
             effectMessage: effectResult, gameState: player.gameState
         }));
+
+        broadcastCardReveal({
+            roomId,
+            drawerWs: ws,
+            drawerName: player.playerName,
+            drawerId: player.playerId,
+            card,
+            action: '抽到騙子卡',
+            effectMessage: effectResult,
+            broadcastToRoom
+        });
+
+        // In the lier card modal confirm/close callback:
+        CardRevealTemplate.bindConfirm(() => {
+            client.modalManager.closeModal('lierCardModal');
+
+            // ✅ Notify server so it can draw the next queued lier card (if any)
+            client.connection.send({ type: 'lier_ack' });
+        });
+
         broadcastToRoom(roomId, {
             type: 'notification',
             message: `🎭 ${player.playerName} 踩中騙子卡「${card.name}」！${effectResult}`
@@ -195,6 +216,26 @@ function _executeWithoutDamage(ws, player, card, roomId, broadcastToRoom) {
         effectMessage: `💝 情緒支援生效！抵銷了「${card.name}」的傷害！`,
         gameState: player.gameState
     }));
+
+    broadcastCardReveal({
+        roomId,
+        drawerWs: ws,
+        drawerName: player.playerName,
+        drawerId: player.playerId,
+        card,
+        action: '抽到騙子卡',
+        effectMessage: effectResult,
+        broadcastToRoom
+    });
+
+    // In the lier card modal confirm/close callback:
+    CardRevealTemplate.bindConfirm(() => {
+        client.modalManager.closeModal('lierCardModal');
+
+        // ✅ Notify server so it can draw the next queued lier card (if any)
+        client.connection.send({ type: 'lier_ack' });
+    });
+
     broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
 }
 

@@ -62,4 +62,15 @@ export class PlayerActionSender {
         client.connection.send({ type: 'use_lucky_star', playerId: client.playerId });
         client.logManager.addLog('⭐ 使用幸運星', 'info');
     }
+
+    renamePlayer(newName) {
+        if (!this.client.connection?.isReady()) {
+            this.client.logManager.addLog('⚠️ 尚未連接遊戲', 'error');
+            return;
+        }
+        this.client.connection.send({
+            type: 'rename_player',
+            newName
+        });
+    }
 }

@@ -19,10 +19,10 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     player.gameState.hasRolledThisTurn = false;
 
     // Restore energy
-    player.gameState.energy = Math.min(
-        player.gameState.maxEnergy,
-        player.gameState.energy + 1
-    );
+    // player.gameState.energy = Math.min(
+        // player.gameState.maxEnergy,
+        // player.gameState.energy + 1
+    // );
 
     // ✅ Check for extra turn (IN12 時間管理)
     if (player.gameState.extraTurn) {
@@ -30,22 +30,9 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
 
         console.log(`⏰ ${player.playerName} 獲得額外回合！`);
 
-        // Don't cycle to next player - keep current player's turn
-        // Just reset their roll flag so they can roll again
-        broadcastToRoom(roomId, {
-            type: 'turn_ended',
-            playerId: player.playerId,
-            gameState: player.gameState
-        });
+        // Broadcast the extra turn — player stays as current
+        _broadcastTurnState(room, roomId, player.playerName, broadcastToRoom);
 
-        // Send state update so frontend re-enables roll button
-        broadcastToRoom(roomId, {
-            type: 'state_updated',
-            playerId: player.playerId,
-            gameState: player.gameState
-        });
-
-        // Notify
         ws.send(JSON.stringify({
             type: 'notification',
             message: '⏰ 時間管理生效！你獲得一個額外回合！'
@@ -56,7 +43,7 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
             message: `⏰ ${player.playerName} 獲得額外回合！`
         }, ws);
 
-        return;  // ← skip normal turn cycle
+        return;
     }
 
     // ── Normal turn cycle ─────────────────────────────────────────────────
@@ -68,18 +55,66 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     nextPlayer.gameState.isMyTurn = true;
     room.currentTurnPlayer        = nextPlayer.playerName;
 
+    // ✅ Update ALL players' currentTurnPlayer so their UI shows the same thing
+    room.players.forEach(p => {
+        p.gameState.currentTurnPlayer = nextPlayer.playerName;
+    });
+
+    // Notify the player whose turn just ended
     broadcastToRoom(roomId, {
-        type: 'turn_ended',
+        type:     'turn_ended',
         playerId: player.playerId,
         gameState: player.gameState
     });
+
+    // ✅ Broadcast state for BOTH players (previous + next)
     broadcastToRoom(roomId, {
-        type: 'state_updated',
-        playerId: nextPlayer.playerId,
+        type:      'state_updated',
+        playerId:  player.playerId,
+        gameState: player.gameState
+    });
+
+    broadcastToRoom(roomId, {
+        type:      'state_updated',
+        playerId:  nextPlayer.playerId,
         gameState: nextPlayer.gameState
     });
 
+    // ✅ Broadcast dedicated turn_status message everyone can listen to
+    broadcastToRoom(roomId, {
+        type:              'turn_status',
+        currentTurnPlayer: nextPlayer.playerName,
+        currentTurnPlayerId: nextPlayer.playerId,
+        previousPlayer:    player.playerName
+    });
+
     console.log(`⏭️ 回合結束: ${player.playerName} → ${nextPlayer.playerName}`);
+}
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+function _broadcastTurnState(room, roomId, currentTurnPlayerName, broadcastToRoom) {
+    // Sync currentTurnPlayer across all players
+    room.players.forEach(p => {
+        p.gameState.currentTurnPlayer = currentTurnPlayerName;
+    });
+
+    // Broadcast state update for the current turn player
+    room.players.forEach(p => {
+        if (p.playerName === currentTurnPlayerName) {
+            broadcastToRoom(roomId, {
+                type:      'state_updated',
+                playerId:  p.playerId,
+                gameState: p.gameState
+            });
+        }
+    });
+
+    // Broadcast dedicated turn_status message
+    broadcastToRoom(roomId, {
+        type:              'turn_status',
+        currentTurnPlayer: currentTurnPlayerName
+    });
 }
 
 module.exports = { handleEndTurn };

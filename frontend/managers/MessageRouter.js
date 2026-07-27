@@ -32,12 +32,16 @@ export class MessageRouter {
         const fh = () => c.financeHandler;
         const ih = () => c.itemHandler;
         const mh = () => c.marketHandler;
+        const rm = () => c.renameManager;
 
         const map = {
             // ── Join / presence
             'join_success':          m => jh().handleJoinSuccess(m),
             'player_joined':         m => jh().handlePlayerJoined(m),
             'player_disconnected':   m => jh().handlePlayerDisconnected(m),
+
+            'rename_success':        m => c.renameManager.handleRenameSuccess(m),
+            'player_renamed':        m => c.renameManager.handlePlayerRenamed(m),
 
             // ── Turn flow
             'dice_result':           m => th().handleDiceResult(m),
@@ -172,6 +176,12 @@ export class MessageRouter {
 
             'group_finance_prompt': m => ch().handleGroupFinancePrompt(m),
             'group_finance_result': m => ch().handleGroupFinanceResult(m),
+
+            // ── Card reveal broadcast
+            'card_revealed': m => c.cardBroadcast.handleCardRevealed(m),
+
+            // ── Settlement roll
+            'settlement_roll_result': m => c.settlementRollManager.handleResult(m),
             // ── System
             'notification': m => {
                 if (m.message) {

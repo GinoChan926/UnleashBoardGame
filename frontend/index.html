@@ -110,6 +110,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .board-wrapper {
@@ -502,6 +503,109 @@
             transform: scale(1.02);
         }
 
+        .turn-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #1a472a, #2e7d32);
+            padding: 10px 24px;
+            border-radius: 30px;
+            border: 2px solid #ffd966;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 150;
+            min-width: 300px;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .turn-indicator.my-turn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border-color: #fff59d;
+            animation: turnPulse 1.5s ease infinite;
+            box-shadow: 0 6px 24px rgba(255,152,0,0.5);
+        }
+
+        @keyframes turnPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50%      { transform: translateX(-50%) scale(1.02); }
+        }
+
+        .turn-indicator-label {
+            font-size: 13px;
+            color: #ffd966;
+            font-weight: bold;
+        }
+
+        .turn-indicator.my-turn .turn-indicator-label {
+            color: #fff59d;
+        }
+
+        .turn-indicator-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+
+        .turn-indicator-status {
+            font-size: 11px;
+            color: #b3e5fc;
+            background: rgba(0,0,0,0.3);
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .turn-indicator.my-turn .turn-indicator-status {
+            color: #fff9c4;
+            background: rgba(0,0,0,0.4);
+        }
+
+        .turn-indicator-roll-btn {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+            border: 2px solid #a5d6a7;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(76,175,80,0.5);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            animation: rollBtnGlow 1.5s ease infinite;
+            width: auto;
+            margin: 0;
+        }
+
+        .turn-indicator-roll-btn:hover:not(:disabled) {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(76,175,80,0.7);
+            background: linear-gradient(135deg, #66bb6a, #388e3c);
+        }
+
+        .turn-indicator-roll-btn:disabled {
+            background: linear-gradient(135deg, #9e9e9e, #616161);
+            border-color: #bdbdbd;
+            cursor: not-allowed;
+            animation: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            opacity: 0.6;
+        }
+
+        @keyframes rollBtnGlow {
+            0%, 100% {
+                box-shadow: 0 4px 14px rgba(76,175,80,0.5);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(76,175,80,0.9),
+                0 0 0 4px rgba(76,175,80,0.2);
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -515,10 +619,25 @@
         <div class="network-status" id="networkStatus">⚪ 未連接</div>
         <input type="text" id="playerName" placeholder="輸入玩家名稱" maxlength="20" style="padding: 6px 12px; border-radius: 20px; border: none;">
         <button id="btnConnect" onclick="window.gameClient?.connect()" style="width: auto; padding: 6px 20px;">🔌 連接</button>
+        <button id="btnRename"
+                style="width: auto; padding: 6px 20px; background: #9c27b0; display: none;">
+            📝 改名
+        </button>
     </div>
 
     <div class="game-main-row">
         <div class="game-panel">
+            <div class="turn-indicator" id="turnIndicator">
+                <div class="turn-indicator-label">🎯 當前回合</div>
+                <div class="turn-indicator-name" id="turnIndicatorName">等待玩家加入...</div>
+                <div class="turn-indicator-status" id="turnIndicatorStatus"></div>
+            </div>
+            <button id="btnRollTop"
+                    class="turn-indicator-roll-btn"
+                    onclick="window.gameClient?.rollDice()"
+                    style="display: none;">
+                🎲 擲骰子
+            </button>
             <div class="board-wrapper">
                 <div class="three-tier-board" id="threeTierBoard">
                     <div class="flow-square-border"></div>

@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 const CARD_TYPES_META = {
     part_time: { id: 'part_time', name: '兼職類', icon: '💼', color: '#4caf50' },
@@ -205,6 +206,19 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
         cardName:   card.name,
         message:    `${player.playerName} 花費 ${actualCost} 元購買了「${card.name}」`
     }, ws);
+
+    broadcastCardReveal({
+        roomId,
+        drawerWs: ws,
+        drawerName: player.playerName,
+        drawerId: player.playerId,
+        card: pendingEvent.card,
+        action: pendingEvent.skipPurchaseCost
+            ? '免費啟動投資卡'
+            : `花費 $${actualCost.toLocaleString()} 購買了機會卡`,
+        effectMessage: '',
+        broadcastToRoom
+    });
 }
 
 function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES, tipCards) {

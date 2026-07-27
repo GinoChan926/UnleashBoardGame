@@ -84,7 +84,7 @@ export class RevelationHandler {
         TeamCardTemplate.populate(message, client.escapeHtml.bind(client));
 
         const timerId = TeamCardTemplate.startCountdown(
-            message.timeout || 30,
+            message.timeout || 60,
             () => {
                 TeamCardTemplate.disableButtons();
                 client.modalManager.closeModal('teamCardModal');

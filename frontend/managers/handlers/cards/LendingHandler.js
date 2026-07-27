@@ -23,14 +23,15 @@ export class LendingHandler {
             message,
             client.escapeHtml.bind(client),
             {
-                onLend: (targetPlayerId, amount, note) => {
+                // ✅ Now includes interestRate parameter
+                onLend: (targetPlayerId, amount, note, interestRate) => {
                     client.connection.send({
                         type: 'lend_money',
                         targetPlayerId,
                         amount,
-                        note
+                        note,
+                        interestRate    // ✅ NEW
                     });
-                    // Refresh after transaction
                     setTimeout(() => {
                         client.connection.send({ type: 'get_lending_summary' });
                     }, 500);
@@ -41,7 +42,6 @@ export class LendingHandler {
                         debtId,
                         amount
                     });
-                    // Refresh after transaction
                     setTimeout(() => {
                         client.connection.send({ type: 'get_lending_summary' });
                     }, 500);

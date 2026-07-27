@@ -4,7 +4,7 @@ export class LendingTemplate {
 
     static buildModal() {
         return `
-            <div class="modal-content" style="max-width: 620px;
+            <div class="modal-content" style="max-width: 680px;
                  background: linear-gradient(135deg, #2a2a3a, #1a1a2a);
                  border-radius: 24px; padding: 24px;
                  border: 2px solid #f57c00;
@@ -15,7 +15,7 @@ export class LendingTemplate {
                         💸 借還款管理
                     </div>
                     <div style="font-size: 12px; color: #ffe0b2; margin-top: 4px;">
-                        隨時可以借款/還款，不限回合
+                        隨時可以借款/還款，不限回合，可設定利率
                     </div>
                 </div>
 
@@ -31,7 +31,7 @@ export class LendingTemplate {
                 </div>
 
                 <div id="lendingContent"
-                     style="min-height: 200px; max-height: 45vh;
+                     style="min-height: 200px; max-height: 55vh;
                             overflow-y: auto; padding-right: 4px;">
                 </div>
 
@@ -68,8 +68,8 @@ export class LendingTemplate {
         const tabsEl = document.getElementById('lendingTabs');
         if (!tabsEl) return;
 
-        const totalLent    = message.lentOut.reduce((s, d) => s + d.amount, 0);
-        const totalOwed    = message.debtsOwed.reduce((s, d) => s + d.amount, 0);
+        const totalLent = message.lentOut.reduce((s, d) => s + d.amount, 0);
+        const totalOwed = message.debtsOwed.reduce((s, d) => s + d.amount, 0);
 
         const tabs = [
             { key: 'lend',  label: '💸 借出',   count: null },
@@ -159,18 +159,48 @@ export class LendingTemplate {
                     </select>
                 </div>
 
-                <div style="margin-bottom: 12px;">
-                    <label style="color: #ffe0b2; font-size: 13px;
-                                  display: block; margin-bottom: 6px;">
-                        💰 借款金額
-                    </label>
-                    <input type="number" id="lendAmountInput"
-                           min="1" max="${message.cash}"
-                           placeholder="輸入金額 (你有 $${message.cash.toLocaleString()})"
-                           style="width: 100%; padding: 10px;
-                                  border-radius: 8px; border: 2px solid #f57c00;
-                                  background: rgba(0,0,0,0.5); color: #fff;
-                                  font-size: 16px; text-align: center; box-sizing: border-box;">
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <div style="flex: 2;">
+                        <label style="color: #ffe0b2; font-size: 13px;
+                                      display: block; margin-bottom: 6px;">
+                            💰 借款金額 (本金)
+                        </label>
+                        <input type="number" id="lendAmountInput"
+                               min="1" max="${message.cash}"
+                               placeholder="輸入金額"
+                               style="width: 100%; padding: 10px;
+                                      border-radius: 8px; border: 2px solid #f57c00;
+                                      background: rgba(0,0,0,0.5); color: #fff;
+                                      font-size: 16px; text-align: center; box-sizing: border-box;">
+                    </div>
+
+                    <div style="flex: 1;">
+                        <label style="color: #ffe0b2; font-size: 13px;
+                                      display: block; margin-bottom: 6px;">
+                            📈 利率 (%)
+                        </label>
+                        <input type="number" id="lendInterestInput"
+                               min="0" max="100" step="0.5" value="0"
+                               placeholder="0"
+                               style="width: 100%; padding: 10px;
+                                      border-radius: 8px; border: 2px solid #f57c00;
+                                      background: rgba(0,0,0,0.5); color: #fff;
+                                      font-size: 16px; text-align: center; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <!-- ✅ Live preview of total repayment -->
+                <div id="lendPreview" style="
+                    background: rgba(255,193,7,0.15);
+                    border: 1px solid rgba(255,193,7,0.4);
+                    border-radius: 10px;
+                    padding: 10px;
+                    margin-bottom: 12px;
+                    color: #ffd966;
+                    font-size: 13px;
+                    text-align: center;
+                    display: none;
+                ">
                 </div>
 
                 <div style="margin-bottom: 14px;">
@@ -199,15 +229,45 @@ export class LendingTemplate {
 
             <div style="text-align: center; font-size: 11px;
                         color: #ffcc80; margin-top: 12px;">
-                💡 借款無利息，對方需在遊戲中自願歸還
+                💡 設定利率後，對方需償還 本金 + 利息
             </div>
         `;
 
+        // ✅ Live preview update
+        const amountInput   = document.getElementById('lendAmountInput');
+        const interestInput = document.getElementById('lendInterestInput');
+        const previewEl     = document.getElementById('lendPreview');
+
+        const updatePreview = () => {
+            const amount = parseInt(amountInput.value) || 0;
+            const rate   = parseFloat(interestInput.value) || 0;
+
+            if (amount > 0) {
+                const interest = Math.floor(amount * rate / 100);
+                const total    = amount + interest;
+
+                previewEl.innerHTML = rate > 0
+                    ? `💰 本金 <strong>$${amount.toLocaleString()}</strong>
+                       + 利息 <strong>$${interest.toLocaleString()}</strong>
+                       (${rate}%)
+                       = 對方需還 <strong style="color: #fff;">$${total.toLocaleString()}</strong>`
+                    : `💰 本金 <strong>$${amount.toLocaleString()}</strong> (無利息)`;
+                previewEl.style.display = 'block';
+            } else {
+                previewEl.style.display = 'none';
+            }
+        };
+
+        amountInput.addEventListener('input', updatePreview);
+        interestInput.addEventListener('input', updatePreview);
+
+        // Submit button
         const submitBtn = document.getElementById('lendSubmitBtn');
         if (submitBtn) {
             submitBtn.onclick = () => {
                 const targetPlayerId = document.getElementById('lendTargetSelect')?.value;
-                const amount         = parseInt(document.getElementById('lendAmountInput')?.value);
+                const amount         = parseInt(amountInput?.value);
+                const interestRate   = parseFloat(interestInput?.value) || 0;
                 const note           = document.getElementById('lendNoteInput')?.value || '';
 
                 if (!targetPlayerId) {
@@ -222,8 +282,12 @@ export class LendingTemplate {
                     alert('現金不足');
                     return;
                 }
+                if (interestRate < 0 || interestRate > 100) {
+                    alert('利率必須介於 0 到 100%');
+                    return;
+                }
 
-                callbacks.onLend(targetPlayerId, amount, note);
+                callbacks.onLend(targetPlayerId, amount, note, interestRate);
             };
             submitBtn.onmouseenter = () => {
                 submitBtn.style.transform = 'scale(1.02)';
@@ -244,22 +308,28 @@ export class LendingTemplate {
             return;
         }
 
-        const total = lentOut.reduce((s, d) => s + d.amount, 0);
+        const totalPrincipal = lentOut.reduce((s, d) => s + (d.principal || d.originalAmount), 0);
+        const totalInterest  = lentOut.reduce((s, d) => s + (d.interestAmount || 0), 0);
+        const totalOwed      = lentOut.reduce((s, d) => s + d.amount, 0);
 
         let html = `
             <div style="background: rgba(76,175,80,0.15); padding: 10px;
                         border-radius: 10px; margin-bottom: 12px;
                         text-align: center; color: #81c784;
                         border: 1px solid rgba(76,175,80,0.3);">
-                📤 你借出總額: <strong>$${total.toLocaleString()}</strong>
+                📤 本金 <strong>$${totalPrincipal.toLocaleString()}</strong>
+                + 利息 <strong>$${totalInterest.toLocaleString()}</strong>
+                | 尚未收回 <strong style="color: #fff;">$${totalOwed.toLocaleString()}</strong>
             </div>
         `;
 
         lentOut.forEach(d => {
-            const paid = d.originalAmount - d.amount;
-            const progress = d.originalAmount > 0
-                ? Math.round((paid / d.originalAmount) * 100)
-                : 0;
+            const principal  = d.principal      || d.originalAmount;
+            const interest   = d.interestAmount || 0;
+            const rate       = d.interestRate   || 0;
+            const totalOwed  = d.originalAmount;  // principal + interest
+            const paid       = totalOwed - d.amount;
+            const progress   = totalOwed > 0 ? Math.round((paid / totalOwed) * 100) : 0;
 
             html += `
                 <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
@@ -275,10 +345,14 @@ export class LendingTemplate {
                         </div>
                     </div>
 
-                    <div style="font-size: 12px; color: #b0bec5; margin-bottom: 8px;">
-                        原借款: $${d.originalAmount.toLocaleString()}
-                        | 已還: $${paid.toLocaleString()}
-                        ${d.note ? `<br>📝 ${escapeHtml(d.note)}` : ''}
+                    <div style="font-size: 12px; color: #b0bec5; margin-bottom: 8px;
+                                display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;">
+                        <div>💰 本金: <strong>$${principal.toLocaleString()}</strong></div>
+                        <div>📈 利率: <strong>${rate}%</strong></div>
+                        <div>💵 利息: <strong>$${interest.toLocaleString()}</strong></div>
+                        <div>💸 總額: <strong>$${totalOwed.toLocaleString()}</strong></div>
+                        <div style="grid-column: 1/-1;">✅ 已收: <strong>$${paid.toLocaleString()}</strong></div>
+                        ${d.note ? `<div style="grid-column: 1/-1;">📝 ${escapeHtml(d.note)}</div>` : ''}
                     </div>
 
                     <div style="background: rgba(0,0,0,0.5); height: 6px;
@@ -307,22 +381,28 @@ export class LendingTemplate {
             return;
         }
 
-        const total = debtsOwed.reduce((s, d) => s + d.amount, 0);
+        const totalPrincipal = debtsOwed.reduce((s, d) => s + (d.principal || d.originalAmount), 0);
+        const totalInterest  = debtsOwed.reduce((s, d) => s + (d.interestAmount || 0), 0);
+        const totalOwed      = debtsOwed.reduce((s, d) => s + d.amount, 0);
 
         let html = `
             <div style="background: rgba(244,67,54,0.15); padding: 10px;
                         border-radius: 10px; margin-bottom: 12px;
                         text-align: center; color: #ff8a80;
                         border: 1px solid rgba(244,67,54,0.3);">
-                📥 你欠款總額: <strong>$${total.toLocaleString()}</strong>
+                📥 本金 <strong>$${totalPrincipal.toLocaleString()}</strong>
+                + 利息 <strong>$${totalInterest.toLocaleString()}</strong>
+                | 尚欠 <strong style="color: #fff;">$${totalOwed.toLocaleString()}</strong>
             </div>
         `;
 
         debtsOwed.forEach(d => {
-            const paid = d.originalAmount - d.amount;
-            const progress = d.originalAmount > 0
-                ? Math.round((paid / d.originalAmount) * 100)
-                : 0;
+            const principal  = d.principal      || d.originalAmount;
+            const interest   = d.interestAmount || 0;
+            const rate       = d.interestRate   || 0;
+            const totalOwed  = d.originalAmount;
+            const paid       = totalOwed - d.amount;
+            const progress   = totalOwed > 0 ? Math.round((paid / totalOwed) * 100) : 0;
 
             html += `
                 <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
@@ -338,10 +418,14 @@ export class LendingTemplate {
                         </div>
                     </div>
 
-                    <div style="font-size: 12px; color: #b0bec5; margin-bottom: 8px;">
-                        原借款: $${d.originalAmount.toLocaleString()}
-                        | 已還: $${paid.toLocaleString()}
-                        ${d.note ? `<br>📝 ${escapeHtml(d.note)}` : ''}
+                    <div style="font-size: 12px; color: #b0bec5; margin-bottom: 8px;
+                                display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;">
+                        <div>💰 本金: <strong>$${principal.toLocaleString()}</strong></div>
+                        <div>📈 利率: <strong>${rate}%</strong></div>
+                        <div>💵 利息: <strong>$${interest.toLocaleString()}</strong></div>
+                        <div>💸 總額: <strong>$${totalOwed.toLocaleString()}</strong></div>
+                        <div style="grid-column: 1/-1;">✅ 已還: <strong>$${paid.toLocaleString()}</strong></div>
+                        ${d.note ? `<div style="grid-column: 1/-1;">📝 ${escapeHtml(d.note)}</div>` : ''}
                     </div>
 
                     <div style="background: rgba(0,0,0,0.5); height: 6px;
@@ -386,11 +470,10 @@ export class LendingTemplate {
 
         container.innerHTML = html;
 
-        // Bind repay buttons
         document.querySelectorAll('.repay-partial-btn').forEach(btn => {
             btn.onclick = () => {
                 const debtId = btn.dataset.debtId;
-                const input = document.querySelector(`.repay-amount-input[data-debt-id="${debtId}"]`);
+                const input  = document.querySelector(`.repay-amount-input[data-debt-id="${debtId}"]`);
                 const amount = parseInt(input?.value);
                 if (!amount || amount < 1) {
                     alert('請輸入還款金額');
@@ -406,7 +489,7 @@ export class LendingTemplate {
             btn.onclick = () => {
                 const debtId = btn.dataset.debtId;
                 const amount = parseInt(btn.dataset.fullAmount);
-                if (confirm(`確認全額還清 $${amount.toLocaleString()} 嗎？`)) {
+                if (confirm(`確認全額還清 $${amount.toLocaleString()} 嗎？（含利息）`)) {
                     callbacks.onRepay(debtId, amount);
                 }
             };

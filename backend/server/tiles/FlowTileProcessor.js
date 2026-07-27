@@ -20,22 +20,16 @@ function processFlowTile(state, tile, ws, roomId, player, room,
         case 'social_service':
             return processSocialServiceTile(state, ws, roomId, player, tile, room);
 
+        // ✅ All investment tile types use the same flow
         case 'investment_tile':
+        case 'investment':
             return _handleInvestmentTile(state, tile, ws, roomId, player, room,
                 { broadcastToRoom, startAuction, investmentCards });
 
-        case 'investment': {
-            const profit = Math.floor(Math.random() * 50000) + 30000;
-            const income = Math.floor(Math.random() * 5000)  + 2000;
-            state.cash          += profit;
-            state.passiveIncome += income;
-            addTransactionRecord(player.playerName,
-                { name: `順流層投資 (${tile.name})`, type: "flow", id: "FLOW_INVEST" },
-                "順流層投資", profit,
-                `獲得 ${profit.toLocaleString()} 元現金，被動收入 +${income.toLocaleString()} 元/月`,
-                null, state);
-            return `💎 投資獲利！獲得 ${profit.toLocaleString()} 元，被動收入 +${income.toLocaleString()} 元/月`;
-        }
+        // ✅ Dream tile also draws an investment card with energy requirement
+        case 'dream':
+            return _handleDreamTile(state, tile, ws, roomId, player, room,
+                { broadcastToRoom, startAuction, investmentCards });
 
         case 'flowbankruptcy':
             return _processBankruptcy(state, ws, roomId, player, broadcastToRoom);
@@ -60,11 +54,8 @@ function processFlowTile(state, tile, ws, roomId, player, room,
             return `💰 分紅收入！獲得 ${bonus.toLocaleString()} 元`;
         }
 
-        case 'dream':
-            return _handleDream(state, tile);
-
         case 'settlement':
-            return null; // handled in RollHandler
+            return null;
 
         default:
             return `📌 順流層格子：${tile.name}`;
@@ -91,46 +82,44 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
     }
 
     const serializableCard = {
-        id: card.id,
-        name: card.name,
-        description: card.description,
-        image: card.image || '',
-        cost: 0,   // ✅ free in flow layer
+        id:             card.id,
+        name:           card.name,
+        description:    card.description,
+        image:          card.image || '',
+        cost:           0,
         investmentCost: card.investmentCost || 0,
-        energyCost: card.energyCost || 0,
-        monthlyReturn: card.monthlyReturn || 0,
-        pricePerUnit: card.pricePerUnit || card.investmentCost || 0,
-        cardType: 'investment',
-        cardTypeName: '投資',
-        cardTypeIcon: '🏗️',
-        type: 'investment',
-        freeReveal: true,
+        energyCost:     card.energyCost || 0,
+        monthlyReturn:  card.monthlyReturn || 0,
+        pricePerUnit:   card.pricePerUnit || card.investmentCost || 0,
+        cardType:       'investment',
+        cardTypeName:   '投資',
+        cardTypeIcon:   '🏗️',
+        type:           'investment',
+        freeReveal:     true,
         activationOnly: true
     };
-
-    const canPurchase = true; // ✅ no need to have $500 just to view
 
     if (!room.pendingEvents) room.pendingEvents = new Map();
     const fullCard = {
         ...card,
-        cost: 0, // ✅ force free reveal
-        cardType: 'investment',
+        cost:         0,
+        cardType:     'investment',
         cardTypeName: '投資',
         cardTypeIcon: '🏗️'
     };
     if (card.effect) fullCard.effect = card.effect.bind(card);
 
     room.pendingEvents.set(ws, {
-        type: 'opportunity_card',
-        card: fullCard,
-        cardType: { id: 'investment', name: '投資', icon: '🏗️', color: '#ff6f00' },
-        playerId: player.playerId,
-        purchased: false,
-        timestamp: Date.now(),
+        type:             'opportunity_card',
+        card:             fullCard,
+        cardType:         { id: 'investment', name: '投資', icon: '🏗️', color: '#ff6f00' },
+        playerId:         player.playerId,
+        purchased:        false,
+        timestamp:        Date.now(),
         isInvestmentCard: true,
-        tileName: tile.name,
-        skipPurchaseCost: true,   // ✅ tells purchase handler not to charge
-        activationOnly: true
+        tileName:         tile.name,
+        skipPurchaseCost: true,
+        activationOnly:   true
     });
 
     let hasOtherFlowPlayers = false;
@@ -142,16 +131,16 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
 
     if (hasOtherFlowPlayers) {
         ws.send(JSON.stringify({
-            type: 'opportunity_card_draw',
-            card: serializableCard,
-            canAfford: canPurchase,
-            freeReveal: true,
+            type:           'opportunity_card_draw',
+            card:           serializableCard,
+            canAfford:      true,
+            freeReveal:     true,
             activationOnly: true,
-            message: `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？其他順流層玩家可以加入團購`
+            message:        `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？其他順流層玩家可以加入團購`
         }));
 
         broadcastToRoom(roomId, {
-            type: 'notification',
+            type:    'notification',
             message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在發起團購投資...`
         }, ws);
 
@@ -162,19 +151,118 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
 
     } else {
         ws.send(JSON.stringify({
-            type: 'opportunity_card_draw',
-            card: serializableCard,
-            canAfford: canPurchase,
-            freeReveal: true,
+            type:           'opportunity_card_draw',
+            card:           serializableCard,
+            canAfford:      true,
+            freeReveal:     true,
             activationOnly: true,
-            message: `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？`
+            message:        `🏗️ 你踩中了「${tile.name}」格子！免費查看一張投資卡，是否啟動？`
         }));
 
         broadcastToRoom(roomId, {
-            type: 'notification',
+            type:    'notification',
             message: `🏗️ ${player.playerName} 在順流層踩中「${tile.name}」，正在查看投資機會...`
         }, ws);
     }
+
+    return null;
+}
+
+function _handleDreamTile(state, tile, ws, roomId, player, room,
+                          { broadcastToRoom, startAuction, investmentCards }) {
+
+    // ✅ Check energy requirement first
+    if (tile.needEnergy && state.energy < tile.needEnergy) {
+        ws.send(JSON.stringify({
+            type:    'notification',
+            message: `⭐ 接近夢想「${tile.name}」，需要 ${tile.needEnergy} 精力 (當前 ${state.energy})`
+        }));
+        return `⭐ 接近夢想「${tile.name}」，需要 ${tile.needEnergy} 精力 (當前 ${state.energy})`;
+    }
+
+    if (!investmentCards || investmentCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'notification', message: '📭 暫無夢想卡數據' }));
+        return '📭 暫無夢想卡數據';
+    }
+
+    const card = investmentCards[Math.floor(Math.random() * investmentCards.length)];
+
+    if (card.isAuction) {
+        if (room.players.size < 2) {
+            ws.send(JSON.stringify({ type: 'notification', message: '👤 需要至少2名玩家才能進行競拍！' }));
+            return '👤 需要至少2名玩家';
+        }
+        startAuction(roomId, card, player, ws, broadcastToRoom);
+        return null;
+    }
+
+    const serializableCard = {
+        id:             card.id,
+        name:           card.name,
+        description:    `🌟 實現夢想「${tile.name}」\n\n${card.description || ''}`,
+        image:          card.image || '',
+        cost:           0,
+        investmentCost: card.investmentCost || 0,
+        energyCost:     tile.needEnergy || 0,
+        monthlyReturn:  card.monthlyReturn || 0,
+        pricePerUnit:   card.pricePerUnit || card.investmentCost || 0,
+        cardType:       'dream',
+        cardTypeName:   '夢想',
+        cardTypeIcon:   '🌟',
+        type:           'dream',
+        freeReveal:     true,
+        activationOnly: true
+    };
+
+    if (!room.pendingEvents) room.pendingEvents = new Map();
+
+    const originalEffect = card.effect;
+    const fullCard = {
+        ...card,
+        cost:         0,
+        cardType:     'dream',
+        cardTypeName: '夢想',
+        cardTypeIcon: '🌟'
+    };
+
+    // ✅ Wrap effect to deduct dream tile energy on activation
+    if (originalEffect) {
+        fullCard.effect = function(s, ...args) {
+            if (tile.needEnergy && s.energy >= tile.needEnergy) {
+                s.energy -= tile.needEnergy;
+            }
+            const result = originalEffect.call(card, s, ...args);
+            return `🌟 實現夢想「${tile.name}」！消耗 ${tile.needEnergy || 0} 精力\n${result || ''}`;
+        };
+    }
+
+    room.pendingEvents.set(ws, {
+        type:             'opportunity_card',
+        card:             fullCard,
+        cardType:         { id: 'dream', name: '夢想', icon: '🌟', color: '#8e24aa' },
+        playerId:         player.playerId,
+        purchased:        false,
+        timestamp:        Date.now(),
+        isInvestmentCard: true,
+        isDreamCard:      true,
+        tileName:         tile.name,
+        skipPurchaseCost: true,
+        activationOnly:   true
+    });
+
+    ws.send(JSON.stringify({
+        type:           'opportunity_card_draw',
+        card:           serializableCard,
+        canAfford:      true,
+        freeReveal:     true,
+        activationOnly: true,
+        message:        `🌟 你踩中了夢想「${tile.name}」！免費查看夢想卡，是否啟動實現夢想？`
+    }));
+
+    broadcastToRoom(roomId, {
+        type:    'notification',
+        message: `🌟 ${player.playerName} 正在追逐夢想「${tile.name}」...`
+    }, ws);
 
     return null;
 }
@@ -208,18 +296,6 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
     state.propertyInvestments = [];
     revertFlowLayerIncomeBoost(state);
     return `💥 破產陷阱！幾乎失去所有資產，僅保留 ${state.cash.toLocaleString()} 元，跌回平流層。`;
-}
-
-function _handleDream(state, tile) {
-    if (tile.needEnergy && state.energy >= tile.needEnergy) {
-        state.energy -= tile.needEnergy;
-        const dreamBonus = Math.floor(Math.random() * 100000) + 50000;
-        state.passiveIncome += dreamBonus;
-        return `✨ 實現夢想「${tile.name}」！消耗 ${tile.needEnergy} 精力，被動收入 +${dreamBonus.toLocaleString()} 元/月！`;
-    } else if (tile.needEnergy) {
-        return `⭐ 接近夢想「${tile.name}」，需要 ${tile.needEnergy} 精力 (當前 ${state.energy})`;
-    }
-    return null;
 }
 
 module.exports = { processFlowTile };

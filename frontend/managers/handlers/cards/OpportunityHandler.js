@@ -218,7 +218,7 @@ export class OpportunityHandler {
         GroupInvestmentTemplate.populate(message, client.escapeHtml.bind(client));
 
         const timerId = GroupInvestmentTemplate.startCountdown(
-            message.timeout || 45,
+            message.timeout || 60,
             () => {
                 GroupInvestmentTemplate.disableSubmit();
                 // Auto-submit 0 units on timeout
@@ -283,7 +283,7 @@ export class OpportunityHandler {
         GroupFinanceTemplate.populate(message, client.escapeHtml.bind(client));
 
         const timerId = GroupFinanceTemplate.startCountdown(
-            message.timeout || 45,
+            message.timeout || 60,
             () => {
                 GroupFinanceTemplate.disableSubmit();
                 client.connection.send({

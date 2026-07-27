@@ -114,7 +114,7 @@ export class ModalManager {
             const monthlyCF = prof.salary + prof.sideIncome - (prof.livingExpense + prof.tax);
             card.innerHTML = `
                 <div style="font-size: 18px; font-weight: bold; color: #ffd966; margin-bottom: 12px;">${prof.name}</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                <div style="color: #ffd966; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
                     <div>💰 起始現金: ${prof.cash.toLocaleString()}</div>
                     <div>💼 月薪: ${prof.salary.toLocaleString()}</div>
                     <div>💪 副業: ${prof.sideIncome.toLocaleString()}</div>

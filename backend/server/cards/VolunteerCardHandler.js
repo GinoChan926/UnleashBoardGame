@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 function drawVolunteerCard(ws, state, roomId, player, volunteerCards, room, broadcastToRoom, isExactLanding = false) {
     if (volunteerCards.length === 0) {
@@ -78,6 +79,16 @@ function drawVolunteerCard(ws, state, roomId, player, volunteerCards, room, broa
         effectMessage: effectResult,
         gameState: player.gameState
     }));
+    broadcastCardReveal({
+        roomId,
+        drawerWs: ws,
+        drawerName: player.playerName,
+        drawerId: player.playerId,
+        card,
+        action: '抽到義工卡',
+        effectMessage: effectResult,
+        broadcastToRoom
+    });
     broadcastToRoom(roomId, {
         type: 'notification',
         message: `🤝 ${player.playerName} 獲得義工卡「${card.name}」！${effectResult}`
@@ -382,6 +393,17 @@ function _sendCardResult(ws, card, effectResult, player, roomId, broadcastToRoom
         effectMessage: effectResult,
         gameState: player.gameState
     }));
+
+    broadcastCardReveal({
+        roomId,
+        drawerWs: ws,
+        drawerName: player.playerName,
+        drawerId: player.playerId,
+        card,
+        action: '抽到義工卡',
+        effectMessage: effectResult,
+        broadcastToRoom
+    });
 
     broadcastToRoom(roomId, {
         type: 'notification',

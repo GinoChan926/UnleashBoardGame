@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 const pendingPersonal = new Map();  // playerId → { card, room, roomId }
 const pendingTeam     = new Map();  // teamId → { card, room, roomId, responses, playerIds }
@@ -48,8 +49,6 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
     const stateBefore = JSON.parse(JSON.stringify(player.gameState));
 
     if (!execute) {
-        // Declined - keep existing decline logic
-        // ... existing decline code
         pendingPersonal.delete(player.playerId);
         return;
     }
@@ -87,28 +86,44 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         gameState: player.gameState
     });
 
-    // ✅ Check for special follow-up features
+    // ✅ NEW: Broadcast card reveal to other players AFTER execution
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card: {
+            id:           card.id,
+            name:         card.name,
+            description:  card.description,
+            image:        card.image,
+            cardType:     'tip',
+            cardTypeName: '個人錦囊卡'
+        },
+        action:        '執行了個人錦囊卡',
+        effectMessage: resultMessage,
+        broadcastToRoom
+    });
+
     pendingPersonal.delete(player.playerId);
 
-    // IN13 - gift chance card
+    // ── Follow-up features (unchanged) ────────────────────────────────
+
     if (card.hasGiftChanceCardFeature) {
         const { startGiftCardFlow } = require('./GiftCardSystem.js');
-        // Note: CARD_TYPES needs to be passed - see server.js update below
         setTimeout(() => {
             startGiftCardFlow(ws, roomId, player, global.CARD_TYPES, broadcastToRoom, rooms);
         }, 500);
     }
 
-    // IN14/IN15/IN16/IN17 - move forward
     if (card.hasMoveForwardFeature) {
         const { startMoveForward } = require('./MoveForwardSystem.js');
         setTimeout(() => {
-            // ✅ Use the real tile processor from deps
             const tileProcessor = global._streamlineTileProcessor || null;
             startMoveForward(ws, roomId, player, card, broadcastToRoom, rooms, tileProcessor);
         }, 500);
     }
-    // ✅ IN07/IN11 - Draw hardship card after personal card executes
+
     if (card._pendingHardshipDraw || player.gameState._pendingHardshipDraw) {
         delete player.gameState._pendingHardshipDraw;
 
@@ -120,14 +135,13 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         }
 
         if (hardshipCardsData.length > 0) {
-            // Filter out collective cards to avoid chain reactions
             const nonCollective = hardshipCardsData.filter(c => !c.isCollective);
 
             if (nonCollective.length > 0) {
-                const { drawHardshipCard } = require('../../cards/HardshipCardHandler.js');
+                const { drawHardshipCard } = require('../cards/HardshipCardHandler.js');
                 setTimeout(() => {
                     drawHardshipCard(ws, player.gameState, roomId, player, nonCollective, broadcastToRoom, rooms);
-                }, 1500);
+                }, 3000);
             }
         }
     }
