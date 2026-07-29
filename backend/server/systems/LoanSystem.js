@@ -47,7 +47,7 @@ function handleLoan(ws, data, roomId, rooms, broadcastToRoom) {
         player.gameState.cash        += amount;
         player.gameState.loanAmount   = amount;
         player.gameState.loanInterest = Math.round(amount * interestRate / 100 / 12);
-        player.gameState.luck         = Math.max(0, player.gameState.luck - 1);
+        // player.gameState.luck         = Math.max(0, player.gameState.luck - 1);
 
         const result = {
             type: 'loan_approved', playerId: player.playerId,
@@ -93,7 +93,7 @@ function handleRepayLoan(ws, data, roomId, rooms, broadcastToRoom) {
     player.gameState.loanInterest = 0;
     loanRecord.principal          = 0;
     loanRecord.settlementCount    = 0;
-    player.gameState.luck         = Math.min(player.gameState.maxLuck, player.gameState.luck + 1);
+    // player.gameState.luck         = Math.min(player.gameState.maxLuck, player.gameState.luck + 1);
 
     const result = {
         type: 'loan_repaid', playerId: player.playerId,

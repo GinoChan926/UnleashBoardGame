@@ -61,12 +61,12 @@ const investmentCards = [
             state.cash      -= cost;
             state.maxEnergy  = (state.maxEnergy || 100) + maxEnergyGain;
             state.energy     = Math.min(state.maxEnergy, state.energy + energyGain);
-            state.luck       = Math.min(state.maxLuck || 10, state.luck + luckGain);
+            // state.luck       = Math.min(state.maxLuck || 10, state.luck + luckGain);
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K02", name: "身心靈健康海外禪修團", cost,
-                energyGain, luckGain, maxEnergyGain,
+                energyGain, maxEnergyGain,
                 purchasedAt: Date.now(), type: "wellness"
             });
 
@@ -74,7 +74,6 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   ⚡ 精力 +${energyGain}\n` +
                 `   📈 最大精力值 +${maxEnergyGain}\n` +
-                `   🍀 幸運值 +${luckGain}\n` +
                 `   🌟 與同頻者一起提升靈性修行，身心靈全面升級！`;
         },
         getEffectDescription: () => "投資 700,000 元，精力 +30，最大精力值 +5，幸運值 +3"
@@ -126,7 +125,7 @@ const investmentCards = [
             state.energy        -= 5;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 2);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -167,7 +166,7 @@ const investmentCards = [
             state.energy        -= 3;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -208,7 +207,7 @@ const investmentCards = [
             state.energy        -= 2;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -252,7 +251,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.health         = (state.health || 0) + healthGain;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -305,7 +304,7 @@ const investmentCards = [
 
             if (diceRoll === 6) {
                 state.cash += winAmount;
-                state.luck  = Math.min(state.maxLuck || 10, state.luck + 2);
+                // state.luck  = Math.min(state.maxLuck || 10, state.luck + 2);
                 return `🎲 擲出 ${diceRoll} 點！大獎！\n` +
                     `   💰 投入: ${cost.toLocaleString()} 元\n` +
                     `   🎉 獲得: ${winAmount.toLocaleString()} 元\n` +
@@ -314,7 +313,7 @@ const investmentCards = [
                     `   🏥 網上醫療平台投資大成功！`;
             }
 
-            state.luck = Math.max(0, state.luck - 1);
+            // state.luck = Math.max(0, state.luck - 1);
             return `🎲 擲出 ${diceRoll} 點！失敗！\n` +
                 `   💰 損失: ${cost.toLocaleString()} 元\n` +
                 `   🍀 幸運值 -1\n` +
@@ -348,7 +347,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.health         = (state.health || 100) + healthGain;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -394,12 +393,12 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.energy         = Math.min(state.maxEnergy, state.energy + energyGain);
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + luckGain);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + luckGain);
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K10", name: "米芝蓮星級餐廳", cost, monthlyReturn: monthlyIncome,
-                energyGain, luckGain, paybackMonths: 10,
+                energyGain, paybackMonths: 10,
                 purchasedAt: Date.now(), type: "dining"
             });
 
@@ -407,7 +406,6 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⚡ 精力: +${energyGain}\n` +
-                `   🍀 幸運值: +${luckGain}\n` +
                 `   ⏱️ 預計 10 個月回本！\n` +
                 `   🌟 頂級廚藝與精緻用餐體驗，品味人生！`;
         },
@@ -443,8 +441,8 @@ const investmentCards = [
 
             state.cash += winAmount;
 
-            const luckChange = diceRoll >= 5 ? 2 : diceRoll >= 3 ? 0 : -1;
-            state.luck = Math.min(state.maxLuck || 10, Math.max(0, state.luck + luckChange));
+            // const luckChange = diceRoll >= 5 ? 2 : diceRoll >= 3 ? 0 : -1;
+            // state.luck = Math.min(state.maxLuck || 10, Math.max(0, state.luck + luckChange));
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -452,7 +450,7 @@ const investmentCards = [
                 purchasedAt: Date.now(), type: "pharma"
             });
 
-            const luckStr = `${luckChange >= 0 ? '+' : ''}${luckChange}`;
+            // const luckStr = `${luckChange >= 0 ? '+' : ''}${luckChange}`;
             const netStr  = `${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}`;
 
             if (diceRoll >= 5) {
@@ -460,7 +458,6 @@ const investmentCards = [
                     `   💰 投入: ${cost.toLocaleString()} 元\n` +
                     `   🎉 獲得: ${winAmount.toLocaleString()} 元\n` +
                     `   📈 淨賺: ${netStr} 元\n` +
-                    `   🍀 幸運值 ${luckStr}\n` +
                     `   💊 藥業集團投資大成功！新藥上市帶來巨額回報！`;
             }
             if (diceRoll >= 3) {
@@ -468,14 +465,12 @@ const investmentCards = [
                     `   💰 投入: ${cost.toLocaleString()} 元\n` +
                     `   💰 獲得: ${winAmount.toLocaleString()} 元\n` +
                     `   📈 淨賺: ${netStr} 元\n` +
-                    `   🍀 幸運值 ${luckStr}\n` +
                     `   💊 藥業集團投資穩定增長，藥物銷售符合預期。`;
             }
             return `🎲 擲出 ${diceRoll} 點！表現不佳！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   💰 獲得: ${winAmount.toLocaleString()} 元\n` +
                 `   📈 淨賺: ${netStr} 元\n` +
-                `   🍀 幸運值 ${luckStr}\n` +
                 `   💊 藥業集團投資回報低於預期，市場競爭激烈。`;
         },
         getEffectDescription: () => "投資 40,000,000 元，擲骰點數 × 10,000,000 元回報，精力 -3"
@@ -503,7 +498,7 @@ const investmentCards = [
             state.energy        -= 2;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -546,7 +541,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.hasAISkill     = true;
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
             state.investments.push({
@@ -591,12 +586,12 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.energy         = Math.min(state.maxEnergy, state.energy + energyGain);
-            state.luck           = Math.min(state.maxLuck || 10, state.luck + luckGain);
+            // state.luck           = Math.min(state.maxLuck || 10, state.luck + luckGain);
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K14", name: "國際快餐品牌", cost, monthlyReturn: monthlyIncome,
-                energyGain, luckGain, paybackMonths: 15,
+                energyGain, paybackMonths: 15,
                 purchasedAt: Date.now(), type: "fastfood"
             });
 
@@ -604,7 +599,6 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⚡ 精力: +${energyGain}\n` +
-                `   🍀 幸運值: +${luckGain}\n` +
                 `   ⏱️ 預計 15 個月回本！\n` +
                 `   🌍 全球連鎖快餐品牌，快速成長的餐飲帝國！`;
         },

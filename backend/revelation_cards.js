@@ -139,7 +139,7 @@ function _applyPropertySales(room, participants, ctx, targetPropertyId, marketPr
         }
 
         p.gameState.propertyInvestments.splice(idx, 1);
-        p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 1);
+        // p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 1);
 
         sold.push(`${playerName}: ${prop.name} 淨收 $${profit.toLocaleString()}`);
         ctx.addTransactionRecord(
@@ -318,7 +318,7 @@ const marketNewsCards = [
 
                 if (playerLoss > 0) {
                     p.gameState.totalAssets = Math.max(0, p.gameState.totalAssets - playerLoss);
-                    p.gameState.luck = Math.max(0, p.gameState.luck - 2);
+                    // p.gameState.luck = Math.max(0, p.gameState.luck - 2);
                     totalLoss += playerLoss;
                     affected.push(p.playerName);
                     ctx.addTransactionRecord(
@@ -456,7 +456,7 @@ const marketNewsCards = [
                 }
 
                 if (playerRevenue > 0) {
-                    p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 2);
+                    // p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 2);
                     totalRevenue += playerRevenue;
                     sold.push(`${playerName} 獲利 $${playerProfit.toLocaleString()}`);
                     ctx.addTransactionRecord(
@@ -502,7 +502,7 @@ const marketNewsCards = [
                 const loss = p2p.totalCost || (p2p.units * p2p.pricePerUnit);
                 p.gameState.financeInvestments.splice(idx, 1);
                 p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - loss);
-                p.gameState.luck = Math.max(0, p.gameState.luck - 2);
+                // p.gameState.luck = Math.max(0, p.gameState.luck - 2);
                 totalLoss += loss;
                 affected.push(p.playerName);
                 ctx.addTransactionRecord(
@@ -586,7 +586,7 @@ const marketNewsCards = [
                 p.gameState.cash += playerRevenue;
                 p.gameState.stockHoldings = {};
 
-                p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 3);
+                // p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 3);
                 p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
                 totalRevenue += playerRevenue;
                 sold.push(`${playerName} 獲利 $${playerProfit.toLocaleString()}`);
@@ -641,7 +641,7 @@ const marketNewsCards = [
                 }
 
                 if (hasStock) {
-                    p.gameState.luck = Math.max(0, p.gameState.luck - 1);
+                    // p.gameState.luck = Math.max(0, p.gameState.luck - 1);
                     affected.push(p.playerName);
                     ctx.addTransactionRecord(
                         p.playerName,
@@ -954,7 +954,7 @@ const marketNewsCards = [
                 if (hasResidential) {
                     p.gameState.totalAssets = Math.max(0, (p.gameState.totalAssets || 0) - totalValueLoss);
                     p.gameState.passiveIncome = Math.max(0, (p.gameState.passiveIncome || 0) - totalPassiveLoss);
-                    p.gameState.luck = Math.max(0, p.gameState.luck - 1);
+                    // p.gameState.luck = Math.max(0, p.gameState.luck - 1);
                     affected.push(p.playerName);
                     ctx.addTransactionRecord(
                         p.playerName,
@@ -1241,11 +1241,11 @@ const tipCards = [
             state.cash -= investmentCost;
             state.luckyStarCount = (state.luckyStarCount || 0) + luckyStarReward;
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n⚡ 精力 +2\n🍀 幸運值 +1\n📝 目前幸運星：${state.luckyStarCount}`;
+            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n⚡ 精力 +2\n📝 目前幸運星：${state.luckyStarCount}`;
         },
-        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星，精力 +2，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星，精力 +2"
     },
 
     // ==================== IN06 - Personal: Social Network ====================
@@ -1266,11 +1266,11 @@ const tipCards = [
                 0.5,
                 (state.sideIncomeBonus || 0) + 0.05
             );
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🤝 學習社交人脈成功！\n⚡ 精力 +${energyBonus}\n🤝 人脈加成 +5%\n🍀 幸運值 +1\n📈 社交圈擴展，未來機會更多！`;
+            return `🤝 學習社交人脈成功！\n⚡ 精力 +${energyBonus}\n🤝 人脈加成 +5%\n📈 社交圈擴展，未來機會更多！`;
         },
-        getEffectDescription: () => "個人錦囊：精力 +3，人脈加成 +5%，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：精力 +3，人脈加成 +5%"
     },
     // ==================== IN07 - Personal: Face Fear ====================
     {
@@ -1286,14 +1286,14 @@ const tipCards = [
             const energyBonus = 2;
 
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
             // Mark for hardship card draw (handled by RevelationCardSystem or handler)
             state._pendingHardshipDraw = true;
 
-            return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n🍀 幸運值 +1\n📜 將抽取一張逆境卡（開發中）\n💪 勇氣可嘉，繼續保持！`;
+            return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡（開發中）\n💪 勇氣可嘉，繼續保持！`;
         },
-        getEffectDescription: () => "個人錦囊：精力 +2，幸運值 +1，抽取一張逆境卡（開發中）"
+        getEffectDescription: () => "個人錦囊：精力 +2，抽取一張逆境卡（開發中）"
     },
 
     // ==================== IN08 - Personal: Gratitude ====================
@@ -1311,11 +1311,11 @@ const tipCards = [
 
             state.fourLeafClover = (state.fourLeafClover || 0) + cloverReward;
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🙏 凡事感恩成功！\n🍀 獲得：${cloverReward} 個四葉草\n⚡ 精力 +2\n🍀 幸運值 +1\n✨ 感恩的心帶來奇蹟！\n📝 目前四葉草：${state.fourLeafClover}`;
+            return `🙏 凡事感恩成功！\n🍀 獲得：${cloverReward} 個四葉草\n⚡ 精力 +2\n✨ 感恩的心帶來奇蹟！\n📝 目前四葉草：${state.fourLeafClover}`;
         },
-        getEffectDescription: () => "個人錦囊：獲得 2 個四葉草，精力 +2，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：獲得 2 個四葉草，精力 +2"
     },
 
     // ==================== IN09 - Personal: Stay Vigilant ====================
@@ -1331,11 +1331,11 @@ const tipCards = [
         effect: (state) => {
             state.lierCardCancellation = (state.lierCardCancellation || 0) + 1;
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🛡️ 保持警惕成功！\n🛡️ 獲得：1 次取消騙子卡的機會\n⚡ 精力 +2\n🍀 幸運值 +1\n📝 下一張騙子卡將被自動取消！\n🔒 遠離詐騙，保護財產！`;
+            return `🛡️ 保持警惕成功！\n🛡️ 獲得：1 次取消騙子卡的機會\n⚡ 精力 +2\n📝 下一張騙子卡將被自動取消！\n🔒 遠離詐騙，保護財產！`;
         },
-        getEffectDescription: () => "個人錦囊：取消下一張騙子卡，精力 +2，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：取消下一張騙子卡，精力 +2"
     },
 
     // ==================== IN10 - Personal: Report Scam ====================
@@ -1354,11 +1354,11 @@ const tipCards = [
 
             // -1 for reporting effort, +2 satisfaction = net +1
             state.energy = Math.min(state.maxEnergy, state.energy + 1);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
 
-            return `👮 舉報騙案成功！\n👮 獲得：1 次義工資格\n⚡ 精力 +1（淨效果）\n🍀 幸運值 +2\n📝 目前義工次數：${state.volunteerShield}\n🤝 可幫助其他玩家防範騙子卡！`;
+            return `👮 舉報騙案成功！\n👮 獲得：1 次義工資格\n⚡ 精力 +1（淨效果）\n📝 目前義工次數：${state.volunteerShield}\n🤝 可幫助其他玩家防範騙子卡！`;
         },
-        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格，精力 +1，幸運值 +2"
+        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格，精力 +1"
     },
 
     // ==================== IN11 - Personal: Grace in Adversity ====================
@@ -1375,7 +1375,7 @@ const tipCards = [
             const energyBonus = 3;
 
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
             // Mark for hardship draw
             state._pendingHardshipDraw = true;
@@ -1419,10 +1419,10 @@ const tipCards = [
         effect: (state) => {
             // Placeholder - actual gift flow handled by RevelationCardSystem
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
-            return `🌹 贈人玫瑰！精力 +2，幸運值 +1，請選擇要贈送的玩家`;
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            return `🌹 贈人玫瑰！精力 +2，請選擇要贈送的玩家`;
         },
-        getEffectDescription: () => "個人錦囊：贈送機會卡給其他玩家，精力 +2，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：贈送機會卡給其他玩家，精力 +2"
     },
 
     // ==================== IN14 - Personal: Move 1-3 Random ====================
@@ -1458,10 +1458,10 @@ const tipCards = [
         moveMode: 'choose',             // ← player picks 1-3
         effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
             return `🐴 黑馬思維！請選擇要前進的格數 (1-3)`;
         },
-        getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果，精力 -1，幸運值 +1"
+        getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果，精力 -1"
     },
 
     // ==================== IN16 - Personal: Move to Income Tile ====================
@@ -1478,10 +1478,10 @@ const tipCards = [
         moveMode: 'income',             // ← auto move to nearest income tile
         effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
             return `🐴 黑馬思維！將前往最近的月收入格`;
         },
-        getEffectDescription: () => "個人錦囊：前往最近的月收入格，精力 -1，幸運值 +2"
+        getEffectDescription: () => "個人錦囊：前往最近的月收入格，精力 -1"
     },
 
     // ==================== IN17 - Personal: Move to Nearest Player ====================
@@ -1498,10 +1498,10 @@ const tipCards = [
         moveMode: 'nearest_player',    // ← auto move to nearest player
         effect: (state) => {
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
             return `🐴 黑馬思維！將前進到最近玩家的位置`;
         },
-        getEffectDescription: () => "個人錦囊：前進到最近玩家格子，精力 -1，幸運值 +2"
+        getEffectDescription: () => "個人錦囊：前進到最近玩家格子，精力 -1"
     }
 ];
 

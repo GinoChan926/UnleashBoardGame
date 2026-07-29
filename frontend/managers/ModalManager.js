@@ -20,13 +20,46 @@ export class ModalManager {
         const container = document.getElementById('notificationContainer');
         if (!container) return;
 
-        const colors = { success: '#4caf50', error: '#f44336', info: '#2196f3', warning: '#ff9800' };
+        const colors = {
+            success: '#4caf50',
+            error:   '#f44336',
+            info:    '#2196f3',
+            warning: '#ff9800'
+        };
+
+        // ✅ Different durations by type
+        const durations = {
+            success: 8000,   // 8 seconds
+            error:   12000,  // 12 seconds — errors need time to read
+            info:    8000,   // 8 seconds
+            warning: 10000   // 10 seconds
+        };
+
         const notification = document.createElement('div');
-        notification.style.cssText = `background: ${colors[type]}; color: white; padding: 12px 20px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; font-size: 14px; cursor: pointer;`;
+        notification.style.cssText = `
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 12px 20px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+        font-size: 14px;
+        cursor: pointer;
+        transition: opacity 0.5s ease;
+    `;
         notification.textContent = message;
+
+        // ✅ Click to dismiss immediately
         notification.onclick = () => notification.remove();
         container.appendChild(notification);
-        setTimeout(() => notification.remove(), 5000);
+
+        // ✅ Fade out before removing
+        const duration = durations[type] || 8000;
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 500);
+        }, duration);
     }
 
     createModal(id, html) {
@@ -122,7 +155,7 @@ export class ModalManager {
                     <div>🏠 生活支出: ${prof.livingExpense.toLocaleString()}</div>
                     <div>📑 稅務: ${prof.tax.toLocaleString()}</div>
                     <div>🔄 月現金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}</div>
-                    <div>🍀 幸運值: ${prof.luck}</div>
+                    <!-- <div>🍀 幸運值: ${prof.luck}</div> -->
                 </div>
             `;
 

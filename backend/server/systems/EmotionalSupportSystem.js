@@ -71,7 +71,7 @@ function handleUseEmotionalSupport(ws, data, roomId, rooms, broadcastToRoom) {
     }
 
     player.gameState.emotionalSupportShield--;
-    player.gameState.luck   = Math.min(player.gameState.maxLuck || 10, player.gameState.luck + 1);
+    // player.gameState.luck   = Math.min(player.gameState.maxLuck || 10, player.gameState.luck + 1);
     player.gameState.energy = Math.min(player.gameState.maxEnergy, player.gameState.energy + 1);
 
     const originalDamage             = pending.damageAmount;

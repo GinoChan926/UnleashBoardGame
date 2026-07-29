@@ -10,15 +10,15 @@ function processReverseTile(state, tile, ws, roomId, player, streamlineTiles, br
             return null;
 
         case 'awareness': {
-            const luckBonus   = Math.floor(Math.random() * 3) + 2;
+            // const luckBonus   = Math.floor(Math.random() * 3) + 2;
             const energyBonus = Math.floor(Math.random() * 3) + 2;
-            state.luck   = Math.min(state.maxLuck || 10, state.luck + luckBonus);
+            // state.luck   = Math.min(state.maxLuck || 10, state.luck + luckBonus);
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
 
             // ✅ Send card reveal for awareness too
             _sendReverseCardReveal(ws, player, broadcastToRoom, roomId, {
                 name:   '覺察卡（逆流）',
-                effect: `🧘 覺察卡（逆流）！幸運值 +${luckBonus}，精力 +${energyBonus}`,
+                effect: `🧘 覺察卡（逆流）！精力 +${energyBonus}`,
                 image:  '../cards/tiles/reverse/awareness.png',
                 color:  '#ff9800'
             });
@@ -30,16 +30,16 @@ function processReverseTile(state, tile, ws, roomId, player, streamlineTiles, br
             const loss         = Math.floor(state.cash / 2);
             const originalCash = state.cash;
             state.cash  = Math.max(0, state.cash - loss);
-            state.luck  = Math.max(0, state.luck - 2);
+            // state.luck  = Math.max(0, state.luck - 2);
 
             addTransactionRecord(player.playerName,
                 { name: "生意失敗", type: "hardship" }, "生意失敗", -loss,
-                `損失 ${loss.toLocaleString()} 元，幸運值 -2`, null, state);
+                `損失 ${loss.toLocaleString()} 元`, null, state);
 
             // ✅ Send card reveal modal
             _sendReverseCardReveal(ws, player, broadcastToRoom, roomId, {
                 name:   '生意失敗',
-                effect: `💼 生意失敗！損失 $${loss.toLocaleString()} 元（現金的一半），幸運值 -2`,
+                effect: `💼 生意失敗！損失 $${loss.toLocaleString()} 元（現金的一半）`,
                 image:  '../cards/tiles/reverse/business_failure.png',
                 color:  '#f44336'
             });

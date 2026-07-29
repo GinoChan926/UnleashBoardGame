@@ -1,5 +1,4 @@
 const volunteerCards = [
-    /*
     {
         id: "V01",
         name: "協助基層人士",
@@ -37,12 +36,12 @@ const volunteerCards = [
                 (currentPlayer.gameState.volunteerCount || 0) + 1;
             currentPlayer.gameState.energy =
                 Math.max(0, currentPlayer.gameState.energy - 1);
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 2
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 2
+            // );
 
-            return `🤝 協助基層人士成功！捐款 $${donation.toLocaleString()} 給 ${targetPlayer.playerName}。獲得義工資格！精力 -1，幸運值 +2`;
+            return `🤝 協助基層人士成功！捐款 $${donation.toLocaleString()} 給 ${targetPlayer.playerName}。獲得義工資格！精力 -1`;
         },
         getEffectDescription: () => "捐款 $5,000 予現金最少的玩家，記一次義工"
     },
@@ -118,10 +117,10 @@ const volunteerCards = [
                     donorPlayer.gameState.cash -= donation;
                     totalDonation += donation;
                     donors.push(playerName);
-                    donorPlayer.gameState.luck = Math.min(
-                        donorPlayer.gameState.maxLuck || 10,
-                        (donorPlayer.gameState.luck || 0) + 1
-                    );
+                    // donorPlayer.gameState.luck = Math.min(
+                        // donorPlayer.gameState.maxLuck || 10,
+                        // (donorPlayer.gameState.luck || 0) + 1
+                    // );
                     // ✅ Every donor (including initiator) gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
@@ -142,20 +141,20 @@ const volunteerCards = [
             //    but volunteerCount ONLY if they donated (handled in loop above)
             currentPlayer.gameState.energy =
                 Math.max(0, currentPlayer.gameState.energy - 1);
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 2
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 2
+            // );
 
             const targetMsg = isSelfTarget
                 ? `${targetPlayer.playerName} (自己)`
                 : targetPlayer.playerName;
 
-            return `🤝 幫助傷健人士成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給 ${targetMsg}。\n精力 -1，幸運值 +2`;
+            return `🤝 幫助傷健人士成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給 ${targetMsg}。\n精力 -1`;
         },
         getEffectDescription: () => "每位玩家可自願捐 $2,000 予現金最少的玩家，捐款者記一次義工"
     },
-/*
+
     {
         id: "V03",
         name: "拯救他國饑民",
@@ -212,10 +211,10 @@ const volunteerCards = [
                     donorPlayer.gameState.cash -= donation;
                     totalDonation += donation;
                     donors.push(playerName);
-                    donorPlayer.gameState.luck = Math.min(
-                        donorPlayer.gameState.maxLuck || 10,
-                        (donorPlayer.gameState.luck || 0) + 1
-                    );
+                    // donorPlayer.gameState.luck = Math.min(
+                        // donorPlayer.gameState.maxLuck || 10,
+                        // (donorPlayer.gameState.luck || 0) + 1
+                    // );
                     // ✅ Every donor gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
@@ -233,12 +232,12 @@ const volunteerCards = [
             // ✅ Initiator energy/luck bonus only — no volunteerCount here
             currentPlayer.gameState.energy =
                 Math.max(0, currentPlayer.gameState.energy - 1);
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 3
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 3
+            // );
 
-            return `🌍 拯救他國饑民成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給銀行。\n精力 -1，幸運值 +3`;
+            return `🌍 拯救他國饑民成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給銀行。\n精力 -1`;
         },
         getEffectDescription: () => "每位玩家可捐 $3,000 予銀行，捐款者記一次義工"
     },
@@ -314,10 +313,10 @@ const volunteerCards = [
                     donorPlayer.gameState.cash -= donation;
                     totalDonation += donation;
                     donors.push(playerName);
-                    donorPlayer.gameState.luck = Math.min(
-                        donorPlayer.gameState.maxLuck || 10,
-                        (donorPlayer.gameState.luck || 0) + 1
-                    );
+                    // donorPlayer.gameState.luck = Math.min(
+                        // donorPlayer.gameState.maxLuck || 10,
+                        // (donorPlayer.gameState.luck || 0) + 1
+                    // );
                     // ✅ Every donor gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
@@ -337,20 +336,20 @@ const volunteerCards = [
             // ✅ Initiator energy/luck bonus only — no volunteerCount here
             currentPlayer.gameState.energy =
                 Math.max(0, currentPlayer.gameState.energy - 1);
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 2
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 2
+            // );
 
             const targetMsg = isSelfTarget
                 ? `${targetPlayer.playerName} (自己)`
                 : targetPlayer.playerName;
 
-            return `🏥 義工探望兒童病房成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給 ${targetMsg}。\n精力 -1，幸運值 +2`;
+            return `🏥 義工探望兒童病房成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給 ${targetMsg}。\n精力 -1`;
         },
         getEffectDescription: () => "每位玩家可捐 $2,000 予現金最少的玩家，捐款者記一次義工"
     },
-*/
+
     {
         id: "V05",
         name: "集體善事探望長者",
@@ -425,10 +424,10 @@ const volunteerCards = [
                     donorPlayer.gameState.energy -= energyDonation;
                     totalEnergy += energyDonation;
                     donors.push(playerName);
-                    donorPlayer.gameState.luck = Math.min(
-                        donorPlayer.gameState.maxLuck || 10,
-                        (donorPlayer.gameState.luck || 0) + 1
-                    );
+                    // donorPlayer.gameState.luck = Math.min(
+                        // donorPlayer.gameState.maxLuck || 10,
+                        // (donorPlayer.gameState.luck || 0) + 1
+                    // );
                     // ✅ Every donor gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
@@ -453,10 +452,10 @@ const volunteerCards = [
                 currentPlayer.gameState.maxEnergy,
                 Math.max(0, currentPlayer.gameState.energy - 1) + 2
             );
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 2
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 2
+            // );
 
             const targetMsg = isSelfTarget
                 ? `${targetPlayer.playerName} (自己)`
@@ -466,7 +465,7 @@ const volunteerCards = [
         },
         getEffectDescription: () => "每位玩家可捐 2 精力予現金最少的玩家，捐贈者記一次義工"
     },
-/*
+
     {
         id: "V06",
         name: "集體執垃圾",
@@ -526,10 +525,10 @@ const volunteerCards = [
                     donorPlayer.gameState.energy -= energyDonation;
                     totalEnergy += energyDonation;
                     donors.push(playerName);
-                    donorPlayer.gameState.luck = Math.min(
-                        donorPlayer.gameState.maxLuck || 10,
-                        (donorPlayer.gameState.luck || 0) + 1
-                    );
+                    // donorPlayer.gameState.luck = Math.min(
+                        // donorPlayer.gameState.maxLuck || 10,
+                        // (donorPlayer.gameState.luck || 0) + 1
+                    // );
                     // ✅ Every donor gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
@@ -549,12 +548,12 @@ const volunteerCards = [
                 currentPlayer.gameState.maxEnergy,
                 Math.max(0, currentPlayer.gameState.energy - 1) + 2
             );
-            currentPlayer.gameState.luck = Math.min(
-                currentPlayer.gameState.maxLuck || 10,
-                (currentPlayer.gameState.luck || 0) + 2
-            );
+            // currentPlayer.gameState.luck = Math.min(
+                // currentPlayer.gameState.maxLuck || 10,
+                // (currentPlayer.gameState.luck || 0) + 2
+            // );
 
-            return `🗑️ 集體執垃圾成功！\n${donors.join(', ')} 捐贈共 ${totalEnergy} 精力給銀行。\n精力 -1+2，幸運值 +2`;
+            return `🗑️ 集體執垃圾成功！\n${donors.join(', ')} 捐贈共 ${totalEnergy} 精力給銀行。\n精力 -1+2`;
         },
         getEffectDescription: () => "每位玩家可捐 2 精力予銀行，捐贈者記一次義工"
     },
@@ -571,14 +570,13 @@ const volunteerCards = [
             state.emotionalSupportShield = (state.emotionalSupportShield || 0) + 1;
             state.volunteerCount         = (state.volunteerCount         || 0) + 1;
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck || 10, (state.luck || 0) + 2);
+            // state.luck   = Math.min(state.maxLuck || 10, (state.luck || 0) + 2);
             state.energy = Math.min(state.maxEnergy, state.energy + 2);
 
-            return `💝 獲得情緒支援護盾！可在其他玩家受損時抵銷傷害。\n獲得義工資格！精力 -1+2，幸運值 +2\n📝 目前義工次數: ${state.volunteerCount}`;
+            return `💝 獲得情緒支援護盾！可在其他玩家受損時抵銷傷害。\n獲得義工資格！精力 -1+2\n📝 目前義工次數: ${state.volunteerCount}`;
         },
         getEffectDescription: () => "獲得情緒支援護盾，記一次義工"
     }
-    */
 ];
 
 if (typeof module !== 'undefined' && module.exports) {

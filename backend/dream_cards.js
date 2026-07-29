@@ -27,7 +27,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasDreamCar = true;
             
             addTransactionRecord(
@@ -68,7 +68,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
             state.hasPrivateIsland = true;
             
             addTransactionRecord(
@@ -118,7 +118,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + luckGain);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + luckGain);
             state.health = (state.health || 100) + healthGain;
             state.hasClimbedFuji = true;
             
@@ -127,7 +127,7 @@ const dreamCards = {
                 { name: "和朋友登頂富士山", type: "dream", id: "D03" },
                 "實現夢想",
                 -cost,
-                `登頂富士山！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +${luckGain}，健康指數 +${healthGain}！`,
+                `登頂富士山！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，健康指數 +${healthGain}！`,
                 null,
                 state
             );
@@ -135,7 +135,6 @@ const dreamCards = {
             return `🗻 登頂富士山成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +${luckGain}\n` +
                    `   💚 健康指數: +${healthGain}\n` +
                    `   🌅 與摯友在富士山頂看日出，人生無憾！`;
         },
@@ -169,7 +168,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasArtCollection = true;
             
             addTransactionRecord(
@@ -177,7 +176,7 @@ const dreamCards = {
                 { name: "藝術收藏", type: "dream", id: "D04" },
                 "實現夢想",
                 -cost,
-                `建立藝術收藏！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +3！`,
+                `建立藝術收藏！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -185,10 +184,9 @@ const dreamCards = {
             return `🎨 建立藝術收藏成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +3\n` +
                    `   🖼️ 大師傑作，藝術傳奇！`;
         },
-        getEffectDescription: () => "花費 25,000,000 元，35精力，幸運值 +3"
+        getEffectDescription: () => "花費 25,000,000 元，35精力"
     },
 
     // 格10: 太空旅行
@@ -217,7 +215,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
             state.hasSpaceTravel = true;
             
             addTransactionRecord(
@@ -225,7 +223,7 @@ const dreamCards = {
                 { name: "太空旅行", type: "dream", id: "D05" },
                 "實現夢想",
                 -cost,
-                `太空旅行！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +5！`,
+                `太空旅行！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -233,10 +231,9 @@ const dreamCards = {
             return `🚀 太空旅行成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +5\n` +
                    `   🌌 探索宇宙，實現人類千年夢想！`;
         },
-        getEffectDescription: () => "花費 40,000,000 元，60精力，幸運值 +5"
+        getEffectDescription: () => "花費 40,000,000 元，60精力"
     },
 
     // 格12: 終極成就
@@ -265,7 +262,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 6);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 6);
             state.hasUltimateAchievement = true;
             
             addTransactionRecord(
@@ -273,7 +270,7 @@ const dreamCards = {
                 { name: "終極成就", type: "dream", id: "D06" },
                 "實現夢想",
                 -cost,
-                `達成終極成就！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +6！`,
+                `達成終極成就！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -281,10 +278,9 @@ const dreamCards = {
             return `🏆 達成終極成就！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +6\n` +
                    `   🌟 名留青史，永垂不朽！`;
         },
-        getEffectDescription: () => "花費 50,000,000 元，70精力，幸運值 +6"
+        getEffectDescription: () => "花費 50,000,000 元，70精力"
     },
 
     // 格16: 慈善基金
@@ -313,7 +309,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
             state.hasCharityFoundation = true;
             
             addTransactionRecord(
@@ -321,7 +317,7 @@ const dreamCards = {
                 { name: "慈善基金", type: "dream", id: "D07" },
                 "實現夢想",
                 -cost,
-                `成立慈善基金！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +4！`,
+                `成立慈善基金！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -329,10 +325,9 @@ const dreamCards = {
             return `🤝 成立慈善基金成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +4\n` +
                    `   ❤️ 改變世界，傳遞愛心！`;
         },
-        getEffectDescription: () => "花費 20,000,000 元，25精力，幸運值 +4"
+        getEffectDescription: () => "花費 20,000,000 元，25精力"
     },
 
     // 格18: 豪宅夢想
@@ -361,7 +356,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasDreamMansion = true;
             
             addTransactionRecord(
@@ -369,7 +364,7 @@ const dreamCards = {
                 { name: "豪宅夢想", type: "dream", id: "D08" },
                 "實現夢想",
                 -cost,
-                `購買豪宅！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +3！`,
+                `購買豪宅！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -377,10 +372,9 @@ const dreamCards = {
             return `🏰 購買豪宅成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +3\n` +
                    `   🌆 極致奢華，俯瞰世界！`;
         },
-        getEffectDescription: () => "花費 35,000,000 元，30精力，幸運值 +3"
+        getEffectDescription: () => "花費 35,000,000 元，30精力"
     },
 
     // 格20: 私人遊艇
@@ -409,7 +403,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            //state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasYacht = true;
             
             addTransactionRecord(
@@ -417,7 +411,7 @@ const dreamCards = {
                 { name: "私人遊艇", type: "dream", id: "D09" },
                 "實現夢想",
                 -cost,
-                `購買私人遊艇！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +3！`,
+                `購買私人遊艇！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -425,10 +419,9 @@ const dreamCards = {
             return `⛵ 購買私人遊艇成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +3\n` +
                    `   🌊 暢遊海洋，自由航行！`;
         },
-        getEffectDescription: () => "花費 28,000,000 元，35精力，幸運值 +3"
+        getEffectDescription: () => "花費 28,000,000 元，35精力"
     },
 
     // 格22: 終極夢想
@@ -457,7 +450,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 7);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 7);
             state.hasUltimateDream = true;
             
             addTransactionRecord(
@@ -465,7 +458,7 @@ const dreamCards = {
                 { name: "終極夢想", type: "dream", id: "D10" },
                 "實現夢想",
                 -cost,
-                `實現終極夢想！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +7！`,
+                `實現終極夢想！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -473,10 +466,9 @@ const dreamCards = {
             return `🌟 實現終極夢想！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +7\n` +
                    `   🏆 人生巔峰，成就非凡！`;
         },
-        getEffectDescription: () => "花費 60,000,000 元，80精力，幸運值 +7"
+        getEffectDescription: () => "花費 60,000,000 元，80精力"
     },
 
     // 格24: 葡萄酒莊園
@@ -505,7 +497,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             state.hasVineyard = true;
             
             addTransactionRecord(
@@ -513,7 +505,7 @@ const dreamCards = {
                 { name: "葡萄酒莊園", type: "dream", id: "D11" },
                 "實現夢想",
                 -cost,
-                `購買葡萄酒莊園！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +2！`,
+                `購買葡萄酒莊園！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -521,10 +513,9 @@ const dreamCards = {
             return `🍷 購買葡萄酒莊園成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +2\n` +
                    `   🍇 頂級佳釀，優雅人生！`;
         },
-        getEffectDescription: () => "花費 22,000,000 元，25精力，幸運值 +2"
+        getEffectDescription: () => "花費 22,000,000 元，25精力"
     },
 
     // 格26: 私人飛機
@@ -553,7 +544,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
             state.hasPrivateJet = true;
             
             addTransactionRecord(
@@ -561,7 +552,7 @@ const dreamCards = {
                 { name: "私人飛機", type: "dream", id: "D12" },
                 "實現夢想",
                 -cost,
-                `購買私人飛機！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +4！`,
+                `購買私人飛機！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -569,10 +560,9 @@ const dreamCards = {
             return `✈️ 購買私人飛機成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +4\n` +
                    `   🛩️ 隨時起飛，暢遊世界！`;
         },
-        getEffectDescription: () => "花費 45,000,000 元，45精力，幸運值 +4"
+        getEffectDescription: () => "花費 45,000,000 元，45精力"
     },
 
     // 格28: 財務自由
@@ -601,7 +591,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
             state.hasFinancialFreedom = true;
             
             addTransactionRecord(
@@ -609,7 +599,7 @@ const dreamCards = {
                 { name: "財務自由", type: "dream", id: "D13" },
                 "實現夢想",
                 -cost,
-                `達成財務自由！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +5！`,
+                `達成財務自由！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！`,
                 null,
                 state
             );
@@ -617,10 +607,9 @@ const dreamCards = {
             return `💰 達成財務自由！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +5\n` +
                    `   🏦 不再為金錢煩惱，真正自由！`;
         },
-        getEffectDescription: () => "花費 30,000,000 元，20精力，幸運值 +5"
+        getEffectDescription: () => "花費 30,000,000 元，20精力"
     },
 
     // 格32: 終極成就
@@ -649,7 +638,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 10);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 10);
             state.hasUltimateAchievement = true;
             state.gameCompleted = true;
             
@@ -658,7 +647,7 @@ const dreamCards = {
                 { name: "終極成就", type: "dream", id: "D14" },
                 "實現夢想",
                 -cost,
-                `達成終極成就！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}，幸運值 +10！遊戲完成！`,
+                `達成終極成就！花費 ${cost.toLocaleString()} 元，精力 -${energyCost}！遊戲完成！`,
                 null,
                 state
             );
@@ -666,11 +655,10 @@ const dreamCards = {
             return `🏆 達成終極成就！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
-                   `   🍀 幸運值: +10\n` +
                    `   🌟 永恆傳奇，人生巔峰！\n` +
                    `   🎉 恭喜完成遊戲！`;
         },
-        getEffectDescription: () => "花費 100,000,000 元，100精力，幸運值 +10，遊戲完成！"
+        getEffectDescription: () => "花費 100,000,000 元，100精力，遊戲完成！"
     }
 };
 

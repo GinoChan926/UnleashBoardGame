@@ -33,7 +33,7 @@ const socialCards = [
             state.energy -= 2;
             
             // 幸运值提升
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             
             // 健康指数提升
             state.health = (state.health || 100) + 10;
@@ -102,7 +102,7 @@ const socialCards = [
             state.cash -= cost;
             state.energy -= 2;
             state.passiveIncome += monthlyIncome;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             
             state.socialProjects = state.socialProjects || [];
             state.socialProjects.push({
@@ -163,7 +163,7 @@ const socialCards = [
             state.cash -= cost;
             state.energy -= 4;
             state.passiveIncome += monthlyIncome;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             
             state.socialProjects = state.socialProjects || [];
             state.socialProjects.push({
@@ -224,7 +224,7 @@ const socialCards = [
             state.cash -= cost;
             state.energy -= 2;
             state.passiveIncome += monthlyIncome;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             
             state.socialProjects = state.socialProjects || [];
             state.socialProjects.push({
@@ -346,7 +346,7 @@ const socialCards = [
             state.cash -= cost;
             state.energy -= 2;
             state.passiveIncome += monthlyIncome;
-            state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
+            // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             
             state.socialProjects = state.socialProjects || [];
             state.socialProjects.push({

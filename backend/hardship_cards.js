@@ -516,7 +516,7 @@ const hardshipCards = [
                 pState.totalAssets = Math.max(0, (pState.totalAssets || 0) - playerLoss);
 
                 // Luck decrease
-                pState.luck = Math.max(0, pState.luck - 2);
+                // pState.luck = Math.max(0, pState.luck - 2);
 
                 totalMarketLoss += playerLoss;
 
@@ -815,7 +815,7 @@ const hardshipCards = [
                 // Apply refund
                 pState.cash += playerRefund;
                 pState.totalAssets = Math.max(0, (pState.totalAssets || 0) - playerLoss);
-                pState.luck = Math.max(0, pState.luck - 1);
+                // pState.luck = Math.max(0, pState.luck - 1);
 
                 totalMarketLoss += playerLoss;
 
