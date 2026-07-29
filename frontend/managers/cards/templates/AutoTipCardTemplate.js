@@ -1,5 +1,29 @@
 "use strict";
 
+const FALLBACK_SVG =
+    'data:image/svg+xml,' +
+    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"' +
+    ' viewBox="0 0 200 200">' +
+    '<rect width="200" height="200" fill="%239c27b0"/>' +
+    '<text x="100" y="110" text-anchor="middle"' +
+    ' fill="white" font-size="60">🎁</text>' +
+    '</svg>';
+
+// ── Shared image resolver ─────────────────────────────────────────────────────
+
+function _resolveImageUrl(raw) {
+    if (!raw) return '';
+    // Strip any leading ../ — serve from root instead
+    let url = raw.replace(/^(\.\.\/)+/, '/');
+    // Ensure leading slash for non-http paths
+    if (url && !url.startsWith('http') && !url.startsWith('/')) {
+        url = '/' + url;
+    }
+    return url;
+}
+
+// ── Template ──────────────────────────────────────────────────────────────────
+
 export class AutoTipCardTemplate {
 
     static buildModal() {
@@ -15,7 +39,6 @@ export class AutoTipCardTemplate {
                     </div>
                     <div style="font-size: 12px; color: #e1bee7; margin-top: 4px;"
                          id="autoTipProgress">
-                        <!-- filled dynamically -->
                     </div>
                 </div>
 
@@ -28,24 +51,29 @@ export class AutoTipCardTemplate {
                 </div>
 
                 <div style="background: rgba(186,104,200,0.15); padding: 16px;
-                            border-radius: 14px; border: 1px solid rgba(186,104,200,0.3);
+                            border-radius: 14px;
+                            border: 1px solid rgba(186,104,200,0.3);
                             margin-bottom: 16px;">
                     <div style="text-align: center;">
                         <div id="autoTipCardName"
-                             style="font-size: 20px; color: #ffd966; font-weight: bold;
-                                    margin-bottom: 8px;">
+                             style="font-size: 20px; color: #ffd966;
+                                    font-weight: bold; margin-bottom: 8px;">
                         </div>
                         <div id="autoTipCardDesc"
-                             style="font-size: 13px; color: #e1bee7; line-height: 1.6;">
+                             style="font-size: 13px; color: #e1bee7;
+                                    line-height: 1.6;">
                         </div>
-                        <div id="autoTipScopeBadge" style="margin-top: 10px;"></div>
+                        <div id="autoTipScopeBadge" style="margin-top: 10px;">
+                        </div>
                     </div>
                 </div>
 
-                <div id="autoTipResultBox" style="display: none;
-                     background: rgba(76,175,80,0.15); padding: 12px;
-                     border-radius: 12px; border: 1px solid rgba(76,175,80,0.3);
-                     margin-bottom: 16px;">
+                <div id="autoTipResultBox"
+                     style="display: none;
+                            background: rgba(76,175,80,0.15); padding: 12px;
+                            border-radius: 12px;
+                            border: 1px solid rgba(76,175,80,0.3);
+                            margin-bottom: 16px;">
                     <div style="text-align: center; color: #a5d6a7;
                                 font-size: 13px; font-weight: bold;">
                         ✨ 執行結果
@@ -58,13 +86,14 @@ export class AutoTipCardTemplate {
 
                 <div style="text-align: center;">
                     <button id="autoTipNextBtn"
-                            style="background: linear-gradient(135deg, #ba68c8, #8e24aa);
+                            style="background: linear-gradient(135deg,#ba68c8,#8e24aa);
                                    color: white; padding: 14px 40px; border: none;
                                    border-radius: 30px; cursor: pointer;
                                    font-size: 16px; font-weight: bold;
                                    transition: all 0.2s ease;
                                    box-shadow: 0 4px 12px rgba(186,104,200,0.4);
-                                   display: inline-flex; align-items: center; gap: 8px;">
+                                   display: inline-flex;
+                                   align-items: center; gap: 8px;">
                         <span id="autoTipBtnText">🎁 執行並繼續</span>
                         <span style="font-size: 20px;">▶</span>
                     </button>
@@ -78,9 +107,8 @@ export class AutoTipCardTemplate {
         `;
     }
 
-    /**
-     * Show a card in the modal (before execution).
-     */
+    // ==================== Show card (before execution) ====================
+
     static showCard(card, cardIndex, totalCards, escapeHtml) {
         // Progress
         const progressEl = document.getElementById('autoTipProgress');
@@ -88,16 +116,23 @@ export class AutoTipCardTemplate {
             progressEl.textContent = `第 ${cardIndex} 張，共 ${totalCards} 張`;
         }
 
-        // Image
+        // ✅ Image — resolve path then fallback on error
         const imgEl = document.getElementById('autoTipCardImg');
         if (imgEl) {
-            let url = card.image || '';
-            if (url && !url.startsWith('http') && !url.startsWith('/')) {
-                url = '/' + url;
+            const url = _resolveImageUrl(card.image);
+            imgEl.style.display = 'inline-block';
+
+            if (url) {
+                imgEl.src     = url;
+                imgEl.onerror = () => {
+                    console.warn(`⚠️ AutoTipCard image failed: ${url}`);
+                    imgEl.src     = FALLBACK_SVG;
+                    imgEl.onerror = null; // prevent infinite loop
+                };
+            } else {
+                imgEl.src     = FALLBACK_SVG;
+                imgEl.onerror = null;
             }
-            imgEl.src = url;
-            imgEl.style.display = url ? 'inline-block' : 'none';
-            imgEl.onerror = () => { imgEl.style.display = 'none'; };
         }
 
         // Name
@@ -112,15 +147,17 @@ export class AutoTipCardTemplate {
         const badgeEl = document.getElementById('autoTipScopeBadge');
         if (badgeEl) {
             badgeEl.innerHTML = card.scope === 'team'
-                ? '<span style="display: inline-block; padding: 4px 12px; background: #ff9800; color: white; border-radius: 12px; font-size: 11px;">🌟 團隊錦囊</span>'
+                ? '<span style="display:inline-block; padding:4px 12px;' +
+                ' background:#ff9800; color:white; border-radius:12px;' +
+                ' font-size:11px;">🌟 團隊錦囊</span>'
                 : '';
         }
 
-        // Hide result box (this is the show-card phase)
+        // Hide result box (show-card phase)
         const resultBox = document.getElementById('autoTipResultBox');
         if (resultBox) resultBox.style.display = 'none';
 
-        // Reset button text
+        // Button text
         const btnText = document.getElementById('autoTipBtnText');
         if (btnText) {
             btnText.textContent = cardIndex < totalCards
@@ -129,17 +166,15 @@ export class AutoTipCardTemplate {
         }
     }
 
-    /**
-     * Show execution result inside the modal (after execution).
-     */
+    // ==================== Show result (after execution) ====================
+
     static showResult(effectMessage, cardIndex, totalCards, escapeHtml) {
-        const resultBox = document.getElementById('autoTipResultBox');
+        const resultBox  = document.getElementById('autoTipResultBox');
         const resultText = document.getElementById('autoTipResultText');
 
-        if (resultBox) resultBox.style.display = 'block';
-        if (resultText) resultText.textContent = effectMessage || '執行完成';
+        if (resultBox)  resultBox.style.display = 'block';
+        if (resultText) resultText.textContent   = effectMessage || '執行完成';
 
-        // Update button
         const btnText = document.getElementById('autoTipBtnText');
         if (btnText) {
             btnText.textContent = cardIndex < totalCards
@@ -148,36 +183,35 @@ export class AutoTipCardTemplate {
         }
     }
 
+    // ==================== Button controls ====================
+
     static bindNextButton(onNext) {
         const btn = document.getElementById('autoTipNextBtn');
-        if (btn) {
-            btn.onclick = () => onNext();
-            btn.onmouseenter = () => {
-                btn.style.transform = 'scale(1.03)';
-                btn.style.boxShadow = '0 6px 18px rgba(186,104,200,0.6)';
-            };
-            btn.onmouseleave = () => {
-                btn.style.transform = 'scale(1)';
-                btn.style.boxShadow = '0 4px 12px rgba(186,104,200,0.4)';
-            };
-        }
+        if (!btn) return;
+        btn.onclick      = () => onNext();
+        btn.onmouseenter = () => {
+            btn.style.transform = 'scale(1.03)';
+            btn.style.boxShadow = '0 6px 18px rgba(186,104,200,0.6)';
+        };
+        btn.onmouseleave = () => {
+            btn.style.transform = 'scale(1)';
+            btn.style.boxShadow = '0 4px 12px rgba(186,104,200,0.4)';
+        };
     }
 
     static disableButton() {
         const btn = document.getElementById('autoTipNextBtn');
-        if (btn) {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
-        }
+        if (!btn) return;
+        btn.disabled      = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor  = 'not-allowed';
     }
 
     static enableButton() {
         const btn = document.getElementById('autoTipNextBtn');
-        if (btn) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.style.cursor = 'pointer';
-        }
+        if (!btn) return;
+        btn.disabled      = false;
+        btn.style.opacity = '1';
+        btn.style.cursor  = 'pointer';
     }
 }

@@ -86,6 +86,7 @@ export class CardHandler {
     // ── Hardship ──────────────────────────────────────────────────────────
     handleHardshipCardExecute(m)  { this.hardship.handleHardshipCardExecute(m); }
     handleHardshipCardShielded(m) { this.hardship.handleHardshipCardShielded(m); }
+    handleReverseTileReveal(m) { this.hardship.handleReverseTileReveal(m); }
 
     // ── Police ────────────────────────────────────────────────────────────
     handlePoliceCardExecute(m)       { this.police.handlePoliceCardExecute(m); }

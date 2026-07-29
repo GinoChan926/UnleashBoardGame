@@ -133,7 +133,7 @@ function makeDeps(roomId) {
             }),
         processReverseTile:           (state, tile, ws, rId, player) =>
             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
+                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),{ rooms, tipCards }),
         processFlowTile:              (state, tile, ws, rId, player, room) =>
             processFlowTile(state, tile, ws, rId, player, room, {
                 broadcastToRoom: broadcast,
@@ -317,7 +317,7 @@ wss.on('connection', (ws) => {
                             }),
                         processReverseTile: (state, tile, ws, rId, player) =>
                             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
+                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms), { rooms, tipCards }),
                         processFlowTile: (state, tile, ws, rId, player, room) =>
                             processFlowTile(state, tile, ws, rId, player, room, {
                                 broadcastToRoom: broadcast,

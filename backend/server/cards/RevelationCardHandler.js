@@ -247,10 +247,77 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
     room.pendingRevelationEvents.delete(ws);
 }
 
+/**
+ * ✅ Directly draw a random tip card.
+ * @param {boolean} free - if true, skip purchase step (used in reverse loop)
+ */
+function drawRevelationTipCard(ws, roomId, room, player, tipCards, free = false) {
+    if (!tipCards || tipCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'error', message: '暫無錦囊卡資料' }));
+        return;
+    }
+
+    const originalCard = tipCards[Math.floor(Math.random() * tipCards.length)];
+    const card = { ...originalCard, cardType: 'tip' };
+    if (originalCard.effect) card.effect = originalCard.effect.bind(card);
+
+    const serializableCard = {
+        id:           card.id,
+        name:         card.name,
+        description:  card.description,
+        image:        card.image,
+        cost:         free ? 0 : card.cost,   // ✅ 0 cost when free
+        cardType:     'tip',
+        cardTypeName: '錦囊卡',
+        cardTypeIcon: '🎁',
+        scope:        card.scope || 'personal',
+        free:         free                     // ✅ tell frontend it's free
+    };
+
+    if (!room.pendingRevelationEvents) room.pendingRevelationEvents = new Map();
+    room.pendingRevelationEvents.set(ws, {
+        type:      'revelation_card',
+        card,
+        cardType:  'tip',
+        playerId:  player.playerId,
+        purchased: free,        // ✅ auto-mark as purchased when free
+        timestamp: Date.now(),
+        free
+    });
+
+    // ✅ If free, skip purchase and go straight to execute prompt
+    if (free) {
+        console.log(`🌀 ${player.playerName} 逆流層獲得免費錦囊卡: ${card.name}`);
+
+        ws.send(JSON.stringify({
+            type:      'revelation_card_purchased',   // ← same as after paying
+            card:      serializableCard,
+            message:   `🎁 逆流層免費獲得「${card.name}」！`,
+            gameState: player.gameState,
+            free:      true
+        }));
+
+        return;
+    }
+
+    // Normal flow (paid) — show purchase modal first
+    const multiplier = player.gameState.cardCostMultiplier || 1;
+    const canAfford  = player.gameState.cash >= (500 * multiplier);
+
+    ws.send(JSON.stringify({
+        type:      'revelation_card_draw',
+        card:      serializableCard,
+        canAfford
+    }));
+
+    console.log(`📜 ${player.playerName} 抽到錦囊卡: ${card.name}`);
+}
+
 module.exports = {
     showRevelationCardTypeSelection,
     handleRevelationCardTypeChoice,
     handlePurchaseRevelationCard,
     handleExecuteRevelationCard,
-    handleMarketNewsResponse
+    handleMarketNewsResponse,
+    drawRevelationTipCard
 };

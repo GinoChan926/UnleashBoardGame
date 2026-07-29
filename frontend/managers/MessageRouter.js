@@ -171,6 +171,7 @@ export class MessageRouter {
 
             'hardship_choice_prompt': m => ch().handleHardshipChoicePrompt(m),
             'hardship_choice_result': m => ch().handleHardshipChoiceResult(m),
+            'reverse_tile_reveal': m => ch().handleReverseTileReveal(m),
 
             'volunteer_donation_prompt': m => ch().handleVolunteerDonationPrompt(m),
 

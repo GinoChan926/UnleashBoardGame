@@ -16,19 +16,52 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
     const state = player.gameState;
 
+    // ✅ Not your turn
+    if (!state.isMyTurn) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '現在不是你的回合'
+        }));
+        return;
+    }
+
     // ── Skip turn check ───────────────────────────────────────────────────────
     if (state.skipNextTurn) {
         state.skipNextTurn = false;
-        ws.send(JSON.stringify({ type: 'notification', message: '⏸️ 你被暫停一回合，自動結束回合！' }));
-        broadcastToRoom(roomId, { type: 'notification', message: `⏸️ ${player.playerName} 被暫停一回合` }, ws);
-        deps.handleEndTurn(ws, data, roomId);
+        state.hasRolledThisTurn = false;
+
+        const skipPayload = {
+            type: 'turn_skipped',
+            playerId: player.playerId,
+            skippedPlayerId: player.playerId,
+            skippedPlayerName: player.playerName,
+            gameState: state,
+            message: `⏸️ ${player.playerName} 被暫停一回合，本回合已自動跳過`
+        };
+
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: '⏸️ 你被暫停一回合，自動結束回合！'
+        }));
+
+        ws.send(JSON.stringify(skipPayload));
+        broadcastToRoom(roomId, skipPayload, ws);
+
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: player.playerId,
+            gameState: state
+        });
+
+        // ✅ Force end turn even though player did not roll
+        deps.handleEndTurn(ws, { ...(data || {}), forceSkip: true }, roomId);
         return;
     }
 
     if (state.extraDice > 0 && !state._processingExtraDice) {
         state._processingExtraDice = true;
         state.extraDice--;
-        state.hasRolledThisTurn = false;  // ✅ Allow the extra roll
+        state.hasRolledThisTurn = false;
         ws.send(JSON.stringify({
             type: 'notification',
             message: `🎲 額外擲骰機會！剩餘 ${state.extraDice} 次`
@@ -50,14 +83,13 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         return;
     }
 
-// Mark as rolled - no more rolls until turn ends
+    // Mark as rolled
     state.hasRolledThisTurn = true;
 
     // ── Dice roll ─────────────────────────────────────────────────────────────
     let diceCount = 1;
     let diceType  = 'normal';
 
-// ✅ Flow layer always uses 2 dice
     if (state.inFlow) {
         diceCount = 2;
         diceType  = 'flow';
@@ -66,8 +98,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         diceType  = state.diceMultiplier === 2 ? 'clover' : 'lucky_star';
     }
 
-// Roll individual dice values
-    // Roll individual dice values
     const diceValues = [];
     for (let i = 0; i < diceCount; i++) {
         diceValues.push(Math.floor(Math.random() * 6) + 1);
@@ -76,11 +106,10 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     const originalSteps = diceValues[0];
     const steps = diceValues.reduce((sum, v) => sum + v, 0);
 
-// ✅ Check contract dispute (S14)
+    // ✅ Check contract dispute (S14)
     if (state.contractDispute && state.contractDispute.active) {
         const disputeCost = state.contractDispute.monthlyCost;
 
-        // Pay the ongoing cost
         if (state.cash >= disputeCost) {
             state.cash -= disputeCost;
         } else {
@@ -97,7 +126,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             });
         }
 
-        // Check if ANY dice shows 4, 5, or 6 → dispute resolved
         const resolved = diceValues.some(v => v >= 4);
 
         if (resolved) {
@@ -122,15 +150,14 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             console.log(`⚖️ ${player.playerName} 合約糾紛持續 (擲到 ${diceValues.join(', ')})`);
         }
     }
+
     // ✅ Check confused state (S18)
     if (state.confused && state.confused.active) {
         const highestDice = Math.max(...diceValues);
 
         if (highestDice < state.confused.minDiceToAct) {
-            // Failed to act - turn wasted
             state.confused.turnsRemaining--;
 
-            // Check if confusion ends
             if (state.confused.turnsRemaining <= 0) {
                 state.confused.active = false;
                 ws.send(JSON.stringify({
@@ -149,7 +176,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
                 message: `😵 ${player.playerName} 因迷茫無法行動 (擲了 ${diceValues.join(', ')})`
             }, ws);
 
-            // ✅ Send dice result for animation but don't move
             const result = {
                 type: 'dice_result',
                 playerId: player.playerId,
@@ -168,7 +194,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             ws.send(JSON.stringify(result));
             broadcastToRoom(roomId, result, ws);
 
-            // Update state
             broadcastToRoom(roomId, {
                 type: 'state_updated',
                 playerId: player.playerId,
@@ -176,10 +201,9 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             });
 
             console.log(`😵 ${player.playerName} 迷茫中，擲了 ${diceValues.join(',')} 無法行動 (剩 ${state.confused.turnsRemaining} 回合)`);
-            return;  // ← skip all movement logic
+            return;
         }
 
-        // Rolled high enough - can act this turn
         state.confused.turnsRemaining--;
 
         if (state.confused.turnsRemaining <= 0) {
@@ -192,18 +216,14 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         }));
 
         console.log(`💪 ${player.playerName} 擺脫迷茫行動 (擲了 ${diceValues.join(',')})`);
-        // Continue with normal movement below...
     }
 
     let multiplierMessage = '';
     if (state.inFlow && !state.diceMultiplierActive) {
-        // ✅ Flow layer always rolls 2 dice — no special message needed,
-        //    but we can show a brief note
         multiplierMessage = `🌊 順流層！擲了 2 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`;
     } else if (state.diceMultiplierActive) {
-        // ✅ Flow layer + clover/star = even more dice
         if (state.inFlow) {
-            diceCount = Math.max(diceCount, 2);  // at least 2 in flow
+            diceCount = Math.max(diceCount, 2);
         }
         multiplierMessage = diceType === 'clover'
             ? `🍀 四葉草生效！擲了 ${diceCount} 個骰子: ${diceValues.join(' + ')} = ${steps} 步！`
@@ -217,7 +237,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     let tile     = null;
     let eventMessage = null;
 
-    // ── Flow layer movement ───────────────────────────────────────────────────
     if (state.inFlow) {
         const flowSteps      = steps;
         let   currentPos     = state.flowPos;
@@ -244,7 +263,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
         eventMessage = processFlowTile(state, tile, ws, roomId, player, room, deps);
     }
-    // ── Reverse layer movement ────────────────────────────────────────────────
     else if (state.inReverse) {
         let currentReversePos = state.reversePos;
 
@@ -262,7 +280,7 @@ function handleRoll(ws, data, roomId, rooms, deps) {
 
             if (isLanding && tileAtPos.type !== 'settlement') {
                 const msg = processReverseTile(state, tileAtPos, ws, roomId, player,
-                    room.streamlineTiles, broadcastToRoom, deps.drawHardshipCard);
+                    room.streamlineTiles, broadcastToRoom, deps.drawHardshipCard, deps);
                 if (msg) ws.send(JSON.stringify({ type: 'notification', message: `${player.playerName}: ${msg}` }));
             }
 
@@ -289,17 +307,14 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             eventMessage = `移動到逆流層「${tile.name}」`;
         }
     }
-    // ── Streamline movement ───────────────────────────────────────────────────
     else {
         _processStreamlinePassthrough(state, player, ws, roomId, steps, room, broadcastToRoom, deps);
         tile = room.streamlineTiles[state.streamlinePos];
 
-        // ✅ Always call processStreamlineTile - the settlement case now handles landing correctly
         const isExactLanding = (tile.type === 'settlement');
         eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding, deps);
     }
 
-    // ── Flow layer entry check ────────────────────────────────────────────────
     if (!state.inReverse && !state.inFlow) {
         const totalExpense = (state.livingExpense || 0) + (state.tax || 0)
             + (state.loanInterest  || 0) + (state.childExpense || 0);
@@ -330,7 +345,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         }
     }
 
-    // ── Send result ───────────────────────────────────────────────────────────
     const result = {
         type: 'dice_result',
         playerId: player.playerId,
@@ -338,9 +352,9 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         steps: steps,
         originalSteps: originalSteps,
         multiplierUsed: multiplierMessage !== '',
-        diceValues: diceValues,    // ← NEW: individual dice
-        diceCount: diceCount,       // ← NEW: number of dice
-        diceType: diceType,         // ← NEW: 'normal' / 'clover' / 'lucky_star'
+        diceValues: diceValues,
+        diceCount: diceCount,
+        diceType: diceType,
         gameState: state,
         tile: tile,
         eventMessage: eventMessage,
@@ -371,7 +385,6 @@ function _processStreamlinePassthrough(state, player, ws, roomId, steps, room, b
 
         const isLandingHere = (i === steps);
         if (tileAtPos.type === 'settlement' && !isLandingHere) {
-            // Only process passthrough - landing is handled by processStreamlineTile
             _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, false, deps);
         }
     }
@@ -379,7 +392,6 @@ function _processStreamlinePassthrough(state, player, ws, roomId, steps, room, b
 }
 
 function _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, isExactLanding, deps) {
-    // ✅ Check skip flag
     if (state.skipSettlementIncome) {
         state.skipSettlementIncome = false;
         const { totalExpense } = calculateReducedExpense(state);
@@ -387,7 +399,6 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
         return;
     }
 
-// ✅ S13: half income on passthrough too
     let totalIncome = state.salary + state.sideIncome;
     if (state.nextSettlementHalfIncome) {
         totalIncome = Math.floor(totalIncome / 2);
@@ -396,13 +407,11 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     state.cash        += totalIncome;
     state.totalAssets += Math.floor(totalIncome * 0.2);
 
-    // ✅ Auto-collect pending debts
     const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
     processDebtCollection(player, room, roomId, broadcastToRoom);
 
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
 
-    // ✅ Deduct expense on passthrough too
     if (totalExpense > 0) {
         state.cash -= totalExpense;
     }
@@ -418,9 +427,6 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     processHealthInvestment(state, player, ws);
     processHealthSupplementInvestment(state, player, ws);
 
-    // NO tea restaurant fee on passthrough (only on landing)
-
-    // ✅ Process property mortgages on passthrough too
     const { processPropertyMortgages } = require('../systems/PropertyChoiceSystem.js');
     processPropertyMortgages(player, ws, broadcastToRoom, roomId);
 
@@ -444,7 +450,6 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     };
     ws.send(JSON.stringify(settlementMsg));
     broadcastToRoom(roomId, settlementMsg, ws);
-
 }
 
 module.exports = { handleRoll };

@@ -13,7 +13,7 @@ export class TurnHandler {
 
         if (!client.gameState) {
             client.buttonState.disableAll();
-            this._refreshIndicator();   // ✅ still update indicator
+            this._refreshIndicator();
             return;
         }
 
@@ -25,7 +25,7 @@ export class TurnHandler {
         client.buttonState.refresh(client.gameState);
         this._updateStatusBar(isMyTurn);
         this._notifyOnTurnStart(isMyTurn);
-        this._refreshIndicator();   // ✅ NEW
+        this._refreshIndicator();
 
         this.lastTurnWasMine = isMyTurn;
     }
@@ -33,12 +33,11 @@ export class TurnHandler {
     handleTurnStatus(message) {
         const { client } = this;
 
-        this.turnNumber        = message.roundNumber      || this.turnNumber || 1;
+        this.turnNumber        = message.roundNumber || this.turnNumber || 1;
         this.currentTurnPlayer = message.currentPlayerName || message.currentTurnPlayer;
 
         if (!client.gameState) client.gameState = {};
 
-        // ✅ Support both currentPlayerId and currentTurnPlayerId
         const targetId = message.currentPlayerId || message.currentTurnPlayerId;
         if (targetId) {
             client.gameState.isMyTurn = (targetId === client.playerId);
@@ -88,7 +87,6 @@ export class TurnHandler {
             client.otherPlayers.set(message.playerId, message.gameState);
             console.log(`👤 Other player ${message.playerId} state updated`);
 
-            // ✅ If the updated player is the current turn player, sync my view
             if (message.gameState.currentTurnPlayer && client.gameState) {
                 client.gameState.currentTurnPlayer = message.gameState.currentTurnPlayer;
             }
@@ -130,7 +128,6 @@ export class TurnHandler {
             client.logManager.showNotification(message.multiplierMessage, 'success');
         }
 
-        // ✅ Show landing modal for the roller (auto-skips card-trigger tiles)
         if (message.playerId === client.playerId && message.tile) {
             client.tileLandingManager.show(message.tile, message.eventMessage);
         }
@@ -138,9 +135,23 @@ export class TurnHandler {
 
     handleTurnSkipped(message) {
         const { client } = this;
-        const msg = `⏰ ${message.playerName} 超時被跳過`;
+
+        const skippedPlayerId   = message.skippedPlayerId || message.playerId;
+        const skippedPlayerName = message.skippedPlayerName || message.playerName || '某玩家';
+        const msg = message.message || `⏸️ ${skippedPlayerName} 的回合已被跳過`;
+
         client.logManager.addLog(msg, 'warning');
         client.logManager.showNotification(msg, 'warning');
+
+        // ✅ If I am the skipped player, immediately disable my actions locally
+        if (skippedPlayerId === client.playerId && client.gameState) {
+            client.gameState.isMyTurn = false;
+            client.isMyTurn = false;
+            client.gameState.hasRolledThisTurn = false;
+            client.buttonState.refresh(client.gameState);
+            client.updateUI();
+        }
+
         this.updateTurnStatus();
     }
 
@@ -150,7 +161,6 @@ export class TurnHandler {
         const { client } = this;
         if (!client.turnIndicator) return;
 
-        // Figure out who's turn it is right now
         const currentTurn =
             client.gameState?.currentTurnPlayer ||
             this.currentTurnPlayer ||
@@ -180,7 +190,7 @@ export class TurnHandler {
                 bar.style.color = '#4caf50';
             }
         } else {
-            const waiting   = client.gameState.currentTurnPlayer || '其他玩家';
+            const waiting = client.gameState.currentTurnPlayer || '其他玩家';
             bar.textContent = `⏳ 等待 ${waiting} 的回合`;
             bar.style.color = '#ff9800';
         }

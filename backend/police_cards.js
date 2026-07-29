@@ -95,7 +95,6 @@ const policeCards = [
         },
         getEffectDescription: () => "移動另一位玩家 ±3 格，立即執行該格效果"
     },
-
     {
         id: "P06",
         name: "舉報違法",
@@ -110,7 +109,6 @@ const policeCards = [
         },
         getEffectDescription: () => "舉報一位玩家並罰款 $5,000"
     },
-
     {
         id: "P07",
         name: "忘記交罰款",
