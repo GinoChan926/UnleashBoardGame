@@ -522,6 +522,7 @@ setInterval(() => {
 // ==================== 財務类机会卡 (Finance) ====================
 const financeCards = [
     // 基金投資 F02
+    /*
     {
         id: "F02",
         code: "F02",
@@ -2363,7 +2364,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-
+*/
     {
         id: "F14",
         code: "H01",
@@ -2532,7 +2533,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-
+/*
     {
         id: "F15",
         code: "H01",
@@ -3039,7 +3040,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-
+*/
 ];
 
 // ==================== 創業类机会卡 (Business) ====================

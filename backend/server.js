@@ -102,10 +102,15 @@ const { handleJoin }    = require('./server/actions/JoinHandler.js');
 const { handleEndTurn } = require('./server/actions/TurnHandler.js');
 const { handleUseFourLeafClover, handleUseLuckyStar } = require('./server/actions/ItemHandler.js');
 const { handleRoll }    = require('./server/actions/RollHandler.js');
+const { handlePlayerDisconnect } = require('./server/actions/DisconnectHandler.js');
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const rooms       = new Map();
 const projectRoot = path.resolve(__dirname, '..');
+// ✅ Generate unique ID for this server instance
+const SERVER_INSTANCE_ID = `srv_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+global.SERVER_INSTANCE_ID = SERVER_INSTANCE_ID;
+console.log(`🆔 Server instance: ${SERVER_INSTANCE_ID}`);
 
 // ── Bound broadcast helper ────────────────────────────────────────────────────
 const broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, excl);
@@ -416,21 +421,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        const room = rooms.get(playerRoomId);
-        if (room?.players.has(ws)) {
-            const player = room.players.get(ws);
-            console.log(`👋 玩家斷開: ${player.playerName}`);
-            room.players.delete(ws);
-            if (room.pendingEvents)         room.pendingEvents.delete(ws);
-            if (room.pendingTypeSelections) room.pendingTypeSelections.delete(ws);
-            broadcast(playerRoomId, {
-                type: 'player_disconnected', playerId: player.playerId, playerName: player.playerName
-            });
-            if (room.players.size === 0) {
-                rooms.delete(playerRoomId);
-                console.log(`🗑️ 房間已刪除: ${playerRoomId}`);
-            }
-        }
+        handlePlayerDisconnect(ws, playerRoomId, rooms, broadcast);
     });
 });
 

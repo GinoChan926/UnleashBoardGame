@@ -1,1 +1,58 @@
-[]
+[
+  {
+    "id": "1785291793093_frbn8l",
+    "timestamp": "29/7/2026 上午10:23:13",
+    "playerName": "Player_1785291674783",
+    "cardType": "volunteer",
+    "cardName": "拯救他國饑民",
+    "action": "義工卡",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "💰 沒有玩家願意捐款"
+  },
+  {
+    "id": "1785291770346_usdsl1",
+    "timestamp": "29/7/2026 上午10:22:50",
+    "playerName": "Player_1785291677331",
+    "cardType": "settlement",
+    "cardName": "結算日精力擲骰",
+    "action": "精力獲得",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "結算日擲骰得 5 點，精力 +5"
+  },
+  {
+    "id": "1785291723786_42ym9j",
+    "timestamp": "29/7/2026 上午10:22:03",
+    "playerName": "Player_1785291674783",
+    "cardType": "police",
+    "cardName": "防騙教育",
+    "action": "警察卡",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": -1,
+    "details": "📚 獲得「防騙教育」義工資格！\n   👮 下次其他玩家遇到騙子卡時，你可以幫他防範一次！\n   ⚡ 精力 -1,幸運值 +2\n   📝 遊戲完結時，此義工行為將被記錄！"
+  },
+  {
+    "id": "1785291685785_sz9cgc",
+    "timestamp": "29/7/2026 上午10:21:25",
+    "playerName": "Player_1785291674783",
+    "cardType": "settlement",
+    "cardName": "結算日精力擲骰",
+    "action": "精力獲得",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "結算日擲骰得 1 點，精力 +1"
+  }
+]

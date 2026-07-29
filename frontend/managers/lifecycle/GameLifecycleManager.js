@@ -1,9 +1,5 @@
 "use strict";
 
-/**
- * Manages the connect → play → disconnect lifecycle
- * and the music/game-over monitor.
- */
 export class GameLifecycleManager {
     constructor(client) {
         this.client = client;
@@ -31,8 +27,6 @@ export class GameLifecycleManager {
                 `👤 玩家: ${client.playerName} (${client.selectedProfession.data.name})`,
                 'event'
             );
-
-            // ✅ Show rename button, hide connect button
             this._toggleConnectionButtons(true);
         });
 
@@ -43,26 +37,62 @@ export class GameLifecycleManager {
             client.updateNetworkStatus(false);
             client.logManager.addLog('❌ 與服務器連接已斷開', 'error');
             client.buttonState.disableAll();
-            client.turnIndicator.reset();
-
-            // ✅ Hide rename button, show connect button
+            client.turnIndicator?.reset();
             this._toggleConnectionButtons(false);
         });
 
-        const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+        const playerId = client.playerId || `player_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
         const wsUrl    = `ws://${window.location.hostname}:8080`;
+        const roomId   = client.roomId || 'default_room';
 
         client.connection.connect(
             wsUrl,
             playerId,
             client.playerName,
             client.selectedProfession.id,
-            client.selectedProfession.data
+            client.selectedProfession.data,
+            roomId
         );
     }
 
     disconnect() {
         this.client.connection.disconnect();
+    }
+
+    // ── Auto-reconnect on page load ───────────────────────────────────────
+
+    tryAutoReconnect() {
+        const { client } = this;
+        const session = client.connection.getSavedSession();
+
+        if (!session) {
+            console.log('🔌 沒有可重連的 session');
+            return false;
+        }
+
+        console.log(`🔌 嘗試自動重連: ${session.playerName}`);
+
+        this._isReconnecting = true;
+
+        client.playerId   = session.playerId;
+        client.playerName = session.playerName;
+        client.roomId     = session.roomId;
+
+        client.selectedProfession = {
+            id:   session.profession,
+            data: { name: '重連中...' }
+        };
+
+        const nameInput = document.getElementById('playerName');
+        if (nameInput) nameInput.value = session.playerName;
+
+        client.logManager.addLog(
+            `🔌 檢測到之前的 session，正在重新連接 ${session.playerName}...`,
+            'info'
+        );
+
+        this.doConnect();
+        return true;
     }
 
     // ── Music / game-over monitor ─────────────────────────────────────────

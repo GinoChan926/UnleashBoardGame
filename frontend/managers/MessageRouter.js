@@ -177,6 +177,10 @@ export class MessageRouter {
             'group_finance_prompt': m => ch().handleGroupFinancePrompt(m),
             'group_finance_result': m => ch().handleGroupFinanceResult(m),
 
+            // ── Disconnect / reconnect
+            'player_temp_disconnected': m => c.joinHandler.handleTempDisconnected(m),
+            'player_reconnected':       m => c.joinHandler.handleReconnected(m),
+
             // ── Card reveal broadcast
             'card_revealed': m => c.cardBroadcast.handleCardRevealed(m),
 

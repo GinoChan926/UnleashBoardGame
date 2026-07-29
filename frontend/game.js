@@ -210,4 +210,7 @@ class GameClient {
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     window.gameClient = new GameClient();
+    setTimeout(() => {
+        window.gameClient.lifecycle.tryAutoReconnect();
+    }, 500);
 });

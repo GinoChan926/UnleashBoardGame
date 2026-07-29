@@ -6,8 +6,25 @@ export class JoinHandler {
     }
 
     handleJoinSuccess(message) {
-        const { client } = this;
+        const {client} = this;
 
+        // ✅ Check for server restart
+        const savedSession = client.connection.getSavedSession();
+        const savedServerId = savedSession?.serverInstanceId;
+        const currentServerId = message.serverInstanceId;
+
+        if (savedServerId && currentServerId && savedServerId !== currentServerId) {
+            console.log(`🆕 Server restarted (old: ${savedServerId}, new: ${currentServerId})`);
+            client.connection._clearSession();
+            // Fall through — server treats this as a fresh join anyway
+        }
+
+        // ✅ Save the current server ID for next time
+        if (currentServerId) {
+            client.connection.updateServerInstanceId(currentServerId);
+        }
+
+        // ── Existing logic ────────────────────────────────────────────────
         client.gameState = message.gameState;
         client.otherPlayers.clear();
 
@@ -21,11 +38,22 @@ export class JoinHandler {
         client.buttonState.disableAll();
 
         client.updateUI();
-        // ✅ Pass otherPlayers
         client.boardRenderer.renderAllTiles(client.gameState, client.otherPlayers);
         client.updatePlayersList();
         client.turnHandler.updateTurnStatus();
-        client.logManager.addLog('🎉 成功加入遊戲！', 'success');
+
+        if (message.reconnected) {
+            client.logManager.addLog(
+                `🔌 已重新連接遊戲！歡迎回來 ${message.playerName}`,
+                'success'
+            );
+            client.logManager.showNotification(
+                `🔌 已重新連接！繼續遊戲`,
+                'success'
+            );
+        } else {
+            client.logManager.addLog('🎉 成功加入遊戲！', 'success');
+        }
     }
 
     handlePlayerJoined(message) {
@@ -49,7 +77,60 @@ export class JoinHandler {
         if (!message.playerId) return;
 
         client.otherPlayers.delete(message.playerId);
-        client.logManager.addLog(`👤 ${message.playerName} 離開遊戲`, 'warning');
+        client.logManager.addLog(
+            `👤 ${message.playerName || '玩家'} 離開遊戲`,
+            'warning'
+        );
+        client.updatePlayersList();
+        client.turnHandler.updateTurnStatus();
+    }
+
+    // ==================== NEW: Temporary disconnect / reconnect ====================
+
+    handleTempDisconnected(message) {
+        const { client } = this;
+        if (!message.playerId) return;
+
+        // Mark the player in the panel with a "disconnected" flag
+        if (client.otherPlayers.has(message.playerId)) {
+            const other = client.otherPlayers.get(message.playerId);
+            other._disconnected   = true;
+            other._disconnectedAt = Date.now();
+            other._graceMs        = message.graceMs || 60000;
+        }
+
+        client.logManager.addLog(
+            `⚠️ ${message.playerName} 暫時斷線 (等待重連中...)`,
+            'warning'
+        );
+        client.logManager.showNotification(
+            `⚠️ ${message.playerName} 暫時斷線`,
+            'warning'
+        );
+
+        client.updatePlayersList();
+    }
+
+    handleReconnected(message) {
+        const { client } = this;
+        if (!message.playerId) return;
+
+        // Clear disconnect flag
+        if (client.otherPlayers.has(message.playerId)) {
+            const other = client.otherPlayers.get(message.playerId);
+            other._disconnected   = false;
+            other._disconnectedAt = null;
+        }
+
+        client.logManager.addLog(
+            `✅ ${message.playerName} 已重新連接！`,
+            'success'
+        );
+        client.logManager.showNotification(
+            `✅ ${message.playerName} 已重新連接！`,
+            'success'
+        );
+
         client.updatePlayersList();
     }
 
