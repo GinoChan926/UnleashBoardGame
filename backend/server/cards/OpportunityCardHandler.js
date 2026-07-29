@@ -450,24 +450,27 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             return;
         }
         // ✅ Trigger group finance for stock/crypto cards after buy
-        const isFinanceBuy = (data.stockAction === 'buy' || data.cryptoAction === 'buy');
         const isFinanceCard = !!(card.stockCode || card.cryptoCode || card.getCurrentPrice);
 
-        if (isFinanceBuy && isFinanceCard) {
+        if (isFinanceCard) {
             const { startGroupFinance } = require('../systems/GroupFinanceSystem.js');
 
-            // ✅ Get the price the drawer actually paid (from their latest transaction)
-            let lockedPrice = 0;
-            if (card.stockCode && player.gameState.stockHoldings?.[card.id]) {
+            // Get locked price from player's holdings if they bought, otherwise use card's locked price
+            let lockedPrice = card._lockedPrice || card.currentPrice || 0;
+
+            // If player 1 did buy, use their actual purchase price
+            if (data.stockAction === 'buy' && player.gameState.stockHoldings?.[card.id]) {
                 lockedPrice = player.gameState.stockHoldings[card.id].lastPrice ||
                     player.gameState.stockHoldings[card.id].purchasePrice;
-            } else if (card.cryptoCode && player.gameState.cryptoHoldings?.[card.id]) {
+            } else if (data.cryptoAction === 'buy' && player.gameState.cryptoHoldings?.[card.id]) {
                 lockedPrice = player.gameState.cryptoHoldings[card.id].lastPrice ||
                     player.gameState.cryptoHoldings[card.id].averagePrice;
             }
 
+            const initiatorBought = (data.stockAction === 'buy' || data.cryptoAction === 'buy');
+
             setTimeout(() => {
-                startGroupFinance(ws, roomId, player, card, broadcastToRoom, rooms, lockedPrice);
+                startGroupFinance(ws, roomId, player, card, broadcastToRoom, rooms, lockedPrice, initiatorBought);
             }, 1000);
         }
     } else {
@@ -477,6 +480,15 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
         resultMessage = wasFree
             ? `❌ 你決定不啟動「${card.name}」`
             : `❌ 你決定不執行「${card.name}」，500 元不退還。`;
+
+        const isFinanceCard = !!(card.stockCode || card.cryptoCode || card.getCurrentPrice);
+        if (isFinanceCard) {
+            const { startGroupFinance } = require('../systems/GroupFinanceSystem.js');
+            const lockedPrice = card._lockedPrice || card.currentPrice || 0;
+            setTimeout(() => {
+                startGroupFinance(ws, roomId, player, card, broadcastToRoom, rooms, lockedPrice, false);
+            }, 1000);
+        }
 
         addTransactionRecord(
             player.playerName, card, '放棄',

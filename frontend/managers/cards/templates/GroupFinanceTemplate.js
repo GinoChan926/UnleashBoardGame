@@ -16,6 +16,9 @@ export class GroupFinanceTemplate {
                     <div id="groupFinInitiator"
                          style="font-size: 12px; color: #b3e5fc; margin-top: 4px;">
                     </div>
+                    <div id="groupFinInitiatorStatus"
+                         style="font-size: 12px; margin-top: 4px;">
+                    </div>
                 </div>
 
                 <div style="background: rgba(66,165,245,0.15); padding: 14px;
@@ -40,7 +43,8 @@ export class GroupFinanceTemplate {
                 </div>
 
                 <div style="margin-bottom: 14px;">
-                    <label style="color: #b3e5fc; font-size: 13px;
+                    <label id="groupFinTradeHint"
+                           style="color: #b3e5fc; font-size: 13px;
                                   display: block; margin-bottom: 6px;">
                         買入數量 (0 = 不參與)
                     </label>
@@ -81,6 +85,18 @@ export class GroupFinanceTemplate {
         const initEl = document.getElementById('groupFinInitiator');
         if (initEl) initEl.textContent = `發起人: ${message.initiatorName}`;
 
+        // Show whether initiator bought or not
+        const statusEl = document.getElementById('groupFinInitiatorStatus');
+        if (statusEl) {
+            if (message.initiatorBought) {
+                statusEl.textContent = `✅ ${message.initiatorName} 已買入`;
+                statusEl.style.color = '#4caf50';
+            } else {
+                statusEl.textContent = `⏭️ ${message.initiatorName} 選擇不買`;
+                statusEl.style.color = '#ff9800';
+            }
+        }
+
         const nameEl = document.getElementById('groupFinCardName');
         if (nameEl) nameEl.textContent = `${message.cardName} (${message.cardCode})`;
 
@@ -94,21 +110,48 @@ export class GroupFinanceTemplate {
             `;
         }
 
-        // Cost display
         const input  = document.getElementById('groupFinUnitsInput');
         const costEl = document.getElementById('groupFinCostDisplay');
 
         if (input) {
-            input.min  = 0;
-            input.step = message.multiple || 1;
+            const multiple = message.multiple || 1;
+            const minTrade = message.minTrade || multiple;
+
+            input.min   = 0;
+            input.step  = multiple;
+            input.value = 0;
+
+            // Update trade hint label
+            const hintEl = document.getElementById('groupFinTradeHint');
+            if (hintEl) {
+                hintEl.textContent = `買入數量（${multiple} ${message.unit}的倍數，最少 ${minTrade} ${message.unit}，0 = 不參與）`;
+            }
+
             input.oninput = () => {
-                const units = parseInt(input.value) || 0;
+                let units = parseInt(input.value) || 0;
+
+                // Enforce multiple rule (snap to nearest valid multiple)
+                if (units > 0) {
+                    if (units < minTrade) {
+                        units = minTrade;
+                        input.value = units;
+                    }
+                    if (units % multiple !== 0) {
+                        units = Math.round(units / multiple) * multiple;
+                        if (units < minTrade) units = minTrade;
+                        input.value = units;
+                    }
+                }
+
                 const total = units * message.currentPrice;
                 if (costEl) {
-                    costEl.textContent = units === 0
-                        ? '不參與'
-                        : `總花費: $${total.toLocaleString()} + 1 精力`;
-                    costEl.style.color = total > message.playerCash ? '#ff5252' : '#ffd966';
+                    if (units === 0) {
+                        costEl.textContent = '不參與';
+                        costEl.style.color = '#ffd966';
+                    } else {
+                        costEl.textContent = `總花費: $${total.toLocaleString()} + 1 精力`;
+                        costEl.style.color = total > message.playerCash ? '#ff5252' : '#ffd966';
+                    }
                 }
             };
             input.oninput();
@@ -121,9 +164,20 @@ export class GroupFinanceTemplate {
 
         if (btn) {
             btn.onclick = () => {
-                const units = parseInt(input?.value) || 0;
+                const units    = parseInt(input?.value) || 0;
+                const multiple = message.multiple || 1;
+                const minTrade = message.minTrade || multiple;
 
                 if (units > 0) {
+                    if (units < minTrade) {
+                        alert(`最少需要買入 ${minTrade} ${message.unit}！`);
+                        return;
+                    }
+                    if (units % multiple !== 0) {
+                        alert(`買入數量必須是 ${multiple} ${message.unit} 的倍數！`);
+                        return;
+                    }
+
                     const totalCost = units * message.currentPrice;
                     if (totalCost > message.playerCash) {
                         alert(`現金不足！需要 $${totalCost.toLocaleString()}`);
