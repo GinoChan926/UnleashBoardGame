@@ -58,6 +58,20 @@ export class PlayerActionSender {
         const { client } = this;
         if (!client.isConnected || client.gameOver) return;
 
+        // ✅ Block if any modal is minimized
+        if (client.modalManager?.hasMinimizedModals?.()) {
+            const count = client.modalManager.getMinimizedCount();
+            client.logManager.addLog(
+                `⚠️ 還有 ${count} 個待處理的決定，請先處理完再結束回合`,
+                'warning'
+            );
+            client.logManager.showNotification(
+                `⚠️ 還有 ${count} 個待處理的決定！請點擊右下角的按鈕繼續`,
+                'warning'
+            );
+            return;
+        }
+
         if (client._endTurnSent) return;
         client._endTurnSent = true;
 

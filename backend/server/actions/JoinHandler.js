@@ -62,6 +62,7 @@ function handleJoin(ws, data, roomId, rooms) {
         loanAmount:            0,
         loanInterest:          0,
         loanCash:            0,          // loan money kept separate
+        accruedInterest:     0,
         propertyMortgageExpense: 0,
         loanRateBase:          10,   // 10% base monthly interest — reducible to 0.05 by tip card
         loanCapMultiplier:     10,     // 10x monthly cashflow — upgradable to 40 by tip card

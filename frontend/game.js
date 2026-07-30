@@ -135,12 +135,27 @@ class GameClient {
 
     rollDice()          { this.actions.rollDice(); }
     endTurn() {
+        // ✅ Check minimized modals BEFORE disabling button
+        if (this.modalManager.hasMinimizedModals()) {
+            const count = this.modalManager.getMinimizedCount();
+            this.logManager.addLog(
+                `⚠️ 還有 ${count} 個待處理的決定，請先處理完再結束回合`,
+                'warning'
+            );
+            this.logManager.showNotification(
+                `⚠️ 還有 ${count} 個待處理的決定！請點擊右下角的按鈕繼續`,
+                'warning'
+            );
+            return;
+        }
+
         const btn = document.getElementById('btnEndTurn');
         if (btn) {
-            btn.disabled      = true;
+            btn.disabled = true;
             btn.style.opacity = '0.4';
-            btn.style.cursor  = 'not-allowed';
+            btn.style.cursor = 'not-allowed';
         }
+
         this.actions.endTurn();
     }
     applyLoan()         { this.actions.applyLoan(); }

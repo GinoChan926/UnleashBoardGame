@@ -102,27 +102,33 @@ export class FinanceHandler {
         this._applyMyState(message);
 
         const { client } = this;
-        const isFully = message.isFullyPaid !== false;   // default true for backwards compat
+        const isFully = message.isFullyPaid !== false;
 
         let msg;
         if (isFully) {
             msg = `💰 貸款已還清！\n` +
-                `📤 本金: $${message.repaidAmount.toLocaleString()}\n` +
-                `💸 利息: $${message.interestAmount.toLocaleString()}\n` +
+                `💸 累積利息: $${message.repaidInterest.toLocaleString()}\n` +
+                `📤 本金: $${message.repaidPrincipal.toLocaleString()}\n` +
                 `💵 總還款: $${message.totalRepaid.toLocaleString()}`;
+
+            if (message.loanCashReturned > 0) {
+                msg += `\n🏦 返還未用貸款金: $${message.loanCashReturned.toLocaleString()}\n` +
+                    `💵 實付現金: $${message.cashPaid.toLocaleString()}`;
+            }
         } else {
             msg = `💰 部分還款成功！\n` +
-                `📤 本金: $${message.repaidAmount.toLocaleString()}\n` +
-                `💸 利息: $${message.interestAmount.toLocaleString()}\n` +
+                `💸 償還利息: $${message.repaidInterest.toLocaleString()}\n` +
+                `📤 償還本金: $${message.repaidPrincipal.toLocaleString()}\n` +
                 `💵 本次還款: $${message.totalRepaid.toLocaleString()}\n` +
-                `📊 剩餘本金: $${message.remainingPrincipal.toLocaleString()}`;
+                `📊 剩餘本金: $${message.remainingPrincipal.toLocaleString()}\n` +
+                `💸 剩餘累積利息: $${message.remainingInterest.toLocaleString()}`;
         }
 
         client.logManager.addLog(msg, 'success');
         client.logManager.showNotification(
             isFully
                 ? `💰 已還清貸款 $${message.totalRepaid.toLocaleString()}`
-                : `💰 還款 $${message.totalRepaid.toLocaleString()}，剩餘 $${message.remainingPrincipal.toLocaleString()}`,
+                : `💰 還款 $${message.totalRepaid.toLocaleString()}，剩餘欠款 $${(message.remainingPrincipal + message.remainingInterest).toLocaleString()}`,
             'success'
         );
     }

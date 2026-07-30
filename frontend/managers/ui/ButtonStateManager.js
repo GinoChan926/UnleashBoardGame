@@ -12,28 +12,35 @@ export class ButtonStateManager {
         }
 
         const isMyTurn = gameState.isMyTurn === true;
-
-        // ✅ also prevent roll if this turn is marked as skipped
         const canRoll  = isMyTurn && !gameState.hasRolledThisTurn && !gameState.skipNextTurn;
-
         const canLoan  = isMyTurn && gameState.loanAmount === 0;
         const canRepay = isMyTurn && gameState.loanAmount > 0;
         const clovers  = gameState.fourLeafClover || 0;
         const stars    = gameState.luckyStarCount || 0;
 
+        // ✅ Check if there are minimized modals (blocks end turn visually)
+        const hasMinimized = this.client.modalManager?.hasMinimizedModals?.() || false;
+        const canEndTurn   = isMyTurn && !hasMinimized;
+
         this._set('btnRoll',          canRoll);
         this._set('btnRollTop',       canRoll);
-        this._set('btnEndTurn',       isMyTurn);
+        this._set('btnEndTurn',       canEndTurn);
         this._set('btnLoan',          canLoan);
         this._set('btnRepayLoan',     canRepay);
         this._set('btnUseClover',     isMyTurn && clovers > 0);
         this._set('btnUseLuckyStar',  isMyTurn && stars > 0);
 
+        // ✅ End turn label
+        if (isMyTurn && hasMinimized) {
+            const count = this.client.modalManager.getMinimizedCount();
+            this._setLabel('btnEndTurn', `⚠️ 還有 ${count} 個待處理的決定`);
+        } else {
+            this._setLabel('btnEndTurn', '⏭️ 結束回合');
+        }
+
+        // Loan button dynamic label
         const ratePercent = (gameState.permanentLoanRate ?? 10).toFixed(1);
-        this._setLabel(
-            'btnLoan',
-            `🏦 申請貸款 (${ratePercent}%/月)`
-        );
+        this._setLabel('btnLoan', `🏦 申請貸款 (${ratePercent}%/月)`);
 
         this._setLabel(
             'btnUseClover',

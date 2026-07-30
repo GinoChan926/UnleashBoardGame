@@ -271,7 +271,7 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         }
     }
 
-    // ✅ NEW: snapshot both cash + loanCash
+    // ✅ Snapshot cash + loanCash for all participants BEFORE effect
     const cashSnapshotMap = new Map();
     room.players.forEach(p => {
         cashSnapshotMap.set(p.playerId, {
@@ -296,12 +296,16 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         resultMessage = `執行團隊錦囊「${card.name}」時發生錯誤`;
     }
 
+    // ✅ Team tips are INVESTMENT — reroute cash spending for each participant
+    const { spendForInvestment, canAffordInvestment } = require('./WalletSystem.js');
     const investmentNotes = [];
 
     room.players.forEach((p, pWs) => {
-        const snap        = cashSnapshotMap.get(p.playerId);
-        const cashAfter   = p.gameState.cash || 0;
-        const cashSpent   = snap.cash - cashAfter;
+        const snap      = cashSnapshotMap.get(p.playerId);   // ✅ FIXED — use cashSnapshotMap
+        if (!snap) return;
+
+        const cashAfter = p.gameState.cash || 0;
+        const cashSpent = snap.cash - cashAfter;
 
         if (cashSpent > 0) {
             // Restore raw cash
@@ -315,8 +319,6 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
                     );
                 }
             }
-            // If they can't afford after all, cash was already restored, they get the effect for free
-            // (rare — usually the card's own check prevents this)
         }
     });
 
@@ -324,12 +326,14 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         resultMessage += `\n💰 投資使用: ${investmentNotes.join(', ')}`;
     }
 
-// ✅ Auto-repay debts (existing logic)
+    // ✅ Auto-repay debts for every player who gained cash
     const { processDebtCollection } = require('./AutoDebtSystem.js');
     const repaidPlayers = [];
 
     room.players.forEach((p, pWs) => {
-        const snap       = cashSnapshotMap.get(p.playerId);
+        const snap       = cashSnapshotMap.get(p.playerId);   // ✅ FIXED
+        if (!snap) return;
+
         const cashAfter  = p.gameState.cash || 0;
 
         if (cashAfter > snap.cash && p.gameState.pendingDebts?.length > 0) {
@@ -351,44 +355,21 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         resultMessage += `\n💸 自動償還債務: ${repaidPlayers.join('、')}`;
     }
 
-    room.players.forEach((p, pWs) => {
-        const cashBefore = cashSnapshot.get(p.playerId) || 0;
-        const cashAfter  = p.gameState.cash;
-
-        if (cashAfter > cashBefore && p.gameState.pendingDebts?.length > 0) {
-            const paidDebts = processDebtCollection(p, room, pending.roomId, broadcastToRoom);
-            const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
-            if (totalRepaid > 0) {
-                repaidPlayers.push(`${p.playerName} 償還 $${totalRepaid.toLocaleString()}`);
-
-                // Notify each player individually
-                if (pWs && pWs.readyState === 1) {
-                    pWs.send(JSON.stringify({
-                        type: 'notification',
-                        message: `💸 你的收入已自動償還 $${totalRepaid.toLocaleString()} 銀行債務`
-                    }));
-                }
-            }
-        }
-    });
-
-    if (repaidPlayers.length > 0) {
-        resultMessage += `\n💸 自動償還債務: ${repaidPlayers.join('、')}`;
-    }
-
+    // Broadcast final result to everyone
     broadcastToRoom(pending.roomId, {
-        type: 'team_card_result',
+        type:          'team_card_result',
         teamId,
-        card: _serializeCard(card),
-        initiator: pending.initiatorName,
-        message: resultMessage,
+        card:          _serializeCard(card),
+        initiator:     pending.initiatorName,
+        message:       resultMessage,
         playerChoices
     });
 
+    // Update all players' states
     room.players.forEach(p => {
         broadcastToRoom(pending.roomId, {
-            type: 'state_updated',
-            playerId: p.playerId,
+            type:      'state_updated',
+            playerId:  p.playerId,
             gameState: p.gameState
         });
     });

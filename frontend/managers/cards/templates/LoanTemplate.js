@@ -191,7 +191,7 @@ export class LoanTemplate {
             const cashflowAfter   = info.monthlyCashflow - monthlyInterest;
             const totalToRepay    = amt + monthlyInterest;
 
-            const isBad = cashflowAfter <= 0;
+            const isBad = cashflowAfter < 0;
 
             previewEl.style.display = 'block';
             previewEl.style.background = isBad
@@ -212,7 +212,7 @@ export class LoanTemplate {
                 <div>💵 每月總本利: <strong>$${totalToRepay.toLocaleString()}</strong></div>
                 ${isBad ? `
                     <div style="color: #ff6b6b; margin-top: 6px; font-weight: bold;">
-                        ⚠️ 現金流會變成 ≤ 0，禁止貸款！
+                        ⚠️ 現金流會變成 < 0，禁止貸款！
                     </div>
                 ` : ''}
             `;
@@ -298,7 +298,7 @@ export class LoanTemplate {
                                    background: #ff9800; border: none;
                                    color: white; border-radius: 8px;
                                    cursor: pointer;">
-                        僅還利息
+                        僅還累積利息
                     </button>
                     <button class="loan-repay-quick-btn" data-mode="half"
                             style="flex: 1; padding: 6px; font-size: 12px;
@@ -357,61 +357,65 @@ export class LoanTemplate {
         const confirmBtn   = document.getElementById('loanRepayConfirmBtn');
         const cancelBtn    = document.getElementById('loanRepayCancelBtn');
 
-        const principal    = info.currentLoan;
-        const rate         = info.monthlyRate;
-        const interest     = Math.round(principal * rate);
-        const totalToRepay = principal + interest;
-        const cash         = info.cash;
-        const maxRepay     = Math.min(cash, totalToRepay);
+        const principal       = info.currentLoan;
+        const accruedInterest = info.accruedInterest || 0;
+        const rate            = info.monthlyRate;
+        const totalOwed       = info.totalOwed;
+        const cash            = info.cash;
+        const maxRepay        = Math.min(cash, totalOwed);
 
         if (infoBox) {
             infoBox.innerHTML = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;">
-                <div>💵 現金:</div>
-                <div style="text-align: right; color: #4caf50;">
-                    <strong>$${cash.toLocaleString()}</strong>
-                </div>
-
-                <div>🏦 貸款金 (不可用):</div>
-                <div style="text-align: right; color: #90a4ae;">
-                    <strong>$${(info.loanCash || 0).toLocaleString()}</strong>
-                </div>
-
-                <div style="grid-column: 1/-1; padding-top: 8px;
-                            border-top: 1px solid rgba(255,255,255,0.1);
-                            margin-top: 4px;">
-                </div>
-
-                <div>💰 貸款本金:</div>
-                <div style="text-align: right;">
-                    <strong>$${principal.toLocaleString()}</strong>
-                </div>
-
-                <div>💸 本月利息 (${(rate * 100).toFixed(1)}%):</div>
-                <div style="text-align: right; color: #ff9800;">
-                    <strong>$${interest.toLocaleString()}</strong>
-                </div>
-
-                <div>📊 本利和:</div>
-                <div style="text-align: right; color: #ffd966;">
-                    <strong>$${totalToRepay.toLocaleString()}</strong>
-                </div>
-
-                <div>📅 已過結算日:</div>
-                <div style="text-align: right;">
-                    <strong>${info.settlementCount}/12</strong>
-                </div>
-
-                ${cash < totalToRepay ? `
-                    <div style="grid-column: 1/-1; margin-top: 8px;
-                                padding-top: 8px;
-                                border-top: 1px solid rgba(255,255,255,0.2);
-                                color: #ff9800; font-size: 12px;">
-                        ⚠️ 現金不足以全額還清，可選擇部分還款
-                    </div>
-                ` : ''}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px;">
+            <div>💵 現金:</div>
+            <div style="text-align: right; color: #4caf50;">
+                <strong>$${cash.toLocaleString()}</strong>
             </div>
-        `;
+
+            <div>🏦 貸款金 (不可用):</div>
+            <div style="text-align: right; color: #90a4ae;">
+                <strong>$${(info.loanCash || 0).toLocaleString()}</strong>
+            </div>
+
+            <div style="grid-column: 1/-1; padding-top: 8px;
+                        border-top: 1px solid rgba(255,255,255,0.1);
+                        margin-top: 4px;"></div>
+
+            <div>💰 貸款本金:</div>
+            <div style="text-align: right;">
+                <strong>$${principal.toLocaleString()}</strong>
+            </div>
+
+            <div>💸 累積利息:</div>
+            <div style="text-align: right; color: #ff9800;">
+                <strong>$${accruedInterest.toLocaleString()}</strong>
+            </div>
+
+            <div>📊 月利率:</div>
+            <div style="text-align: right;">
+                <strong>${(rate * 100).toFixed(1)}%</strong>
+            </div>
+
+            <div>💵 總欠款 (本利和):</div>
+            <div style="text-align: right; color: #ffd966;">
+                <strong>$${totalOwed.toLocaleString()}</strong>
+            </div>
+
+            <div>📅 已過結算日:</div>
+            <div style="text-align: right;">
+                <strong>${info.settlementCount}/12</strong>
+            </div>
+
+            ${cash < totalOwed ? `
+                <div style="grid-column: 1/-1; margin-top: 8px;
+                            padding-top: 8px;
+                            border-top: 1px solid rgba(255,255,255,0.2);
+                            color: #ff9800; font-size: 12px;">
+                    ⚠️ 現金不足以全額還清，可選擇部分還款
+                </div>
+            ` : ''}
+        </div>
+    `;
         }
 
         if (amountInput) {
@@ -427,21 +431,39 @@ export class LoanTemplate {
                 if (confirmBtn) {
                     confirmBtn.disabled      = true;
                     confirmBtn.style.opacity = '0.4';
-                    confirmBtn.style.cursor  = 'not-allowed';
                     confirmBtn.textContent   = '💰 確認還款';
                 }
                 return;
             }
 
-            if (amt > cash) {
+            if (amt > totalOwed) {
+                amt = totalOwed;
+                amountInput.value = amt;
+            }
+
+            const willBeFullyPaid = amt >= totalOwed;
+            const loanCash        = info.loanCash || 0;
+
+            // ✅ Calculate loan cash refund (only on full repay)
+            let loanCashReturned = 0;
+            let cashRequired     = amt;
+
+            if (willBeFullyPaid && loanCash > 0) {
+                loanCashReturned = Math.min(loanCash, principal);
+                cashRequired     = amt - loanCashReturned;
+            }
+
+            if (cashRequired > cash) {
                 previewEl.style.display     = 'block';
                 previewEl.style.background  = 'rgba(244,67,54,0.15)';
                 previewEl.style.borderColor = 'rgba(244,67,54,0.5)';
                 previewEl.innerHTML = `
-                <div style="color: #ff6b6b;">
-                    ❌ 現金不足！你只有 $${cash.toLocaleString()}
-                </div>
-            `;
+            <div style="color: #ff6b6b;">
+                ❌ 現金不足！需要 $${cashRequired.toLocaleString()}
+                ${loanCashReturned > 0 ? `<br>(已抵銷返還貸款金 $${loanCashReturned.toLocaleString()})` : ''}
+                <br>你只有 $${cash.toLocaleString()}
+            </div>
+        `;
                 if (confirmBtn) {
                     confirmBtn.disabled      = true;
                     confirmBtn.style.opacity = '0.4';
@@ -450,16 +472,11 @@ export class LoanTemplate {
                 return;
             }
 
-            if (amt > totalToRepay) {
-                amt = totalToRepay;
-                amountInput.value = amt;
-            }
-
-            // Payment applied: interest first, then principal
-            const paidInterest  = Math.min(amt, interest);
+            // Payment: accrued interest first, then principal
+            const paidInterest  = Math.min(amt, accruedInterest);
             const paidPrincipal = amt - paidInterest;
             const newPrincipal  = principal - paidPrincipal;
-            const willBeFullyPaid = newPrincipal <= 0;
+            const newAccrued    = accruedInterest - paidInterest;
 
             previewEl.style.display     = 'block';
             previewEl.style.background  = willBeFullyPaid
@@ -468,24 +485,48 @@ export class LoanTemplate {
             previewEl.style.borderColor = 'rgba(76,175,80,0.5)';
 
             previewEl.innerHTML = `
-            <div>💸 償還利息: <strong>$${paidInterest.toLocaleString()}</strong></div>
-            <div>💰 償還本金: <strong>$${paidPrincipal.toLocaleString()}</strong></div>
+        <div>💸 償還累積利息: <strong>$${paidInterest.toLocaleString()}</strong></div>
+        <div>💰 償還本金: <strong>$${paidPrincipal.toLocaleString()}</strong></div>
+        ${loanCashReturned > 0 ? `
+            <div style="color: #4fc3f7; margin-top: 4px;">
+                🏦 返還未用貸款金: <strong>-$${loanCashReturned.toLocaleString()}</strong>
+            </div>
             <div style="border-top: 1px solid rgba(255,255,255,0.1);
                         margin-top: 6px; padding-top: 6px;">
-                📊 還款後剩餘本金:
-                <strong style="color: ${willBeFullyPaid ? '#4caf50' : '#ffd966'};">
-                    $${Math.max(0, newPrincipal).toLocaleString()}
+                💵 實付現金:
+                <strong style="color: #ff9800;">
+                    $${cashRequired.toLocaleString()}
                 </strong>
             </div>
-            <div>💵 還款後現金:
-                <strong>$${(cash - amt).toLocaleString()}</strong>
+        ` : ''}
+        <div style="border-top: 1px solid rgba(255,255,255,0.1);
+                    margin-top: 6px; padding-top: 6px;">
+            📊 還款後:
+            <br>剩餘本金:
+            <strong style="color: ${willBeFullyPaid ? '#4caf50' : '#ffd966'};">
+                $${Math.max(0, newPrincipal).toLocaleString()}
+            </strong>
+            <br>剩餘累積利息:
+            <strong style="color: ${willBeFullyPaid ? '#4caf50' : '#ff9800'};">
+                $${Math.max(0, newAccrued).toLocaleString()}
+            </strong>
+        </div>
+        <div>💵 還款後現金:
+            <strong>$${(cash - cashRequired).toLocaleString()}</strong>
+        </div>
+        ${willBeFullyPaid && loanCash > 0 ? `
+            <div>🏦 還款後貸款金:
+                <strong style="color: #4caf50;">
+                    $${(loanCash - loanCashReturned).toLocaleString()}
+                </strong>
             </div>
-            ${willBeFullyPaid ? `
-                <div style="color: #4caf50; margin-top: 6px; font-weight: bold;">
-                    ✅ 貸款將全部還清！
-                </div>
-            ` : ''}
-        `;
+        ` : ''}
+        ${willBeFullyPaid ? `
+            <div style="color: #4caf50; margin-top: 6px; font-weight: bold;">
+                ✅ 貸款將全部還清！${loanCashReturned > 0 ? '未用貸款金會歸還銀行' : ''}
+            </div>
+        ` : ''}
+    `;
 
             if (confirmBtn) {
                 confirmBtn.disabled      = false;
@@ -496,7 +537,6 @@ export class LoanTemplate {
                     : `💰 還款 $${amt.toLocaleString()}`;
             }
         };
-
         if (amountInput) {
             amountInput.addEventListener('input', updatePreview);
         }
@@ -508,11 +548,11 @@ export class LoanTemplate {
                 let val = 0;
 
                 if (mode === 'interest') {
-                    val = Math.min(interest, cash);
+                    val = Math.min(accruedInterest, cash);        // ✅ pay off just the accrued interest
                 } else if (mode === 'half') {
-                    val = Math.min(Math.round(totalToRepay / 2), cash);
+                    val = Math.min(Math.round(totalOwed / 2), cash);   // ✅ half of total owed
                 } else if (mode === 'full') {
-                    val = Math.min(totalToRepay, cash);
+                    val = Math.min(totalOwed, cash);              // ✅ full total owed
                 }
 
                 if (amountInput) {

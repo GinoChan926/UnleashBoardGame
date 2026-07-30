@@ -976,7 +976,6 @@ const marketNewsCards = [
 
 // ==================== 錦囊卡 ====================
 const tipCards = [
-
     // ==================== IN01 - Team: Health Investment ====================
     {
         id: "IN01",
@@ -1350,6 +1349,7 @@ const tipCards = [
         cost: 500,
         type: "tip",
         category: "錦囊卡",
+        hasHardshipDrawFeature: true,
         scope: "personal",
         effect: (state) => {
             const energyBonus = 2;
@@ -1358,22 +1358,12 @@ const tipCards = [
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
             // Mark for hardship card draw (handled by RevelationCardSystem or handler)
-            if (hardshipCards.length > 0) {
-                        setTimeout(() => {
-                            const { drawHardshipCard } = require('./server/cards/HardshipCardHandler.js');
-                            drawHardshipCard(playerWs, playerObj.gameState, roomId, playerObj,
-                                hardshipCards, broadcast, rooms);
-                        }, 500);
-                        outcome = '抽 1 張逆境卡';
-                    } else {
-                        outcome = '抽逆境卡失敗（無資料）';
-                    }
+            state._pendingHardshipDraw = true;
 
             return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡\n💪 勇氣可嘉，繼續保持！`;
         },
         getEffectDescription: () => "個人錦囊：精力 +2，抽取一張逆境卡"
     },
-
     // ==================== IN08 - Personal: Gratitude ====================
     {
         id: "IN08",
@@ -1449,25 +1439,15 @@ const tipCards = [
         type: "tip",
         category: "錦囊卡",
         scope: "personal",
+        hasHardshipDrawFeature: true,   // ✅ flag for RevelationCardSystem to trigger draw
         effect: (state) => {
             const energyBonus = 3;
-
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            // Mark for hardship draw
-            if (hardshipCards.length > 0) {
-                        setTimeout(() => {
-                            const { drawHardshipCard } = require('./server/cards/HardshipCardHandler.js');
-                            drawHardshipCard(playerWs, playerObj.gameState, roomId, playerObj,
-                                hardshipCards, broadcast, rooms);
-                        }, 500);
-                        outcome = '抽 1 張逆境卡';
-                    } else {
-                        outcome = '抽逆境卡失敗（無資料）';
-                    }
+            // ✅ Mark for hardship draw — RevelationCardSystem handles the actual draw
+            state._pendingHardshipDraw = true;
 
-            return `✨ 逆境恩典成功！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡\n💪 即使身處逆境，仍有滿滿恩典！`;
+            return `✨ 逆境恩典成功！\n⚡ 精力 +${energyBonus}\n📜 即將抽取一張逆境卡！\n💪 即使身處逆境，仍有滿滿恩典！`;
         },
         getEffectDescription: () => "個人錦囊：精力 +3，抽取一張逆境卡"
     },
