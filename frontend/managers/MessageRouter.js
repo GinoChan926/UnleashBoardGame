@@ -86,6 +86,7 @@ export class MessageRouter {
             // ── Finance
             'loan_approved':          m => fh().handleLoanApproved(m),
             'loan_repaid':            m => fh().handleLoanRepaid(m),
+            'loan_info':              m => fh().handleLoanInfo(m),
             'loan_rejected':          m => fh().handleLoanRejected(m),
             'forced_repayment':       m => fh().handleForcedRepayment(m),
             'settlement_reminder':    m => fh().handleSettlementReminder(m),

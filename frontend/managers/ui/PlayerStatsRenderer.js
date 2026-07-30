@@ -68,6 +68,10 @@ export class PlayerStatsRenderer {
         this._set('statHardshipShield', gameState.hardshipShield || 0);
         this._set('statLayer',         layerText);
         this._set('layerText',         layerText);
+        this._set('statLoanCash', (gameState.loanCash || 0).toLocaleString());
+        this._set('statTotalCash',
+            ((gameState.cash || 0) + (gameState.loanCash || 0)).toLocaleString()
+        );
 
         // ── Coloured elements ─────────────────────────────────────────────
         this._setHtml('statMonthlyCF', el => {

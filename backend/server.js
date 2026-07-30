@@ -31,9 +31,8 @@ global.CARD_TYPES = CARD_TYPES;
 const { getTransactions, clearTransactions, loadFromFile } = require('./server/records/TransactionRecorder.js');
 const { broadcastToRoom, getOrCreateRoom }                 = require('./server/utils/helpers.js');
 const { createHttpServer }                                 = require('./server/HttpServer.js');
-
 // ── Systems ───────────────────────────────────────────────────────────────────
-const { handleLoan, handleRepayLoan }       = require('./server/systems/LoanSystem.js');
+const { handleLoan, handleRepayLoan, handleGetLoanInfo }       = require('./server/systems/LoanSystem.js');
 const { handleFlowLayerChoice }             = require('./server/systems/FlowLayerSystem.js');
 const { executeAssetTrust }                 = require('./server/systems/AssetTrustSystem.js');
 const { handleUseEmotionalSupport, handleSkipEmotionalSupport } = require('./server/systems/EmotionalSupportSystem.js');
@@ -199,6 +198,9 @@ wss.on('connection', (ws) => {
                     break;
                 case 'repay_loan':
                     handleRepayLoan(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+                case 'get_loan_info':
+                    handleGetLoanInfo(ws, data, playerRoomId, rooms);
                     break;
                 case 'card_type_choice':
                     handleCardTypeChoice(ws, data, playerRoomId, rooms, CARD_TYPES);

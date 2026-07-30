@@ -59,7 +59,13 @@ function handleJoin(ws, data, roomId, rooms) {
         passiveIncome:   0,
         livingExpense:   professionData.livingExpense,
         tax:             professionData.tax,
-        loanAmount:      0, loanInterest: 0,
+        loanAmount:            0,
+        loanInterest:          0,
+        loanCash:            0,          // loan money kept separate
+        propertyMortgageExpense: 0,
+        loanRateBase:          10,   // 10% base monthly interest — reducible to 0.05 by tip card
+        loanCapMultiplier:     10,     // 10x monthly cashflow — upgradable to 40 by tip card
+        loanCapBaseType:       'cashflow',
         childExpense:    0, totalAssets: professionData.cash,
         energy:          professionData.energy,
         maxEnergy:       professionData.maxEnergy,

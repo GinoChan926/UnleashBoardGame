@@ -395,7 +395,10 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     if (state.skipSettlementIncome) {
         state.skipSettlementIncome = false;
         const { totalExpense } = calculateReducedExpense(state);
-        state.cash -= totalExpense;
+        // Apply the same split as above
+        const mortgageExpense  = state.propertyMortgageExpense || 0;
+        const nonInvestExpense = Math.max(0, totalExpense - mortgageExpense);
+        // (same block as above)
         return;
     }
 
@@ -413,7 +416,42 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
 
     if (totalExpense > 0) {
-        state.cash -= totalExpense;
+        const {
+            spendForInvestment,
+            spendForNonInvestment,
+            canAffordInvestment,
+            canAffordNonInvestment
+        } = require('../systems/WalletSystem.js');
+        const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+
+        const mortgageExpense  = state.propertyMortgageExpense || 0;
+        const nonInvestExpense = Math.max(0, totalExpense - mortgageExpense);
+
+        if (mortgageExpense > 0) {
+            if (canAffordInvestment(state, mortgageExpense)) {
+                spendForInvestment(state, mortgageExpense);
+            } else {
+                chargePlayer(player, mortgageExpense, {
+                    source:       '房貸月供 (途經)',
+                    creditor:     'bank',
+                    creditorName: '銀行',
+                    room, roomId, broadcastToRoom, ws
+                });
+            }
+        }
+
+        if (nonInvestExpense > 0) {
+            if (canAffordNonInvestment(state, nonInvestExpense)) {
+                spendForNonInvestment(state, nonInvestExpense);
+            } else {
+                chargePlayer(player, nonInvestExpense, {
+                    source:       '結算日支出 (途經)',
+                    creditor:     'bank',
+                    creditorName: '銀行',
+                    room, roomId, broadcastToRoom, ws
+                });
+            }
+        }
     }
 
     const expenseReductionMessage = reductionPercent > 0

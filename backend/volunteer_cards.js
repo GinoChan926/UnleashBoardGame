@@ -1,3 +1,5 @@
+const { canAffordNonInvestment, spendForNonInvestment } = require('./server/systems/WalletSystem.js');
+
 const volunteerCards = [
     {
         id: "V01",
@@ -29,7 +31,10 @@ const volunteerCards = [
                 return `❌ 現金不足 $${donation.toLocaleString()}，無法捐款`;
             }
 
-            currentPlayer.gameState.cash -= donation;
+            if (currentPlayer && canAffordNonInvestment(currentPlayer.gameState, donation)) {
+                spendForNonInvestment(currentPlayer.gameState, donation);
+            }
+            // currentPlayer.gameState.cash -= donation;
             targetPlayer.gameState.cash  += donation;
 
             currentPlayer.gameState.volunteerCount =
@@ -113,8 +118,8 @@ const volunteerCards = [
 
                 if (!donorPlayer) continue;
 
-                if (donorPlayer.gameState.cash >= donation) {
-                    donorPlayer.gameState.cash -= donation;
+                if (donorPlayer && canAffordNonInvestment(donorPlayer.gameState, donation)) {
+                    spendForNonInvestment(donorPlayer.gameState, donation);
                     totalDonation += donation;
                     donors.push(playerName);
                     // donorPlayer.gameState.luck = Math.min(
@@ -207,8 +212,8 @@ const volunteerCards = [
 
                 if (!donorPlayer) continue;
 
-                if (donorPlayer.gameState.cash >= donation) {
-                    donorPlayer.gameState.cash -= donation;
+                if (donorPlayer && canAffordNonInvestment(donorPlayer.gameState, donation)) {
+                    spendForNonInvestment(donorPlayer.gameState, donation);
                     totalDonation += donation;
                     donors.push(playerName);
                     // donorPlayer.gameState.luck = Math.min(
@@ -309,8 +314,8 @@ const volunteerCards = [
 
                 if (!donorPlayer) continue;
 
-                if (donorPlayer.gameState.cash >= donation) {
-                    donorPlayer.gameState.cash -= donation;
+                if (donorPlayer && canAffordNonInvestment(donorPlayer.gameState, donation)) {
+                    spendForNonInvestment(donorPlayer.gameState, donation);
                     totalDonation += donation;
                     donors.push(playerName);
                     // donorPlayer.gameState.luck = Math.min(

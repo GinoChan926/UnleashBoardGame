@@ -68,13 +68,17 @@ export class PlayerActionSender {
     applyLoan() {
         const { client } = this;
         if (!client.isConnected || !client.gameState || client.gameOver) return;
-        client.logManager.addLog('💰 貸款功能', 'info');
+        // ✅ Request loan info from server — frontend then opens modal
+        client.connection.send({ type: 'get_loan_info' });
     }
 
     repayLoan() {
         const { client } = this;
         if (!client.isConnected || !client.gameState || client.gameOver) return;
-        client.logManager.addLog('💰 還款功能', 'info');
+
+        // ✅ Ask server for latest loan info — server response triggers repay modal
+        client.connection.send({ type: 'get_loan_info' });
+        client._pendingRepayMode = true;   // flag so FinanceHandler knows to show repay modal
     }
 
     useFourLeafClover() {

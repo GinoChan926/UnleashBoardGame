@@ -2,6 +2,7 @@
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 const { broadcastCardReveal }   = require('../utils/CardBroadcastHelper.js');
+const { spendForNonInvestment } = require('../systems/WalletSystem.js');
 
 function showRevelationCardTypeSelection(ws, state, roomId, player, marketNewsCards, tipCards, room) {
     const cardTypes = [
@@ -66,8 +67,12 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
 
-    if (player.gameState.cash < actualCost) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 ${actualCost} 元` }));
+    const feeResult = spendForNonInvestment(player.gameState, actualCost);
+    if (!feeResult.success) {
+        ws.send(JSON.stringify({
+            type:    'purchase_failed',
+            message: feeResult.message + `（$${actualCost.toLocaleString()} 抽卡費）`
+        }));
         room.pendingRevelationEvents.delete(ws);
         return;
     }
@@ -243,8 +248,33 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
         effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
     }
 
-    // ✅ Auto-repay debts if card gave player money
-    if (player.gameState.cash > cashBefore
+    // After `card.effect(...)` runs, add cash rerouting like personal tips:
+    const cashSnapshot = player.gameState.cash || 0;
+
+    try {
+        effectResult = pendingEvent.card.effect(
+            player.gameState, room, player, ws, roomId, data.playerChoices);
+    } catch (e) {
+        effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
+    }
+
+// ✅ Market news = INVESTMENT — reroute cash spending
+    const { spendForInvestment, canAffordInvestment } = require('../systems/WalletSystem.js');
+    const cashAfter = player.gameState.cash || 0;
+    const cashSpent = cashSnapshot - cashAfter;
+
+    if (cashSpent > 0) {
+        player.gameState.cash = cashSnapshot;
+        if (canAffordInvestment(player.gameState, cashSpent)) {
+            const spendResult = spendForInvestment(player.gameState, cashSpent);
+            if (spendResult.spentLoan > 0) {
+                effectResult += ` | 🏦 貸款金 -$${spendResult.spentLoan.toLocaleString()}`;
+            }
+        }
+    }
+
+// ✅ Auto-repay debts if card gave player money
+    if (player.gameState.cash > cashSnapshot
         && player.gameState.pendingDebts?.length > 0) {
         const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
         const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);

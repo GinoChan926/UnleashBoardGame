@@ -10,6 +10,19 @@ const CARD_TYPES_META = {
     property:  { id: 'property',  name: '地產類', icon: '🏠', color: '#9c27b0' }
 };
 
+function _isPartTimeCard(card, pendingEvent) {
+    // Part-time = 兼職類
+    const cardTypeId = pendingEvent?.cardType?.id || card.cardType;
+    return cardTypeId === 'part_time';
+}
+
+function _isInvestmentEffect(card, pendingEvent) {
+    // Part-time jobs are NOT investment
+    if (_isPartTimeCard(card, pendingEvent)) return false;
+    // Everything else (finance, business, property, dream, etc.) IS investment
+    return true;
+}
+
 function showCardTypeSelection(ws, state, roomId, player, CARD_TYPES, room) {
     const cardTypes = Object.values(CARD_TYPES).map(t => ({
         id:    t.id,
@@ -167,13 +180,16 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
 
-    if (player.gameState.cash < actualCost) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 ${actualCost} 元` }));
+    const { spendForNonInvestment: _spendFee } = require('../systems/WalletSystem.js');
+    const feeResult = _spendFee(player.gameState, actualCost);
+    if (!feeResult.success) {
+        ws.send(JSON.stringify({
+            type: 'purchase_failed',
+            message: feeResult.message + `（$${actualCost.toLocaleString()} 抽卡費）`
+        }));
         room.pendingEvents.delete(ws);
         return;
     }
-
-    player.gameState.cash    -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 
@@ -247,20 +263,62 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
     let   resultMessage = '';
 
     if (execute) {
+        const isInvestment = _isInvestmentEffect(card, pendingEvent);
+        const { spendForInvestment, canAffordInvestment } = require('../systems/WalletSystem.js');
+
+        // ✅ Pre-check funds for investment cards
+        const investmentCost = card.investmentCost || 0;
+        if (isInvestment && investmentCost > 0
+            && !canAffordInvestment(player.gameState, investmentCost)) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `❌ 資金不足！投資需要 $${investmentCost.toLocaleString()}，你只有 $${(player.gameState.cash + (player.gameState.loanCash || 0)).toLocaleString()}`
+            }));
+            room.pendingEvents.delete(ws);
+            return;
+        }
+
+        // ✅ Snapshot cash to detect what the card spent
+        const cashSnapshot = player.gameState.cash || 0;
+
         effectResult = _executeCardLogic(card, data, player, room, ws, roomId);
-        if (effectResult === null) return; // waiting for async menu input
+        if (effectResult === null) return;
+
+        // ✅ If investment card spent cash, reroute through wallet (loanCash first)
+        if (isInvestment) {
+            const cashAfter = player.gameState.cash || 0;
+            const cashSpent = cashSnapshot - cashAfter;
+
+            if (cashSpent > 0) {
+                // Undo raw deduction
+                player.gameState.cash = cashSnapshot;
+
+                // Redo via wallet
+                const spendResult = spendForInvestment(player.gameState, cashSpent);
+                if (spendResult.spentLoan > 0) {
+                    effectResult += ` | 🏦 貸款金 -$${spendResult.spentLoan.toLocaleString()}`;
+                    if (spendResult.spentRegular > 0) {
+                        effectResult += ` + 現金 -$${spendResult.spentRegular.toLocaleString()}`;
+                    }
+                }
+            }
+        }
 
         resultMessage = `✨ 執行「${card.name}」成功！${effectResult}`;
 
         addTransactionRecord(player.playerName, card, '執行',
-            player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
+            (player.gameState.cash + (player.gameState.loanCash || 0))
+            - (stateBefore.cash + (stateBefore.loanCash || 0)),
+            effectResult, stateBefore, player.gameState);
 
-        if (player.gameState.cash > stateBefore.cash && player.gameState.pendingDebts?.length > 0) {
+        if (player.gameState.cash > cashSnapshot
+            && player.gameState.pendingDebts?.length > 0) {
             const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
             const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
             const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
             if (totalRepaid > 0) {
-                effectResult += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+                resultMessage += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+                effectResult  += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
             }
         }
 

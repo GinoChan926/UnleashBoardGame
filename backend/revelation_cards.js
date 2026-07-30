@@ -1103,8 +1103,18 @@ const tipCards = [
                 playerObj.gameState.energy -= energyCost;
                 playerObj.gameState.permanentLoanRate = 2;
                 playerObj.gameState.loanMultiplier = 40;
-                playerObj.gameState.sideIncomeBonus =
-                    (playerObj.gameState.sideIncomeBonus || 0) + 0.1;
+                // playerObj.gameState.sideIncomeBonus =
+                    // (playerObj.gameState.sideIncomeBonus || 0) + 0.1;
+                if (playerObj.gameState.loanAmount > 0) {
+                    playerObj.gameState.loanInterest = Math.round(
+                        playerObj.gameState.loanAmount * 0.02
+                    );
+
+                    // Also update loanRecord if it exists
+                    if (playerObj.loanRecord) {
+                        playerObj.loanRecord.interestRate = 0.02;
+                    }
+                }
 
                 learners.push(playerName);
             }

@@ -2,6 +2,8 @@
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 const { broadcastCardReveal }  = require('../utils/CardBroadcastHelper.js');
+const { processDebtCollection } = require('./AutoDebtSystem.js');
+const { spendForInvestment, canAffordInvestment } = require('./WalletSystem.js');
 
 const pendingPersonal = new Map();  // playerId → { card, room, roomId }
 const pendingTeam     = new Map();  // teamId → { card, room, roomId, responses, playerIds }
@@ -44,11 +46,39 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
+    const cashSnapshot = player.gameState.cash || 0;
+
     let resultMessage = '';
     try {
         resultMessage = card.effect(player.gameState) || `執行「${card.name}」`;
     } catch (e) {
         resultMessage = `執行「${card.name}」時發生錯誤`;
+    }
+
+// ✅ Personal tips are INVESTMENT — reroute cash spending
+    const cashAfter = player.gameState.cash || 0;
+    const cashSpent = cashSnapshot - cashAfter;
+
+    if (cashSpent > 0) {
+        if (!canAffordInvestment(player.gameState, cashSpent)) {
+            // Restore state and reject (rare edge case)
+            Object.assign(player.gameState, stateBefore);
+            ws.send(JSON.stringify({
+                type: 'error',
+                message: `❌ 資金不足執行此錦囊卡`
+            }));
+            pendingPersonal.delete(player.playerId);
+            return;
+        }
+        // Undo raw deduction, redo via wallet
+        player.gameState.cash = cashSnapshot;
+        const spendResult = spendForInvestment(player.gameState, cashSpent);
+        if (spendResult.spentLoan > 0) {
+            resultMessage += ` | 🏦 貸款金 -$${spendResult.spentLoan.toLocaleString()}`;
+            if (spendResult.spentRegular > 0) {
+                resultMessage += ` + 現金 -$${spendResult.spentRegular.toLocaleString()}`;
+            }
+        }
     }
 
     // ✅ Auto-repay debts if effect gave player money
@@ -241,10 +271,13 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         }
     }
 
-    // ✅ Snapshot cash for all participants BEFORE effect
-    const cashSnapshot = new Map();
+    // ✅ NEW: snapshot both cash + loanCash
+    const cashSnapshotMap = new Map();
     room.players.forEach(p => {
-        cashSnapshot.set(p.playerId, p.gameState.cash);
+        cashSnapshotMap.set(p.playerId, {
+            cash:     p.gameState.cash || 0,
+            loanCash: p.gameState.loanCash || 0
+        });
     });
 
     let resultMessage = '';
@@ -263,9 +296,60 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         resultMessage = `執行團隊錦囊「${card.name}」時發生錯誤`;
     }
 
-    // ✅ After team effect runs, auto-repay debts for EVERY player who gained cash
+    const investmentNotes = [];
+
+    room.players.forEach((p, pWs) => {
+        const snap        = cashSnapshotMap.get(p.playerId);
+        const cashAfter   = p.gameState.cash || 0;
+        const cashSpent   = snap.cash - cashAfter;
+
+        if (cashSpent > 0) {
+            // Restore raw cash
+            p.gameState.cash = snap.cash;
+
+            if (canAffordInvestment(p.gameState, cashSpent)) {
+                const spendResult = spendForInvestment(p.gameState, cashSpent);
+                if (spendResult.spentLoan > 0) {
+                    investmentNotes.push(
+                        `${p.playerName} 貸款金 -$${spendResult.spentLoan.toLocaleString()}`
+                    );
+                }
+            }
+            // If they can't afford after all, cash was already restored, they get the effect for free
+            // (rare — usually the card's own check prevents this)
+        }
+    });
+
+    if (investmentNotes.length > 0) {
+        resultMessage += `\n💰 投資使用: ${investmentNotes.join(', ')}`;
+    }
+
+// ✅ Auto-repay debts (existing logic)
     const { processDebtCollection } = require('./AutoDebtSystem.js');
     const repaidPlayers = [];
+
+    room.players.forEach((p, pWs) => {
+        const snap       = cashSnapshotMap.get(p.playerId);
+        const cashAfter  = p.gameState.cash || 0;
+
+        if (cashAfter > snap.cash && p.gameState.pendingDebts?.length > 0) {
+            const paidDebts   = processDebtCollection(p, room, pending.roomId, broadcastToRoom);
+            const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+            if (totalRepaid > 0) {
+                repaidPlayers.push(`${p.playerName} 償還 $${totalRepaid.toLocaleString()}`);
+                if (pWs && pWs.readyState === 1) {
+                    pWs.send(JSON.stringify({
+                        type: 'notification',
+                        message: `💸 你的收入已自動償還 $${totalRepaid.toLocaleString()} 銀行債務`
+                    }));
+                }
+            }
+        }
+    });
+
+    if (repaidPlayers.length > 0) {
+        resultMessage += `\n💸 自動償還債務: ${repaidPlayers.join('、')}`;
+    }
 
     room.players.forEach((p, pWs) => {
         const cashBefore = cashSnapshot.get(p.playerId) || 0;

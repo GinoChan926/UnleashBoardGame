@@ -29,6 +29,12 @@ export class ButtonStateManager {
         this._set('btnUseClover',     isMyTurn && clovers > 0);
         this._set('btnUseLuckyStar',  isMyTurn && stars > 0);
 
+        const ratePercent = (gameState.permanentLoanRate ?? 10).toFixed(1);
+        this._setLabel(
+            'btnLoan',
+            `🏦 申請貸款 (${ratePercent}%/月)`
+        );
+
         this._setLabel(
             'btnUseClover',
             clovers > 0 ? `🍀 四葉草 (x2) x${clovers}` : '🍀 四葉草 (x2)'
