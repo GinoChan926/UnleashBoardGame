@@ -232,12 +232,26 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
+    // ✅ Snapshot cash before effect
+    const cashBefore = player.gameState.cash;
+
     let effectResult = '';
     try {
         effectResult = pendingEvent.card.effect(
             player.gameState, room, player, ws, roomId, data.playerChoices);
     } catch (e) {
         effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
+    }
+
+    // ✅ Auto-repay debts if card gave player money
+    if (player.gameState.cash > cashBefore
+        && player.gameState.pendingDebts?.length > 0) {
+        const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+        const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
+        const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+        if (totalRepaid > 0) {
+            effectResult += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+        }
     }
 
     addTransactionRecord(player.playerName, pendingEvent.card, '市場消息', 0, effectResult, null, player.gameState);

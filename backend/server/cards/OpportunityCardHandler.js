@@ -50,6 +50,13 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
 
     room.pendingTypeSelections?.delete(ws);
 
+    const freeCardEntry = room.pendingIN03FreeCards?.get(ws);
+    const isFree        = !!freeCardEntry;
+    if (isFree) {
+        room.pendingIN03FreeCards.delete(ws);
+        console.log(`🎁 ${player.playerName} 從 IN03 免費抽卡`);
+    }
+
     const originalCard = cardTypeData.cards[Math.floor(Math.random() * cardTypeData.cards.length)];
 
     const card = Object.create(originalCard);
@@ -95,7 +102,8 @@ function handleCardTypeChoice(ws, data, roomId, rooms, CARD_TYPES) {
         cardType:  cardTypeData,
         playerId:  player.playerId,
         purchased: false,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        skipPurchaseCost: isFree
     });
 
     ws.send(JSON.stringify({
@@ -246,6 +254,15 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
 
         addTransactionRecord(player.playerName, card, '執行',
             player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
+
+        if (player.gameState.cash > stateBefore.cash && player.gameState.pendingDebts?.length > 0) {
+            const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+            const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
+            const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+            if (totalRepaid > 0) {
+                effectResult += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+            }
+        }
 
         broadcastToRoom(roomId, {
             type: 'card_executed', playerId: player.playerId, playerName: player.playerName,

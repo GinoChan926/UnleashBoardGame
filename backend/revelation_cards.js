@@ -1136,40 +1136,100 @@ const tipCards = [
         category: "錦囊卡",
         scope: "team",
         effect: (state, room, initiator, ws, roomId, playerChoices) => {
-            // Each participating player rolls, and gets result based on dice
             const results = [];
+            const CARD_TYPES = global.CARD_TYPES;
+            const broadcast  = global._broadcastToRoom;
+            const rooms      = global._rooms;
+
+            // Load card pools
+            let hardshipCards = [];
+            try { hardshipCards = require('./hardship_cards.js').hardshipCards || []; }
+            catch (e) { console.log('⚠️ 無法載入逆境卡'); }
 
             for (const [playerName, participate] of Object.entries(playerChoices || {})) {
                 if (!participate) continue;
 
                 let playerObj = null;
-                for (const [, p] of room.players) {
+                let playerWs  = null;
+                for (const [pWs, p] of room.players) {
                     if (p.playerName === playerName) {
                         playerObj = p;
+                        playerWs  = pWs;
                         break;
                     }
                 }
-                if (!playerObj) continue;
+                if (!playerObj || !playerWs) continue;
 
                 const diceRoll = Math.floor(Math.random() * 6) + 1;
+                const diceFaces = { 1:'⚀',2:'⚁',3:'⚂',4:'⚃',5:'⚄',6:'⚅' };
+                const face = diceFaces[diceRoll];
+
+                if (playerWs && playerWs.readyState === 1) {
+                    playerWs.send(JSON.stringify({
+                        type: 'notification',
+                        message: `🎲 慢活：系統為你擲出 ${face} ${diceRoll} 點！`
+                    }));
+                }
                 let outcome = '';
 
                 if (diceRoll === 1) {
-                    outcome = '抽 1 張逆境卡 (系統開發中)';
+                    // ✅ Draw real hardship card (free — hardship cards have no cost anyway)
+                    if (hardshipCards.length > 0) {
+                        setTimeout(() => {
+                            const { drawHardshipCard } = require('./server/cards/HardshipCardHandler.js');
+                            drawHardshipCard(playerWs, playerObj.gameState, roomId, playerObj,
+                                hardshipCards, broadcast, rooms);
+                        }, 500);
+                        outcome = '抽 1 張逆境卡';
+                    } else {
+                        outcome = '抽逆境卡失敗（無資料）';
+                    }
+
                 } else if (diceRoll === 2) {
                     const loss = Math.min(2000, playerObj.gameState.cash);
                     playerObj.gameState.cash -= loss;
                     outcome = `損失 $${loss.toLocaleString()}`;
+
                 } else if (diceRoll === 3 || diceRoll === 4) {
-                    outcome = '抽 1 張機會卡 (系統開發中)';
+                    // ✅ Draw real opportunity card (FREE — mark skipPurchaseCost)
+                    if (CARD_TYPES) {
+                        // Mark that when this player picks a card type, purchase should be free
+                        if (!room.pendingIN03FreeCards) room.pendingIN03FreeCards = new Map();
+                        room.pendingIN03FreeCards.set(playerWs, { source: 'IN03', timestamp: Date.now() });
+
+                        setTimeout(() => {
+                            const { showCardTypeSelection } = require('./server/cards/OpportunityCardHandler.js');
+                            showCardTypeSelection(playerWs, playerObj.gameState, roomId, playerObj,
+                                CARD_TYPES, room);
+                        }, 500);
+                        outcome = '抽 1 張機會卡 (免費)';
+                    } else {
+                        outcome = '抽機會卡失敗（無資料）';
+                    }
+
                 } else {
-                    // 5-6: give both bonuses (simplified - can't do secondary choice easily)
-                    playerObj.gameState.energy = Math.min(
-                        playerObj.gameState.maxEnergy,
-                        playerObj.gameState.energy + 2
-                    );
-                    playerObj.gameState.cash += 2000;
-                    outcome = '獲得 2 精力 + $2,000';
+                    // ✅ Dice 5-6 — prompt player to choose reward
+                    setTimeout(() => {
+                        if (!room.pendingIN03Choices) room.pendingIN03Choices = new Map();
+                        room.pendingIN03Choices.set(playerWs, {
+                            playerId: playerObj.playerId,
+                            playerName,
+                            diceRoll,
+                            timestamp: Date.now()
+                        });
+
+                        playerWs.send(JSON.stringify({
+                            type: 'in03_reward_choice',
+                            cardName: '慢活',
+                            diceRoll,
+                            options: [
+                                { id: 'cash',   label: '💰 獲得 $2,000',    description: '現金 +$2,000' },
+                                { id: 'energy', label: '⚡ 獲得 2 精力',     description: '精力 +2' }
+                            ]
+                        }));
+                    }, 500);
+
+                    outcome = `擲到 ${diceRoll}，等待選擇獎勵`;
                 }
 
                 results.push(`${playerName} 擲 ${diceRoll} → ${outcome}`);
@@ -1183,7 +1243,6 @@ const tipCards = [
         },
         getEffectDescription: () => "團隊錦囊：每人擲骰子獲得隨機獎勵或懲罰"
     },
-
     // ==================== IN04 - Personal: Health Supplement ====================
     {
         id: "IN04",
@@ -1240,12 +1299,12 @@ const tipCards = [
 
             state.cash -= investmentCost;
             state.luckyStarCount = (state.luckyStarCount || 0) + luckyStarReward;
-            state.energy = Math.min(state.maxEnergy, state.energy + 2);
+            // state.energy = Math.min(state.maxEnergy, state.energy + 2);
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n⚡ 精力 +2\n📝 目前幸運星：${state.luckyStarCount}`;
+            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n📝 目前幸運星：${state.luckyStarCount}`;
         },
-        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星，精力 +2"
+        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星"
     },
 
     // ==================== IN06 - Personal: Social Network ====================
@@ -1262,15 +1321,15 @@ const tipCards = [
             const energyBonus = 3;
 
             state.energy = Math.min(state.maxEnergy, state.energy + energyBonus);
-            state.sideIncomeBonus = Math.min(
-                0.5,
-                (state.sideIncomeBonus || 0) + 0.05
-            );
+            // state.sideIncomeBonus = Math.min(
+                // 0.5,
+                // (state.sideIncomeBonus || 0) + 0.05
+            // );
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🤝 學習社交人脈成功！\n⚡ 精力 +${energyBonus}\n🤝 人脈加成 +5%\n📈 社交圈擴展，未來機會更多！`;
+            return `🤝 學習社交人脈成功！\n⚡ 精力 +${energyBonus}`;
         },
-        getEffectDescription: () => "個人錦囊：精力 +3，人脈加成 +5%"
+        getEffectDescription: () => "個人錦囊：精力 +3"
     },
     // ==================== IN07 - Personal: Face Fear ====================
     {
@@ -1289,11 +1348,20 @@ const tipCards = [
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
             // Mark for hardship card draw (handled by RevelationCardSystem or handler)
-            state._pendingHardshipDraw = true;
+            if (hardshipCards.length > 0) {
+                        setTimeout(() => {
+                            const { drawHardshipCard } = require('./server/cards/HardshipCardHandler.js');
+                            drawHardshipCard(playerWs, playerObj.gameState, roomId, playerObj,
+                                hardshipCards, broadcast, rooms);
+                        }, 500);
+                        outcome = '抽 1 張逆境卡';
+                    } else {
+                        outcome = '抽逆境卡失敗（無資料）';
+                    }
 
-            return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡（開發中）\n💪 勇氣可嘉，繼續保持！`;
+            return `🦁 勇敢面對恐懼！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡\n💪 勇氣可嘉，繼續保持！`;
         },
-        getEffectDescription: () => "個人錦囊：精力 +2，抽取一張逆境卡（開發中）"
+        getEffectDescription: () => "個人錦囊：精力 +2，抽取一張逆境卡"
     },
 
     // ==================== IN08 - Personal: Gratitude ====================
@@ -1310,12 +1378,12 @@ const tipCards = [
             const cloverReward = 2;
 
             state.fourLeafClover = (state.fourLeafClover || 0) + cloverReward;
-            state.energy = Math.min(state.maxEnergy, state.energy + 2);
+            // state.energy = Math.min(state.maxEnergy, state.energy + 2);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🙏 凡事感恩成功！\n🍀 獲得：${cloverReward} 個四葉草\n⚡ 精力 +2\n✨ 感恩的心帶來奇蹟！\n📝 目前四葉草：${state.fourLeafClover}`;
+            return `🙏 凡事感恩成功！\n🍀 獲得：${cloverReward} 個四葉草\n✨ 感恩的心帶來奇蹟！\n📝 目前四葉草：${state.fourLeafClover}`;
         },
-        getEffectDescription: () => "個人錦囊：獲得 2 個四葉草，精力 +2"
+        getEffectDescription: () => "個人錦囊：獲得 2 個四葉草"
     },
 
     // ==================== IN09 - Personal: Stay Vigilant ====================
@@ -1330,12 +1398,12 @@ const tipCards = [
         scope: "personal",
         effect: (state) => {
             state.lierCardCancellation = (state.lierCardCancellation || 0) + 1;
-            state.energy = Math.min(state.maxEnergy, state.energy + 2);
+            // state.energy = Math.min(state.maxEnergy, state.energy + 2);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🛡️ 保持警惕成功！\n🛡️ 獲得：1 次取消騙子卡的機會\n⚡ 精力 +2\n📝 下一張騙子卡將被自動取消！\n🔒 遠離詐騙，保護財產！`;
+            return `🛡️ 保持警惕成功！\n🛡️ 獲得：1 次取消騙子卡的機會\n📝 下一張騙子卡將被自動取消！\n🔒 遠離詐騙，保護財產！`;
         },
-        getEffectDescription: () => "個人錦囊：取消下一張騙子卡，精力 +2"
+        getEffectDescription: () => "個人錦囊：取消下一張騙子卡"
     },
 
     // ==================== IN10 - Personal: Report Scam ====================
@@ -1353,12 +1421,12 @@ const tipCards = [
             state.volunteerShield = (state.volunteerShield || 0) + 1;
 
             // -1 for reporting effort, +2 satisfaction = net +1
-            state.energy = Math.min(state.maxEnergy, state.energy + 1);
+            // state.energy = Math.min(state.maxEnergy, state.energy + 1);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
 
-            return `👮 舉報騙案成功！\n👮 獲得：1 次義工資格\n⚡ 精力 +1（淨效果）\n📝 目前義工次數：${state.volunteerShield}\n🤝 可幫助其他玩家防範騙子卡！`;
+            return `👮 舉報騙案成功！\n👮 獲得：1 次義工資格\n📝 目前義工次數：${state.volunteerShield}\n🤝 可幫助其他玩家防範騙子卡！`;
         },
-        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格，精力 +1"
+        getEffectDescription: () => "個人錦囊：獲得 1 次義工資格"
     },
 
     // ==================== IN11 - Personal: Grace in Adversity ====================
@@ -1378,11 +1446,20 @@ const tipCards = [
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
 
             // Mark for hardship draw
-            state._pendingHardshipDraw = true;
+            if (hardshipCards.length > 0) {
+                        setTimeout(() => {
+                            const { drawHardshipCard } = require('./server/cards/HardshipCardHandler.js');
+                            drawHardshipCard(playerWs, playerObj.gameState, roomId, playerObj,
+                                hardshipCards, broadcast, rooms);
+                        }, 500);
+                        outcome = '抽 1 張逆境卡';
+                    } else {
+                        outcome = '抽逆境卡失敗（無資料）';
+                    }
 
-            return `✨ 逆境恩典成功！\n⚡ 精力 +${energyBonus}\n🍀 幸運值 +1\n📜 將抽取一張逆境卡（開發中）\n💪 即使身處逆境，仍有滿滿恩典！`;
+            return `✨ 逆境恩典成功！\n⚡ 精力 +${energyBonus}\n📜 將抽取一張逆境卡\n💪 即使身處逆境，仍有滿滿恩典！`;
         },
-        getEffectDescription: () => "個人錦囊：精力 +3，幸運值 +1，抽取一張逆境卡（開發中）"
+        getEffectDescription: () => "個人錦囊：精力 +3，抽取一張逆境卡"
     },
 
     // ==================== IN12 - Personal: Time Management ====================
@@ -1397,11 +1474,11 @@ const tipCards = [
         scope: "personal",
         effect: (state) => {
             state.extraTurn = true;
-            state.energy = Math.min(state.maxEnergy, state.energy + 1);
+            // state.energy = Math.min(state.maxEnergy, state.energy + 1);
 
-            return `⏰ 時間管理生效！\n✨ 獲得一個額外回合！\n⚡ 精力 +1\n📌 結束目前回合後，你將立即進行下一回合！`;
+            return `⏰ 時間管理生效！\n✨ 獲得一個額外回合！\n📌 結束目前回合後，你將立即進行下一回合！`;
         },
-        getEffectDescription: () => "個人錦囊：獲得一個額外回合，精力 +1"
+        getEffectDescription: () => "個人錦囊：獲得一個額外回合"
     },
 
     // ==================== IN13 - Personal: Gift Chance Card ====================
@@ -1438,10 +1515,10 @@ const tipCards = [
         hasMoveForwardFeature: true,   // ← triggers movement flow
         moveMode: 'random',             // ← random 1-3 steps
         effect: (state) => {
-            state.energy = Math.max(0, state.energy - 1);
+            // state.energy = Math.max(0, state.energy - 1);
             return `🐴 黑馬思維！將隨機前進 1-3 格`;
         },
-        getEffectDescription: () => "個人錦囊：隨機前進 1-3 格並執行格子效果，精力 -1"
+        getEffectDescription: () => "個人錦囊：隨機前進 1-3 格並執行格子效果"
     },
 
     // ==================== IN15 - Personal: Move 1-3 Choose ====================
@@ -1457,11 +1534,11 @@ const tipCards = [
         hasMoveForwardFeature: true,
         moveMode: 'choose',             // ← player picks 1-3
         effect: (state) => {
-            state.energy = Math.max(0, state.energy - 1);
+            // state.energy = Math.max(0, state.energy - 1);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 1);
             return `🐴 黑馬思維！請選擇要前進的格數 (1-3)`;
         },
-        getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果，精力 -1"
+        getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果"
     },
 
     // ==================== IN16 - Personal: Move to Income Tile ====================
@@ -1477,11 +1554,11 @@ const tipCards = [
         hasMoveForwardFeature: true,
         moveMode: 'income',             // ← auto move to nearest income tile
         effect: (state) => {
-            state.energy = Math.max(0, state.energy - 1);
+            // state.energy = Math.max(0, state.energy - 1);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
             return `🐴 黑馬思維！將前往最近的月收入格`;
         },
-        getEffectDescription: () => "個人錦囊：前往最近的月收入格，精力 -1"
+        getEffectDescription: () => "個人錦囊：前往最近的月收入格"
     },
 
     // ==================== IN17 - Personal: Move to Nearest Player ====================
@@ -1497,11 +1574,11 @@ const tipCards = [
         hasMoveForwardFeature: true,
         moveMode: 'nearest_player',    // ← auto move to nearest player
         effect: (state) => {
-            state.energy = Math.max(0, state.energy - 1);
+            // state.energy = Math.max(0, state.energy - 1);
             // state.luck   = Math.min(state.maxLuck || 10, state.luck + 2);
             return `🐴 黑馬思維！將前進到最近玩家的位置`;
         },
-        getEffectDescription: () => "個人錦囊：前進到最近玩家格子，精力 -1"
+        getEffectDescription: () => "個人錦囊：前進到最近玩家格子"
     }
 ];
 

@@ -1,7 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
-const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
+const { broadcastCardReveal }  = require('../utils/CardBroadcastHelper.js');
 
 const pendingPersonal = new Map();  // playerId → { card, room, roomId }
 const pendingTeam     = new Map();  // teamId → { card, room, roomId, responses, playerIds }
@@ -10,21 +10,15 @@ const TEAM_TIMEOUT = 30000;  // 30s for team decisions
 
 // ==================== Personal card flow ====================
 
-/**
- * Show personal card to only the drawer.
- * Server sends prompt with full card details.
- */
 function startPersonalCard(ws, roomId, player, card, broadcastToRoom, rooms) {
     pendingPersonal.set(player.playerId, { card, roomId });
 
-    // Send card details to drawer only
     ws.send(JSON.stringify({
         type: 'personal_card_prompt',
         card: _serializeCard(card),
         message: `📜 你抽到「${card.name}」錦囊卡，是否執行？`
     }));
 
-    // Notify OTHERS with only the fact that someone drew a card - no content
     broadcastToRoom(roomId, {
         type: 'notification',
         message: `📜 ${player.playerName} 正在查看個人錦囊卡...`
@@ -33,9 +27,6 @@ function startPersonalCard(ws, roomId, player, card, broadcastToRoom, rooms) {
     console.log(`📜 ${player.playerName} 個人錦囊卡: ${card.name}`);
 }
 
-/**
- * Player responds to personal card - execute or decline.
- */
 function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
     const room   = rooms.get(roomId);
     const player = room?.players.get(ws);
@@ -44,8 +35,8 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
     const pending = pendingPersonal.get(player.playerId);
     if (!pending) return;
 
-    const { card } = pending;
-    const execute = data.execute === true;
+    const { card }   = pending;
+    const execute    = data.execute === true;
     const stateBefore = JSON.parse(JSON.stringify(player.gameState));
 
     if (!execute) {
@@ -53,12 +44,22 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // Run the effect
     let resultMessage = '';
     try {
         resultMessage = card.effect(player.gameState) || `執行「${card.name}」`;
     } catch (e) {
         resultMessage = `執行「${card.name}」時發生錯誤`;
+    }
+
+    // ✅ Auto-repay debts if effect gave player money
+    if (player.gameState.cash > stateBefore.cash
+        && player.gameState.pendingDebts?.length > 0) {
+        const { processDebtCollection } = require('./AutoDebtSystem.js');
+        const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
+        const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+        if (totalRepaid > 0) {
+            resultMessage += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+        }
     }
 
     addTransactionRecord(
@@ -86,7 +87,6 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         gameState: player.gameState
     });
 
-    // ✅ NEW: Broadcast card reveal to other players AFTER execution
     broadcastCardReveal({
         roomId,
         drawerWs:      ws,
@@ -107,7 +107,7 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
 
     pendingPersonal.delete(player.playerId);
 
-    // ── Follow-up features (unchanged) ────────────────────────────────
+    // ── Follow-up features ────────────────────────────────────────────
 
     if (card.hasGiftChanceCardFeature) {
         const { startGiftCardFlow } = require('./GiftCardSystem.js');
@@ -149,9 +149,6 @@ function handlePersonalCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
 
 // ==================== Team card flow ====================
 
-/**
- * Show team card to ALL players - each decides individually.
- */
 function startTeamCard(ws, roomId, initiator, card, broadcastToRoom, rooms) {
     const room = rooms.get(roomId);
     if (!room) return;
@@ -162,14 +159,13 @@ function startTeamCard(ws, roomId, initiator, card, broadcastToRoom, rooms) {
     pendingTeam.set(teamId, {
         card,
         roomId,
-        initiatorId: initiator.playerId,
+        initiatorId:   initiator.playerId,
         initiatorName: initiator.playerName,
-        responses: new Map(),   // playerId → true/false
+        responses:     new Map(),
         playerIds,
-        startedAt: Date.now()
+        startedAt:     Date.now()
     });
 
-    // Send card details to ALL players
     room.players.forEach((p, pWs) => {
         pWs.send(JSON.stringify({
             type: 'team_card_prompt',
@@ -184,7 +180,6 @@ function startTeamCard(ws, roomId, initiator, card, broadcastToRoom, rooms) {
 
     console.log(`👥 ${initiator.playerName} 團隊錦囊: ${card.name} (teamId=${teamId})`);
 
-    // Auto-finalize after timeout
     setTimeout(() => {
         const pending = pendingTeam.get(teamId);
         if (pending) {
@@ -193,9 +188,6 @@ function startTeamCard(ws, roomId, initiator, card, broadcastToRoom, rooms) {
     }, TEAM_TIMEOUT);
 }
 
-/**
- * Player responds to team card.
- */
 function handleTeamCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
     const room   = rooms.get(roomId);
     const player = room?.players.get(ws);
@@ -207,24 +199,18 @@ function handleTeamCardResponse(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // Record response
     pending.responses.set(player.playerId, data.participate === true);
 
-    // Notify initiator of progress
     broadcastToRoom(roomId, {
         type: 'notification',
         message: `👥 ${player.playerName} 已回應團隊錦囊 (${pending.responses.size}/${pending.playerIds.length})`
     });
 
-    // If everyone has responded, finalize immediately
     if (pending.responses.size >= pending.playerIds.length) {
         _finalizeTeamCard(data.teamId, rooms, broadcastToRoom);
     }
 }
 
-/**
- * Called when all players responded OR timeout expired.
- */
 function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
     const pending = pendingTeam.get(teamId);
     if (!pending) return;
@@ -237,7 +223,6 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
 
     const { card, responses } = pending;
 
-    // Build playerChoices object for the card's effect function
     const playerChoices = {};
     room.players.forEach(p => {
         const chose = responses.get(p.playerId);
@@ -246,7 +231,6 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
 
     console.log(`👥 團隊錦囊結算: ${card.name}`, playerChoices);
 
-    // Find the initiator player and ws
     let initiatorPlayer = null;
     let initiatorWs = null;
     for (const [pWs, p] of room.players) {
@@ -257,7 +241,12 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         }
     }
 
-    // Run the card's effect with playerChoices
+    // ✅ Snapshot cash for all participants BEFORE effect
+    const cashSnapshot = new Map();
+    room.players.forEach(p => {
+        cashSnapshot.set(p.playerId, p.gameState.cash);
+    });
+
     let resultMessage = '';
     try {
         resultMessage = card.effect(
@@ -267,14 +256,42 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
             initiatorWs,
             pending.roomId,
             playerChoices,
-            broadcastToRoom  // ← pass broadcastToRoom as extra arg
+            broadcastToRoom
         ) || `團隊錦囊「${card.name}」完成`;
     } catch (e) {
         console.error('Team card effect error:', e);
         resultMessage = `執行團隊錦囊「${card.name}」時發生錯誤`;
     }
 
-    // Broadcast final result to everyone
+    // ✅ After team effect runs, auto-repay debts for EVERY player who gained cash
+    const { processDebtCollection } = require('./AutoDebtSystem.js');
+    const repaidPlayers = [];
+
+    room.players.forEach((p, pWs) => {
+        const cashBefore = cashSnapshot.get(p.playerId) || 0;
+        const cashAfter  = p.gameState.cash;
+
+        if (cashAfter > cashBefore && p.gameState.pendingDebts?.length > 0) {
+            const paidDebts = processDebtCollection(p, room, pending.roomId, broadcastToRoom);
+            const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+            if (totalRepaid > 0) {
+                repaidPlayers.push(`${p.playerName} 償還 $${totalRepaid.toLocaleString()}`);
+
+                // Notify each player individually
+                if (pWs && pWs.readyState === 1) {
+                    pWs.send(JSON.stringify({
+                        type: 'notification',
+                        message: `💸 你的收入已自動償還 $${totalRepaid.toLocaleString()} 銀行債務`
+                    }));
+                }
+            }
+        }
+    });
+
+    if (repaidPlayers.length > 0) {
+        resultMessage += `\n💸 自動償還債務: ${repaidPlayers.join('、')}`;
+    }
+
     broadcastToRoom(pending.roomId, {
         type: 'team_card_result',
         teamId,
@@ -284,7 +301,6 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
         playerChoices
     });
 
-    // Update all players' states
     room.players.forEach(p => {
         broadcastToRoom(pending.roomId, {
             type: 'state_updated',
@@ -296,18 +312,103 @@ function _finalizeTeamCard(teamId, rooms, broadcastToRoom) {
     pendingTeam.delete(teamId);
 }
 
+// ==================== IN03 Reward Choice ====================
+
+function handleIN03RewardChoice(ws, data, roomId, rooms, broadcastToRoom) {
+    const room   = rooms.get(roomId);
+    const player = room?.players.get(ws);
+    if (!room || !player) return;
+
+    const pending = room.pendingIN03Choices?.get(ws);
+    if (!pending) {
+        ws.send(JSON.stringify({ type: 'error', message: '沒有待處理的獎勵選擇' }));
+        return;
+    }
+
+    const choice = data.choice;
+    let message = '';
+    let autoRepaidNote = '';
+
+    if (choice === 'cash') {
+        // ✅ Use creditPlayer so debts auto-repay
+        const { creditPlayer } = require('./AutoDebtSystem.js');
+        const result = creditPlayer(player, 2000, {
+            room, roomId, broadcastToRoom,
+            source: 'IN03 慢活現金獎勵'
+        });
+
+        message = `💰 你選擇獲得 $2,000！`;
+        if (result.autoRepaid > 0) {
+            autoRepaidNote = ` (其中 $${result.autoRepaid.toLocaleString()} 自動償還銀行債務)`;
+            message += autoRepaidNote;
+        }
+
+        addTransactionRecord(
+            player.playerName,
+            { name: '慢活 - 現金獎勵', type: 'tip', id: 'IN03_CASH' },
+            '團隊錦囊獎勵',
+            2000,
+            `選擇 $2,000 現金獎勵${autoRepaidNote}`,
+            null,
+            player.gameState
+        );
+
+    } else if (choice === 'energy') {
+        const gained = Math.min(2, player.gameState.maxEnergy - player.gameState.energy);
+        player.gameState.energy = Math.min(
+            player.gameState.maxEnergy,
+            player.gameState.energy + 2
+        );
+        message = `⚡ 你選擇獲得 ${gained} 精力！`;
+
+        addTransactionRecord(
+            player.playerName,
+            { name: '慢活 - 精力獎勵', type: 'tip', id: 'IN03_ENERGY' },
+            '團隊錦囊獎勵',
+            0,
+            `選擇獲得 2 精力（實際 +${gained}）`,
+            null,
+            player.gameState
+        );
+    } else {
+        ws.send(JSON.stringify({ type: 'error', message: '無效的選擇' }));
+        return;
+    }
+
+    ws.send(JSON.stringify({
+        type: 'in03_reward_choice_result',
+        choice,
+        message,
+        gameState: player.gameState
+    }));
+
+    broadcastToRoom(roomId, {
+        type: 'notification',
+        message: `🧘 ${player.playerName} 慢活選擇了${choice === 'cash' ? '$2,000' : '2 精力'}`
+    }, ws);
+
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: player.gameState
+    });
+
+    room.pendingIN03Choices.delete(ws);
+    console.log(`🧘 ${player.playerName} IN03 選擇: ${choice}`);
+}
+
 // ==================== Private ====================
 
 function _serializeCard(card) {
     return {
-        id:          card.id,
-        name:        card.name,
-        description: card.description,
-        image:       card.image,
-        scope:       card.scope || 'personal',
-        cardType:    card.type || 'tip',
-        cardTypeName:'錦囊卡',
-        cardTypeIcon:'🎁'
+        id:           card.id,
+        name:         card.name,
+        description:  card.description,
+        image:        card.image,
+        scope:        card.scope || 'personal',
+        cardType:     card.type || 'tip',
+        cardTypeName: '錦囊卡',
+        cardTypeIcon: '🎁'
     };
 }
 
@@ -315,5 +416,6 @@ module.exports = {
     startPersonalCard,
     handlePersonalCardResponse,
     startTeamCard,
-    handleTeamCardResponse
+    handleTeamCardResponse,
+    handleIN03RewardChoice
 };

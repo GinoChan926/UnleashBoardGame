@@ -72,6 +72,9 @@ export class CardHandler {
     handleStockMenu(m)         { this.opportunity.handleStockMenu(m); }
     handleCryptoMenu(m)        { this.opportunity.handleCryptoMenu(m); }
     handleFoodDeliveryMenu(m)  { this.opportunity.handleFoodDeliveryMenu(m); }
+    handleIN03RewardChoice(m)       { this.revelation.handleIN03RewardChoice(m); }
+    handleIN03RewardChoiceResult(m) { this.revelation.handleIN03RewardChoiceResult(m); }
+    handleBankDebtRepaySuccess(m) { this.lending.handleBankDebtRepaySuccess(m); }
 
     // ── Volunteer ─────────────────────────────────────────────────────────
     handleVolunteerCardExecute(m) { this.volunteer.handleVolunteerCardExecute(m); }

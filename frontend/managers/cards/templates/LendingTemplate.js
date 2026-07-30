@@ -71,11 +71,24 @@ export class LendingTemplate {
         const totalLent = message.lentOut.reduce((s, d) => s + d.amount, 0);
         const totalOwed = message.debtsOwed.reduce((s, d) => s + d.amount, 0);
 
+        // ✅ NEW: bank debt total
+        const pendingDebts   = message.pendingDebts || [];
+        const totalBankDebt  = pendingDebts.reduce((s, d) => s + d.amount, 0);
+
         const tabs = [
-            { key: 'lend',  label: '💸 借出',   count: null },
-            { key: 'lent',  label: '📤 已借出', count: `$${totalLent.toLocaleString()}` },
-            { key: 'owed',  label: '📥 待還款', count: `$${totalOwed.toLocaleString()}` }
+            { key: 'lend',  label: '💸 借出',     count: null },
+            { key: 'lent',  label: '📤 已借出',   count: `$${totalLent.toLocaleString()}` },
+            { key: 'owed',  label: '📥 待還款',   count: `$${totalOwed.toLocaleString()}` }
         ];
+
+        // ✅ Only show bank debt tab if there are any
+        if (pendingDebts.length > 0) {
+            tabs.push({
+                key:   'bank',
+                label: '🏦 銀行債務',
+                count: `$${totalBankDebt.toLocaleString()}`
+            });
+        }
 
         tabsEl.innerHTML = '';
         tabs.forEach((tab, idx) => {
@@ -84,13 +97,21 @@ export class LendingTemplate {
             btn.dataset.tabKey = tab.key;
 
             const isActive = idx === 0;
+            const isBank   = tab.key === 'bank';
+
             btn.style.cssText = `
                 background: ${isActive
                 ? 'linear-gradient(135deg, #f57c00, #e65100)'
-                : 'rgba(0,0,0,0.4)'};
+                : isBank
+                    ? 'rgba(239,83,80,0.3)'
+                    : 'rgba(0,0,0,0.4)'};
                 color: white;
                 padding: 8px 14px;
-                border: 1px solid ${isActive ? '#ffb74d' : 'rgba(255,255,255,0.2)'};
+                border: 1px solid ${
+                isActive ? '#ffb74d'
+                    : isBank ? '#ef5350'
+                        : 'rgba(255,255,255,0.2)'
+            };
                 border-radius: 20px;
                 cursor: pointer;
                 font-size: 13px;
@@ -98,16 +119,21 @@ export class LendingTemplate {
             `;
 
             btn.innerHTML = tab.count
-                ? `${tab.label} <span style="color: #ffd966; margin-left: 4px;">(${tab.count})</span>`
+                ? `${tab.label} <span style="color: ${isBank ? '#ff8a80' : '#ffd966'}; margin-left: 4px;">(${tab.count})</span>`
                 : tab.label;
 
             btn.onclick = () => {
                 document.querySelectorAll('.lending-tab-btn').forEach(b => {
-                    b.style.background   = 'rgba(0,0,0,0.4)';
-                    b.style.borderColor  = 'rgba(255,255,255,0.2)';
+                    const bIsBank = b.dataset.tabKey === 'bank';
+                    b.style.background = bIsBank
+                        ? 'rgba(239,83,80,0.3)'
+                        : 'rgba(0,0,0,0.4)';
+                    b.style.borderColor = bIsBank
+                        ? '#ef5350'
+                        : 'rgba(255,255,255,0.2)';
                 });
-                btn.style.background     = 'linear-gradient(135deg, #f57c00, #e65100)';
-                btn.style.borderColor    = '#ffb74d';
+                btn.style.background  = 'linear-gradient(135deg, #f57c00, #e65100)';
+                btn.style.borderColor = '#ffb74d';
                 this._showTab(tab.key, message, escapeHtml, callbacks);
             };
 
@@ -125,6 +151,15 @@ export class LendingTemplate {
             this._renderLentList(contentEl, message.lentOut, escapeHtml);
         } else if (tabKey === 'owed') {
             this._renderOwedList(contentEl, message.debtsOwed, escapeHtml, callbacks);
+        } else if (tabKey === 'bank') {
+            // ✅ NEW
+            this._renderBankDebtList(
+                contentEl,
+                message.pendingDebts || [],
+                message.cash,
+                escapeHtml,
+                callbacks
+            );
         }
     }
 
@@ -189,7 +224,6 @@ export class LendingTemplate {
                     </div>
                 </div>
 
-                <!-- ✅ Live preview of total repayment -->
                 <div id="lendPreview" style="
                     background: rgba(255,193,7,0.15);
                     border: 1px solid rgba(255,193,7,0.4);
@@ -200,8 +234,7 @@ export class LendingTemplate {
                     font-size: 13px;
                     text-align: center;
                     display: none;
-                ">
-                </div>
+                "></div>
 
                 <div style="margin-bottom: 14px;">
                     <label style="color: #ffe0b2; font-size: 13px;
@@ -233,7 +266,6 @@ export class LendingTemplate {
             </div>
         `;
 
-        // ✅ Live preview update
         const amountInput   = document.getElementById('lendAmountInput');
         const interestInput = document.getElementById('lendInterestInput');
         const previewEl     = document.getElementById('lendPreview');
@@ -261,7 +293,6 @@ export class LendingTemplate {
         amountInput.addEventListener('input', updatePreview);
         interestInput.addEventListener('input', updatePreview);
 
-        // Submit button
         const submitBtn = document.getElementById('lendSubmitBtn');
         if (submitBtn) {
             submitBtn.onclick = () => {
@@ -270,22 +301,10 @@ export class LendingTemplate {
                 const interestRate   = parseFloat(interestInput?.value) || 0;
                 const note           = document.getElementById('lendNoteInput')?.value || '';
 
-                if (!targetPlayerId) {
-                    alert('請選擇借款對象');
-                    return;
-                }
-                if (!amount || amount < 1) {
-                    alert('請輸入有效金額');
-                    return;
-                }
-                if (amount > message.cash) {
-                    alert('現金不足');
-                    return;
-                }
-                if (interestRate < 0 || interestRate > 100) {
-                    alert('利率必須介於 0 到 100%');
-                    return;
-                }
+                if (!targetPlayerId) { alert('請選擇借款對象'); return; }
+                if (!amount || amount < 1) { alert('請輸入有效金額'); return; }
+                if (amount > message.cash) { alert('現金不足'); return; }
+                if (interestRate < 0 || interestRate > 100) { alert('利率必須介於 0 到 100%'); return; }
 
                 callbacks.onLend(targetPlayerId, amount, note, interestRate);
             };
@@ -327,7 +346,7 @@ export class LendingTemplate {
             const principal  = d.principal      || d.originalAmount;
             const interest   = d.interestAmount || 0;
             const rate       = d.interestRate   || 0;
-            const totalOwed  = d.originalAmount;  // principal + interest
+            const totalOwed  = d.originalAmount;
             const paid       = totalOwed - d.amount;
             const progress   = totalOwed > 0 ? Math.round((paid / totalOwed) * 100) : 0;
 
@@ -475,10 +494,7 @@ export class LendingTemplate {
                 const debtId = btn.dataset.debtId;
                 const input  = document.querySelector(`.repay-amount-input[data-debt-id="${debtId}"]`);
                 const amount = parseInt(input?.value);
-                if (!amount || amount < 1) {
-                    alert('請輸入還款金額');
-                    return;
-                }
+                if (!amount || amount < 1) { alert('請輸入還款金額'); return; }
                 if (confirm(`確認還款 $${amount.toLocaleString()} 嗎？`)) {
                     callbacks.onRepay(debtId, amount);
                 }
@@ -495,6 +511,165 @@ export class LendingTemplate {
             };
         });
     }
+
+    // ==================== 🏦 NEW: Bank debt list ====================
+
+    static _renderBankDebtList(container, pendingDebts, currentCash, escapeHtml, callbacks) {
+        if (pendingDebts.length === 0) {
+            container.innerHTML = this._emptyState('✅ 你目前沒有任何銀行債務！');
+            return;
+        }
+
+        const totalDebt = pendingDebts.reduce((s, d) => s + d.amount, 0);
+
+        let html = `
+            <div style="background: rgba(239,83,80,0.15); padding: 12px;
+                        border-radius: 10px; margin-bottom: 12px;
+                        text-align: center; color: #ff8a80;
+                        border: 1px solid rgba(239,83,80,0.3);">
+                🏦 待償還銀行債務總額
+                <strong style="color: #fff; font-size: 18px;">
+                    $${totalDebt.toLocaleString()}
+                </strong>
+                <div style="font-size: 11px; color: #ffcdd2; margin-top: 4px;">
+                    ⚠️ 這些債務會在結算日或收到收入時自動償還
+                </div>
+            </div>
+
+            <div style="background: rgba(76,175,80,0.15); padding: 10px;
+                        border-radius: 10px; margin-bottom: 12px;
+                        text-align: center; color: #a5d6a7;
+                        border: 1px solid rgba(76,175,80,0.3);">
+                💵 現金餘額 <strong>$${currentCash.toLocaleString()}</strong>
+            </div>
+
+            <button id="repayAllBankDebtsBtn"
+                    style="width: 100%; background: linear-gradient(135deg, #4caf50, #2e7d32);
+                           color: white; padding: 12px; border: none;
+                           border-radius: 20px; cursor: pointer;
+                           font-size: 14px; font-weight: bold;
+                           margin-bottom: 14px;
+                           box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+                           ${currentCash <= 0 ? 'opacity:0.4; cursor:not-allowed;' : ''}"
+                    ${currentCash <= 0 ? 'disabled' : ''}>
+                💰 一次還清全部 (最多 $${Math.min(currentCash, totalDebt).toLocaleString()})
+            </button>
+        `;
+
+        pendingDebts.forEach(d => {
+            const createdDate = d.createdAt
+                ? new Date(d.createdAt).toLocaleString('zh-HK', {
+                    month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit'
+                })
+                : '';
+
+            html += `
+                <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
+                            padding: 14px; margin-bottom: 10px;
+                            border-left: 4px solid #ef5350;">
+
+                    <div style="display: flex; justify-content: space-between;
+                                align-items: center; margin-bottom: 8px;">
+                        <div style="color: #ff8a80; font-weight: bold; font-size: 15px;">
+                            🏦 ${escapeHtml(d.creditorName || '銀行')}
+                        </div>
+                        <div style="color: #ffd966; font-weight: bold;">
+                            $${d.amount.toLocaleString()}
+                        </div>
+                    </div>
+
+                    <div style="font-size: 12px; color: #b0bec5; margin-bottom: 10px;">
+                        <div>📌 來源: <strong>${escapeHtml(d.source || '未知')}</strong></div>
+                        ${createdDate ? `<div>🕒 產生時間: ${createdDate}</div>` : ''}
+                    </div>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" class="bank-repay-amount-input"
+                               data-debt-id="${d.id}"
+                               min="1" max="${Math.min(d.amount, currentCash)}"
+                               placeholder="還款金額"
+                               style="flex: 1; padding: 8px; border-radius: 8px;
+                                      border: 1px solid #ef5350;
+                                      background: rgba(0,0,0,0.5); color: #fff;
+                                      font-size: 13px; text-align: center; box-sizing: border-box;"
+                               ${currentCash <= 0 ? 'disabled' : ''}>
+                        <button class="bank-repay-partial-btn"
+                                data-debt-id="${d.id}"
+                                style="background: #ff9800; color: white;
+                                       padding: 8px 14px; border: none;
+                                       border-radius: 20px; cursor: pointer;
+                                       font-size: 12px; white-space: nowrap;
+                                       ${currentCash <= 0 ? 'opacity:0.4; cursor:not-allowed;' : ''}"
+                                ${currentCash <= 0 ? 'disabled' : ''}>
+                            💰 部分還款
+                        </button>
+                        <button class="bank-repay-full-btn"
+                                data-debt-id="${d.id}"
+                                data-full-amount="${Math.min(d.amount, currentCash)}"
+                                style="background: linear-gradient(135deg, #4caf50, #388e3c);
+                                       color: white; padding: 8px 14px; border: none;
+                                       border-radius: 20px; cursor: pointer;
+                                       font-size: 12px; white-space: nowrap;
+                                       ${currentCash < d.amount ? 'opacity:0.6;' : ''}
+                                       ${currentCash <= 0 ? 'cursor:not-allowed;' : ''}"
+                                ${currentCash <= 0 ? 'disabled' : ''}
+                                title="${currentCash < d.amount ? '現金不足以全還，將盡量還' : '全額還清'}">
+                            ${currentCash >= d.amount ? '✅ 全額還清' : '💵 現有全還'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        // ── Bind "一次還清全部" ──────────────────────────────────────
+        const allBtn = document.getElementById('repayAllBankDebtsBtn');
+        if (allBtn && currentCash > 0) {
+            allBtn.onclick = () => {
+                const payAmount = Math.min(currentCash, totalDebt);
+                if (confirm(`確認一次還款 $${payAmount.toLocaleString()} 給銀行嗎？\n(採先入先出方式清償各筆債務)`)) {
+                    callbacks.onPayBankDebt(null, payAmount);  // null = FIFO
+                }
+            };
+            allBtn.onmouseenter = () => { allBtn.style.transform = 'scale(1.02)'; };
+            allBtn.onmouseleave = () => { allBtn.style.transform = 'scale(1)'; };
+        }
+
+        // ── Bind partial repay per debt ────────────────────────────
+        document.querySelectorAll('.bank-repay-partial-btn').forEach(btn => {
+            btn.onclick = () => {
+                const debtId = btn.dataset.debtId;
+                const input  = document.querySelector(
+                    `.bank-repay-amount-input[data-debt-id="${debtId}"]`
+                );
+                const amount = parseInt(input?.value);
+                if (!amount || amount < 1) { alert('請輸入還款金額'); return; }
+                if (amount > currentCash) { alert('現金不足'); return; }
+                if (confirm(`確認還款 $${amount.toLocaleString()} 給銀行嗎？`)) {
+                    callbacks.onPayBankDebt(debtId, amount);
+                }
+            };
+        });
+
+        // ── Bind full repay per debt ───────────────────────────────
+        document.querySelectorAll('.bank-repay-full-btn').forEach(btn => {
+            btn.onclick = () => {
+                const debtId = btn.dataset.debtId;
+                const amount = parseInt(btn.dataset.fullAmount);
+                if (!amount || amount < 1) return;
+                const label = currentCash >= amount
+                    ? `全額還清 $${amount.toLocaleString()}`
+                    : `以現有現金 $${amount.toLocaleString()} 盡量償還`;
+                if (confirm(`確認 ${label} 嗎？`)) {
+                    callbacks.onPayBankDebt(debtId, amount);
+                }
+            };
+        });
+    }
+
+    // ==================== Helpers ====================
 
     static _emptyState(text) {
         return `

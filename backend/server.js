@@ -88,10 +88,12 @@ const { handleGetPortfolio } = require('./server/systems/PortfolioSystem.js');
 const {
     handleLendMoney,
     handleRepayDebt,
-    handleGetLendingSummary
+    handleGetLendingSummary,
+    handlePayBankDebt
 } = require('./server/systems/LendingSystem.js');
 const { startGroupInvestment, handleGroupInvestmentResponse } = require('./server/systems/GroupInvestmentSystem.js');
 const { handleGroupFinanceResponse } = require('./server/systems/GroupFinanceSystem.js');
+const { handleIN03RewardChoice } = require('./server/systems/RevelationCardSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -115,6 +117,8 @@ console.log(`🆔 Server instance: ${SERVER_INSTANCE_ID}`);
 // ── Bound broadcast helper ────────────────────────────────────────────────────
 const broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, excl);
 
+global._rooms            = rooms;
+global._broadcastToRoom  = broadcast;
 // ── Dependency bundle passed to handlers that need multiple deps ──────────────
 function makeDeps(roomId) {
     return {
@@ -376,6 +380,10 @@ wss.on('connection', (ws) => {
                     handleGetLendingSummary(ws, data, playerRoomId, rooms);
                     break;
 
+                case 'pay_bank_debt':
+                    handlePayBankDebt(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
                 case 'lend_money':
                     handleLendMoney(ws, data, playerRoomId, rooms, broadcast);
                     break;
@@ -410,6 +418,10 @@ wss.on('connection', (ws) => {
 
                 case 'lier_ack':
                     handleLierAck(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'in03_reward_choice_response':
+                    handleIN03RewardChoice(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

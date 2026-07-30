@@ -167,29 +167,11 @@ const lierCards = [
         },
         getEffectDescription: () => "先付 20,000 元，擲骰1-4損失，5-6取回"
     },
-
     {
-        id: "SC08",
-        name: "虛擬貨幣騙局",
-        description: "投資虛擬貨幣，結果項目方跑路",
-        image: "../cards/lier/SC08.png",
-        cost: 0,
-        type: "lier",
-        category: "騙子卡",
-        effect: (state) => {
-            const loss = Math.floor(Math.random() * 20000) + 10000;
-            state.cash = Math.max(0, state.cash - loss);
-            // state.luck = Math.max(0, state.luck - 2);
-            return `🪙 虛擬貨幣騙局！項目方跑路，損失 ${loss.toLocaleString()} 元`;
-        },
-        getEffectDescription: () => "損失 10,000-30,000 元（隨機)"
-    },
-
-    {
-        id: "SC09",                    // ✅ Fixed: was duplicate SC08
+        id: "SC08",                    // ✅ Fixed: was duplicate SC08
         name: "被游說買了大量運動套票",
         description: "健身室倒閉，你損失了一半現金",
-        image: "../cards/lier/SC09.png",
+        image: "../cards/lier/SC08.png",
         cost: 0,
         type: "lier",
         category: "騙子卡",
@@ -200,12 +182,12 @@ const lierCards = [
 
             const loss = Math.floor(state.cash / 2);
             state.cash   = Math.max(0, state.cash - loss);
-            state.energy = Math.max(0, state.energy - 2);
+            // state.energy = Math.max(0, state.energy - 2);
             // state.luck   = Math.max(0, state.luck - 1);
 
-            return `💪 被游說買運動套票，健身室倒閉！損失 ${loss.toLocaleString()} 元（一半現金），精力 -2`;
+            return `💪 被游說買運動套票，健身室倒閉！損失 ${loss.toLocaleString()} 元（一半現金）`;
         },
-        getEffectDescription: () => "損失一半現金，精力 -2"
+        getEffectDescription: () => "損失一半現金"
     }
 ];
 

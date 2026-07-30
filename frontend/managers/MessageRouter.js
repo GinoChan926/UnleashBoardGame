@@ -63,6 +63,9 @@ export class MessageRouter {
             'revelation_type_selection':  m => ch().handleRevelationTypeSelection(m),
             'revelation_card_draw':       m => ch().handleRevelationCardDraw(m),
             'revelation_card_purchased':  m => ch().handleRevelationCardPurchased(m),
+            'in03_reward_choice':         m => ch().handleIN03RewardChoice(m),
+            'in03_reward_choice_result':  m => ch().handleIN03RewardChoiceResult(m),
+            'bank_debt_repay_success': m => ch().handleBankDebtRepaySuccess(m),
 
             // ── Volunteer cards
             'volunteer_card_execute': m => ch().handleVolunteerCardExecute(m),

@@ -1,5 +1,7 @@
 "use strict";
 
+import { RevelationTemplate } from '../../cards/templates/RevelationTemplate.js';
+
 export class RevelationHandler {
     constructor(client) {
         this.client = client;
@@ -95,14 +97,22 @@ export class RevelationHandler {
             () => {
                 if (timerId) clearInterval(timerId);
                 TeamCardTemplate.disableButtons();
-                client.connection.send({ type: 'team_card_response', teamId: message.teamId, participate: true });
+                client.connection.send({
+                    type: 'team_card_response',
+                    teamId: message.teamId,
+                    participate: true
+                });
                 client.modalManager.closeModal('teamCardModal');
                 client.logManager.addLog(`👥 你選擇參與「${message.card.name}」`, 'success');
             },
             () => {
                 if (timerId) clearInterval(timerId);
                 TeamCardTemplate.disableButtons();
-                client.connection.send({ type: 'team_card_response', teamId: message.teamId, participate: false });
+                client.connection.send({
+                    type: 'team_card_response',
+                    teamId: message.teamId,
+                    participate: false
+                });
                 client.modalManager.closeModal('teamCardModal');
                 client.logManager.addLog(`👥 你選擇不參與「${message.card.name}」`, 'warning');
             }
@@ -112,7 +122,10 @@ export class RevelationHandler {
     handleTeamCardResult(message) {
         const { client } = this;
         client.logManager.addLog(message.message, 'event');
-        client.logManager.showNotification(`👥 團隊錦囊「${message.card.name}」完成！`, 'success');
+        client.logManager.showNotification(
+            `👥 團隊錦囊「${message.card.name}」完成！`,
+            'success'
+        );
     }
 
     // ==================== Asset choice (market news) ====================
@@ -140,14 +153,22 @@ export class RevelationHandler {
             () => {
                 if (timerId) clearInterval(timerId);
                 AssetChoiceTemplate.disableButtons();
-                client.connection.send({ type: 'asset_choice_response', choiceId: message.choiceId, participate: true });
+                client.connection.send({
+                    type: 'asset_choice_response',
+                    choiceId: message.choiceId,
+                    participate: true
+                });
                 client.modalManager.closeModal('assetChoiceModal');
                 client.logManager.addLog(`📊 你選擇參與「${message.card.name}」`, 'success');
             },
             () => {
                 if (timerId) clearInterval(timerId);
                 AssetChoiceTemplate.disableButtons();
-                client.connection.send({ type: 'asset_choice_response', choiceId: message.choiceId, participate: false });
+                client.connection.send({
+                    type: 'asset_choice_response',
+                    choiceId: message.choiceId,
+                    participate: false
+                });
                 client.modalManager.closeModal('assetChoiceModal');
                 client.logManager.addLog(`📊 你選擇不參與「${message.card.name}」`, 'warning');
             }
@@ -156,8 +177,14 @@ export class RevelationHandler {
 
     handleMarketNewsResult(message) {
         const { client } = this;
-        client.logManager.addLog(`📰 ${message.initiator} 觸發「${message.cardName}」: ${message.message}`, 'event');
-        client.logManager.showNotification(`📰 ${message.cardName} 完成`, 'info');
+        client.logManager.addLog(
+            `📰 ${message.initiator} 觸發「${message.cardName}」: ${message.message}`,
+            'event'
+        );
+        client.logManager.showNotification(
+            `📰 ${message.cardName} 完成`,
+            'info'
+        );
     }
 
     // ==================== Gift card (IN13) ====================
@@ -187,9 +214,15 @@ export class RevelationHandler {
         setTimeout(() => {
             GiftCardTemplate.bindButtons(
                 (playerId, playerName) => {
-                    client.connection.send({ type: 'gift_card_target', targetPlayerId: playerId });
+                    client.connection.send({
+                        type: 'gift_card_target',
+                        targetPlayerId: playerId
+                    });
                     client.modalManager.closeModal('giftCardModal');
-                    client.logManager.addLog(`🌹 你選擇贈送機會卡給 ${playerName}`, 'event');
+                    client.logManager.addLog(
+                        `🌹 你選擇贈送機會卡給 ${playerName}`,
+                        'event'
+                    );
                 },
                 () => {
                     client.modalManager.closeModal('giftCardModal');
@@ -197,5 +230,50 @@ export class RevelationHandler {
                 }
             );
         }, 100);
+    }
+
+    // ==================== IN03 - 慢活 reward choice ====================
+
+    handleIN03RewardChoice(message) {
+        const { client } = this;
+
+        // Remove any old modal
+        const old = document.getElementById('in03RewardModal');
+        if (old) old.remove();
+
+        // Build via template
+        const modalHtml = RevelationTemplate.buildIN03RewardModal(
+            message.diceRoll,
+            message.options
+        );
+
+        client.modalManager.createModal('in03RewardModal', modalHtml);
+        client.modalManager.openModal('in03RewardModal');
+
+        // Bind after DOM is ready
+        setTimeout(() => {
+            RevelationTemplate.bindIN03RewardButtons((choice) => {
+                client.connection.send({
+                    type: 'in03_reward_choice_response',
+                    choice
+                });
+                client.modalManager.closeModal('in03RewardModal');
+            });
+        }, 100);
+
+        client.logManager.addLog(
+            `🧘 慢活：你擲到 ${message.diceRoll}，請選擇獎勵`,
+            'event'
+        );
+    }
+
+    handleIN03RewardChoiceResult(message) {
+        const { client } = this;
+        if (message.gameState) {
+            client.gameState = message.gameState;
+            client.updateUI();
+        }
+        client.logManager.addLog(message.message, 'success');
+        client.logManager.showNotification(message.message, 'success');
     }
 }

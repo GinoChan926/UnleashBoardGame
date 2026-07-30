@@ -31,7 +31,7 @@ export class ModalManager {
         const durations = {
             success: 8000,   // 8 seconds
             error:   12000,  // 12 seconds — errors need time to read
-            info:    8000,   // 8 seconds
+            info:    20000,   // 20 seconds
             warning: 10000   // 10 seconds
         };
 

@@ -12,25 +12,17 @@ export class LendingHandler {
         const old = document.getElementById('lendingModal');
         if (old) old.remove();
 
-        client.modalManager.createModal(
-            'lendingModal',
-            LendingTemplate.buildModal()
-        );
-
+        client.modalManager.createModal('lendingModal', LendingTemplate.buildModal());
         client.modalManager.openModal('lendingModal');
 
         LendingTemplate.populate(
             message,
             client.escapeHtml.bind(client),
             {
-                // ✅ Now includes interestRate parameter
                 onLend: (targetPlayerId, amount, note, interestRate) => {
                     client.connection.send({
                         type: 'lend_money',
-                        targetPlayerId,
-                        amount,
-                        note,
-                        interestRate    // ✅ NEW
+                        targetPlayerId, amount, note, interestRate
                     });
                     setTimeout(() => {
                         client.connection.send({ type: 'get_lending_summary' });
@@ -39,8 +31,17 @@ export class LendingHandler {
                 onRepay: (debtId, amount) => {
                     client.connection.send({
                         type: 'repay_debt',
-                        debtId,
-                        amount
+                        debtId, amount
+                    });
+                    setTimeout(() => {
+                        client.connection.send({ type: 'get_lending_summary' });
+                    }, 500);
+                },
+                // ✅ NEW: bank debt repay callback
+                onPayBankDebt: (debtId, amount) => {
+                    client.connection.send({
+                        type: 'pay_bank_debt',
+                        debtId, amount
                     });
                     setTimeout(() => {
                         client.connection.send({ type: 'get_lending_summary' });
@@ -54,42 +55,33 @@ export class LendingHandler {
     }
 
     handleLendingSuccess(message) {
-        const { client } = this;
-        if (message.gameState) {
-            client.gameState = message.gameState;
-            client.updateUI();
-        }
-        client.logManager.addLog(`💸 ${message.message}`, 'success');
-        client.logManager.showNotification(message.message, 'success');
+        this._applyAndLog(message, 'success');
     }
 
     handleLendingReceived(message) {
-        const { client } = this;
-        if (message.gameState) {
-            client.gameState = message.gameState;
-            client.updateUI();
-        }
-        client.logManager.addLog(`💰 ${message.message}`, 'success');
-        client.logManager.showNotification(message.message, 'success');
+        this._applyAndLog(message, 'success');
     }
 
     handleRepaySuccess(message) {
-        const { client } = this;
-        if (message.gameState) {
-            client.gameState = message.gameState;
-            client.updateUI();
-        }
-        client.logManager.addLog(message.message, 'success');
-        client.logManager.showNotification(message.message, 'success');
+        this._applyAndLog(message, 'success');
     }
 
     handleRepayReceived(message) {
+        this._applyAndLog(message, 'success');
+    }
+
+    // ✅ NEW
+    handleBankDebtRepaySuccess(message) {
+        this._applyAndLog(message, 'success');
+    }
+
+    _applyAndLog(message, type) {
         const { client } = this;
         if (message.gameState) {
             client.gameState = message.gameState;
             client.updateUI();
         }
-        client.logManager.addLog(message.message, 'success');
-        client.logManager.showNotification(message.message, 'success');
+        client.logManager.addLog(message.message, type);
+        client.logManager.showNotification(message.message, type);
     }
 }
