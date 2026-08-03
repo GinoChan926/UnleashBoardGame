@@ -686,13 +686,6 @@
                 <div class="panel-row"><span>層級</span><strong id="statLayer">平流層</strong></div>
             </div>
 
-            <div class="panel">
-                <div class="panel-title">👥 在線玩家</div>
-                <div class="players-list" id="playersList">
-                    <div style="color: #999; font-size: 12px;">未連接</div>
-                </div>
-            </div>
-
             <div class="panel control-panel" id="controlPanel">
                 <div class="panel-title">🎮 控制面板</div>
                 <button id="btnRoll" onclick="window.gameClient?.rollDice()" disabled>🎲 擲骰子</button>
@@ -713,6 +706,13 @@
                     💸 借還款
                 </button>
                 <button id="btnDisconnect" onclick="window.gameClient?.disconnect()">🔌 斷開連接</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">👥 在線玩家</div>
+                <div class="players-list" id="playersList">
+                    <div style="color: #999; font-size: 12px;">未連接</div>
+                </div>
             </div>
 
             <div class="panel log-panel">

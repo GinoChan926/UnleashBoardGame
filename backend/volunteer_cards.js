@@ -159,7 +159,6 @@ const volunteerCards = [
         },
         getEffectDescription: () => "每位玩家可自願捐 $2,000 予現金最少的玩家，捐款者記一次義工"
     },
-
     {
         id: "V03",
         name: "拯救他國饑民",
@@ -176,25 +175,28 @@ const volunteerCards = [
 
             if (!donationResponses) {
                 const playersToAsk = [];
-                room.players.forEach((player, playerWs) => {
-                    if (playerWs !== ws) {
-                        playersToAsk.push({
-                            playerName: player.playerName,
-                            cash: player.gameState.cash
-                        });
-                    }
+                // ✅ Include ALL players (including the drawer) since target is bank
+                room.players.forEach((player) => {
+                    playersToAsk.push({
+                        playerName: player.playerName,
+                        cash:       player.gameState.cash
+                    });
                 });
 
                 return {
-                    type: 'collect_donations',
+                    type:           'collect_donations',
                     donationAmount: donation,
-                    targetPlayer: '銀行',
-                    isSelfTarget: false,
+                    targetPlayer:   '銀行',
+                    isSelfTarget:   false,
                     playersToAsk,
-                    cardId: "V03",
-                    cardName: "拯救他國饑民"
+                    cardId:         "V03",
+                    cardName:       "拯救他國饑民"
                 };
             }
+
+            // ✅ Load wallet system for non-investment donation
+            const { canAffordNonInvestment, spendForNonInvestment } =
+                require('./server/systems/WalletSystem.js');
 
             let totalDonation = 0;
             let donors = [];
@@ -212,15 +214,12 @@ const volunteerCards = [
 
                 if (!donorPlayer) continue;
 
-                if (donorPlayer && canAffordNonInvestment(donorPlayer.gameState, donation)) {
+                if (canAffordNonInvestment(donorPlayer.gameState, donation)) {
                     spendForNonInvestment(donorPlayer.gameState, donation);
                     totalDonation += donation;
                     donors.push(playerName);
-                    // donorPlayer.gameState.luck = Math.min(
-                        // donorPlayer.gameState.maxLuck || 10,
-                        // (donorPlayer.gameState.luck || 0) + 1
-                    // );
-                    // ✅ Every donor gets volunteer credit
+
+                    // ✅ Every donor (including drawer) gets volunteer credit
                     donorPlayer.gameState.volunteerCount =
                         (donorPlayer.gameState.volunteerCount || 0) + 1;
                 } else {
@@ -234,19 +233,11 @@ const volunteerCards = [
                 return `💰 沒有玩家有足夠現金捐款`;
             }
 
-            // ✅ Initiator energy/luck bonus only — no volunteerCount here
-            currentPlayer.gameState.energy =
-                Math.max(0, currentPlayer.gameState.energy - 1);
-            // currentPlayer.gameState.luck = Math.min(
-                // currentPlayer.gameState.maxLuck || 10,
-                // (currentPlayer.gameState.luck || 0) + 3
-            // );
-
-            return `🌍 拯救他國饑民成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給銀行。\n精力 -1`;
+            // ✅ No more automatic volunteer bonus for drawer — they get it only if they donated
+            return `🌍 拯救他國饑民成功！\n${donors.join(', ')} 捐款共 $${totalDonation.toLocaleString()} 給銀行。`;
         },
         getEffectDescription: () => "每位玩家可捐 $3,000 予銀行，捐款者記一次義工"
     },
-
     {
         id: "V04",
         name: "義工探望兒童病房",
@@ -470,7 +461,6 @@ const volunteerCards = [
         },
         getEffectDescription: () => "每位玩家可捐 2 精力予現金最少的玩家，捐贈者記一次義工"
     },
-
     {
         id: "V06",
         name: "集體執垃圾",
@@ -489,13 +479,11 @@ const volunteerCards = [
             if (!donationResponses) {
                 const playersToAsk = [];
                 room.players.forEach((player, playerWs) => {
-                    if (playerWs !== ws) {
-                        playersToAsk.push({
-                            playerName: player.playerName,
-                            energy: player.gameState.energy,
-                            maxEnergy: player.gameState.maxEnergy
+                    playersToAsk.push({
+                        playerName: player.playerName,
+                        energy: player.gameState.energy,
+                        maxEnergy: player.gameState.maxEnergy
                         });
-                    }
                 });
 
                 return {
@@ -549,10 +537,10 @@ const volunteerCards = [
             }
 
             // ✅ Initiator energy/luck bonus only — no volunteerCount here
-            currentPlayer.gameState.energy = Math.min(
-                currentPlayer.gameState.maxEnergy,
-                Math.max(0, currentPlayer.gameState.energy - 1) + 2
-            );
+            // currentPlayer.gameState.energy = Math.min(
+                // currentPlayer.gameState.maxEnergy,
+                // Math.max(0, currentPlayer.gameState.energy - 1) + 2
+            // );
             // currentPlayer.gameState.luck = Math.min(
                 // currentPlayer.gameState.maxLuck || 10,
                 // (currentPlayer.gameState.luck || 0) + 2
@@ -562,7 +550,6 @@ const volunteerCards = [
         },
         getEffectDescription: () => "每位玩家可捐 2 精力予銀行，捐贈者記一次義工"
     },
-
     {
         id: "V07",
         name: "情緒支援",

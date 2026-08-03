@@ -97,16 +97,118 @@ export class PlayerActionSender {
 
     useFourLeafClover() {
         const { client } = this;
-        if (!client.isConnected || !client.gameState || client.gameOver) return;
-        client.connection.send({ type: 'use_four_leaf_clover', playerId: client.playerId });
+        const gs = client.gameState;
+
+        if (!client.isConnected || !gs || client.gameOver) return;
+
+        if (!gs.isMyTurn) {
+            client.logManager.addLog('❌ 現在不是你的回合', 'warning');
+            client.logManager.showNotification('現在不是你的回合', 'warning');
+            return;
+        }
+
+        if (gs.hasRolledThisTurn) {
+            client.logManager.addLog(
+                '❌ 你已經擲過骰子了，四葉草只能在擲骰前使用',
+                'warning'
+            );
+            client.logManager.showNotification(
+                '你已經擲過骰子了！四葉草需要在擲骰前使用',
+                'warning'
+            );
+            return;
+        }
+
+        if (gs.diceMultiplierActive) {
+            const currentType = gs.diceMultiplier === 3 ? '幸運星' : '四葉草';
+            client.logManager.addLog(
+                `❌ 你已經使用了${currentType}，不能同時使用多個道具`,
+                'warning'
+            );
+            client.logManager.showNotification(
+                `已使用${currentType}，不能疊加`,
+                'warning'
+            );
+            return;
+        }
+
+        if (!gs.fourLeafClover || gs.fourLeafClover <= 0) {
+            client.logManager.addLog('❌ 你沒有四葉草了', 'warning');
+            return;
+        }
+
+        // ✅ Disable BOTH buttons immediately to prevent misclick
+        this._disableMultiplierButtons();
+
+        client.connection.send({
+            type: 'use_four_leaf_clover',
+            playerId: client.playerId
+        });
         client.logManager.addLog('🍀 使用四葉草', 'info');
     }
 
     useLuckyStar() {
         const { client } = this;
-        if (!client.isConnected || !client.gameState || client.gameOver) return;
-        client.connection.send({ type: 'use_lucky_star', playerId: client.playerId });
+        const gs = client.gameState;
+
+        if (!client.isConnected || !gs || client.gameOver) return;
+
+        if (!gs.isMyTurn) {
+            client.logManager.addLog('❌ 現在不是你的回合', 'warning');
+            client.logManager.showNotification('現在不是你的回合', 'warning');
+            return;
+        }
+
+        if (gs.hasRolledThisTurn) {
+            client.logManager.addLog(
+                '❌ 你已經擲過骰子了，幸運星只能在擲骰前使用',
+                'warning'
+            );
+            client.logManager.showNotification(
+                '你已經擲過骰子了！幸運星需要在擲骰前使用',
+                'warning'
+            );
+            return;
+        }
+
+        if (gs.diceMultiplierActive) {
+            const currentType = gs.diceMultiplier === 3 ? '幸運星' : '四葉草';
+            client.logManager.addLog(
+                `❌ 你已經使用了${currentType}，不能同時使用多個道具`,
+                'warning'
+            );
+            client.logManager.showNotification(
+                `已使用${currentType}，不能疊加`,
+                'warning'
+            );
+            return;
+        }
+
+        if (!gs.luckyStarCount || gs.luckyStarCount <= 0) {
+            client.logManager.addLog('❌ 你沒有幸運星了', 'warning');
+            return;
+        }
+
+        // ✅ Disable BOTH buttons immediately
+        this._disableMultiplierButtons();
+
+        client.connection.send({
+            type: 'use_lucky_star',
+            playerId: client.playerId
+        });
         client.logManager.addLog('⭐ 使用幸運星', 'info');
+    }
+
+// ✅ NEW helper
+    _disableMultiplierButtons() {
+        ['btnUseClover', 'btnUseLuckyStar'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.disabled      = true;
+            btn.style.opacity = '0.4';
+            btn.style.filter  = 'grayscale(70%)';
+            btn.style.cursor  = 'not-allowed';
+        });
     }
 
     renamePlayer(newName) {

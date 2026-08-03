@@ -1,16 +1,44 @@
 [
   {
-    "id": "1785423470480_jivcsb",
-    "timestamp": "30/7/2026 下午10:57:50",
-    "playerName": "Player_1785423427561",
-    "cardType": "settlement",
-    "cardName": "結算日精力擲骰",
-    "action": "精力獲得",
+    "id": "1785489346971_39ford",
+    "timestamp": "31/7/2026 下午5:15:46",
+    "playerName": "Player_1785489332548",
+    "cardType": "volunteer",
+    "cardName": "集體執垃圾 捐贈",
+    "action": "義工捐贈",
     "amountChange": 0,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "結算日擲骰得 4 點，精力 +4"
+    "details": "捐贈 2 精力"
+  },
+  {
+    "id": "1785489346970_z34qip",
+    "timestamp": "31/7/2026 下午5:15:46",
+    "playerName": "Player_1785489327281",
+    "cardType": "volunteer",
+    "cardName": "集體執垃圾 捐贈",
+    "action": "義工捐贈",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": 0,
+    "details": "捐贈 2 精力"
+  },
+  {
+    "id": "1785489346862_fq0jco",
+    "timestamp": "31/7/2026 下午5:15:46",
+    "playerName": "Player_1785489327281",
+    "cardType": "volunteer",
+    "cardName": "集體執垃圾",
+    "action": "義工卡",
+    "amountChange": 0,
+    "passiveIncomeChange": 0,
+    "sideIncomeChange": 0,
+    "salaryChange": 0,
+    "energyChange": -2,
+    "details": "🗑️ 集體執垃圾成功！\nPlayer_1785489327281, Player_1785489332548 捐贈共 4 精力給銀行。\n精力 -1+2"
   }
 ]
