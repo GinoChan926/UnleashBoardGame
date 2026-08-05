@@ -285,7 +285,7 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
         if (effectResult === null) return;
 
         // ✅ If investment card spent cash, reroute through wallet (loanCash first)
-        if (isInvestment) {
+        if (isInvestment && !card._skipWalletInterceptor) {
             const cashAfter = player.gameState.cash || 0;
             const cashSpent = cashSnapshot - cashAfter;
 
@@ -602,11 +602,19 @@ function _executeCardLogic(card, data, player, room, ws, roomId) {
     const isP2P    = !!(cardId === 'F05');
     const isParty  = !!(cardId === 'C03' && card.name === '派對房間');
     const isFood   = !!(cardId === 'C04' && card.name === '外賣店');
+    const isUnitBusiness = card.type === 'business'
+        && card.pricePerUnit
+        && card.maxUnits > 1
+        && !isFood
+        && !isParty;
+
 
     // Party room
     if (isParty) return _handlePartyRoom(card, data, player, room, ws, roomId);
     // Food delivery
     if (isFood)  return _handleFoodDelivery(card, data, player, room, ws, roomId);
+    // Business
+    if (isUnitBusiness) return _handleUnitBusiness(card, data, player, room, ws, roomId);
     // Stock
     if (isStock  && card.getCurrentPrice && card.buy && card.sell)
         return _handleStock(card, data, player, ws, room);
@@ -676,31 +684,221 @@ function _handleFoodDelivery(card, data, player, room, ws, roomId) {
     const userAction = data.userAction || data.action;
 
     if (!userAction) {
+        card._skipWalletInterceptor = true;
+        // ✅ Send menu with both options
         ws.send(JSON.stringify({
-            type: 'food_delivery_menu', cardId: card.id, cardName: card.name,
-            investmentCost: card.investmentCost, monthlyReturn: card.monthlyReturn,
-            energyCost: card.energyCost, exchangeCost: card.exchangeCost, exchangeEnergy: card.exchangeEnergy
+            type:           'food_delivery_menu',
+            cardId:         card.id,
+            cardName:       card.name,
+            investmentCost: card.investmentCost || 100000,
+            monthlyReturn:  card.monthlyReturn  || 8000,
+            energyCost:     card.energyCost     || 3,
+            exchangeCost:   card.exchangeCost   || 50000,
+            exchangeEnergy: card.exchangeEnergy || 10,
+            currentCash:    (state.cash || 0) + (state.loanCash || 0),
+            currentEnergy:  state.energy,
+            maxEnergy:      state.maxEnergy
         }));
-        return null; // wait for menu response
+        return null;
     }
 
-    if (userAction === 'invest') {
-        if (state.cash < (card.investmentCost || 0) || state.energy < (card.energyCost || 0)) {
-            ws.send(JSON.stringify({ type: 'notification', message: `❌ 條件不足，無法開設外賣店` }));
-            return '';
-        }
-        return card.effect(state, 'invest');
+    // ✅ userAction can be:
+    //    - Legacy string: 'invest' | 'exchange'  (for backward compat)
+    //    - Object: { invest: bool, exchange: bool }
+    const doInvest = userAction === 'invest'
+        || (typeof userAction === 'object' && userAction.invest === true);
+    const doExchange = userAction === 'exchange'
+        || (typeof userAction === 'object' && userAction.exchange === true);
+
+    if (!doInvest && !doExchange) {
+        return `❌ 你放棄了外賣店的所有選項`;
     }
-    if (userAction === 'exchange') {
-        const units     = data.units || 1;
-        const totalCost = units * (card.exchangeCost || 0);
-        if (state.cash < totalCost) {
-            ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足 ${totalCost.toLocaleString()} 元` }));
-            return '';
+
+    const { canAffordInvestment, spendForInvestment,
+        canAffordNonInvestment, spendForNonInvestment } =
+        require('../systems/WalletSystem.js');
+
+    const results = [];
+
+    // ── Option: Invest in restaurant (INVESTMENT — uses loanCash first) ─────
+    if (doInvest) {
+        const investCost = card.investmentCost || 100000;
+        const energyCost = card.energyCost     || 3;
+
+        if (state.energy < energyCost) {
+            results.push(`❌ 精力不足 ${energyCost} 點，無法開設外賣店`);
+        } else if (!canAffordInvestment(state, investCost)) {
+            results.push(
+                `❌ 資金不足 $${investCost.toLocaleString()}，無法開設外賣店`
+            );
+        } else {
+            // Note: the outer handleExecuteCard interceptor already handles
+            // wallet routing for the card's cash deduction.
+            // But since we do the deduction ourselves inline here, we route directly.
+            const spendResult = spendForInvestment(state, investCost);
+            state.energy        -= energyCost;
+            state.passiveIncome += (card.monthlyReturn || 8000);
+            state.totalAssets   += investCost;
+
+            state.businessInvestments = state.businessInvestments || [];
+            state.businessInvestments.push({
+                id:            card.id,
+                name:          card.name,
+                cost:          investCost,
+                monthlyReturn: card.monthlyReturn || 8000,
+                energyCost:    energyCost
+            });
+
+            let msg = `✅ 開設外賣店成功！投資 $${investCost.toLocaleString()}` +
+                `，被動收入 +$${(card.monthlyReturn || 8000).toLocaleString()}/月，精力 -${energyCost}`;
+
+            if (spendResult.spentLoan > 0) {
+                msg += ` (使用貸款金 $${spendResult.spentLoan.toLocaleString()}` +
+                    (spendResult.spentRegular > 0
+                        ? ` + 現金 $${spendResult.spentRegular.toLocaleString()}`
+                        : '') + `)`;
+            }
+
+            results.push(msg);
         }
-        return card.effect(state, 'exchange', units);
     }
-    return '';
+
+    // ── Option: Exchange energy (NON-INVESTMENT — regular cash only) ────────
+    if (doExchange) {
+        const exchangeCost   = card.exchangeCost   || 50000;
+        const exchangeEnergy = card.exchangeEnergy || 10;
+
+        if (!canAffordNonInvestment(state, exchangeCost)) {
+            results.push(
+                `❌ 現金不足 $${exchangeCost.toLocaleString()}，無法兌換 ${exchangeEnergy} 精力` +
+                `（貸款金不可用於此）`
+            );
+        } else {
+            spendForNonInvestment(state, exchangeCost);
+            const before = state.energy;
+            state.energy = Math.min(state.maxEnergy, state.energy + exchangeEnergy);
+            const actualGain = state.energy - before;
+
+            results.push(
+                `✅ 兌換 ${actualGain} 精力成功！花費 $${exchangeCost.toLocaleString()}` +
+                (actualGain < exchangeEnergy
+                    ? ` (原本 ${exchangeEnergy} 精力，因達上限 ${state.maxEnergy} 只獲得 ${actualGain})`
+                    : '')
+            );
+        }
+    }
+
+    return results.join('\n');
+}
+
+function _handleUnitBusiness(card, data, player, room, ws, roomId) {
+    const state = player.gameState;
+    const units = data.units;
+
+    // First call — no units specified, send menu
+    if (units === undefined || units === null) {
+        // Count existing units of this card
+        const existing = state.businessInvestments?.find(inv => inv.id === card.id);
+        const existingUnits = existing?.units || 0;
+        const remainingSlots = (card.maxUnits || 1) - existingUnits;
+
+        ws.send(JSON.stringify({
+            type:               'business_unit_menu',
+            cardId:             card.id,
+            cardName:           card.name,
+            cardImage:          card.image || '',
+            cardDescription:    card.description || '',
+            pricePerUnit:       card.pricePerUnit,
+            monthlyReturnPerUnit: card.monthlyReturn,
+            energyCostPerUnit:  card.energyCostPerUnit || 0,
+            minUnits:           Math.max(1, card.minUnits || 1),
+            maxUnits:           card.maxUnits || 1,
+            existingUnits,
+            remainingSlots,
+            currentCash:        (state.cash || 0) + (state.loanCash || 0),
+            currentEnergy:      state.energy,
+            maxEnergy:          state.maxEnergy
+        }));
+        return null;   // wait for menu response
+    }
+
+    // Second call — execute
+    const chosenUnits = parseInt(units) || 0;
+    if (chosenUnits <= 0) {
+        return `❌ 你放棄了「${card.name}」的購買`;
+    }
+
+    // Cap at remaining slots
+    const existing        = state.businessInvestments?.find(inv => inv.id === card.id);
+    const existingUnits   = existing?.units || 0;
+    const remainingSlots  = (card.maxUnits || 1) - existingUnits;
+    const actualUnits     = Math.min(chosenUnits, remainingSlots);
+
+    if (actualUnits <= 0) {
+        return `❌ 已達最大投資數量 (${card.maxUnits}部)，無法繼續投資`;
+    }
+
+    const totalCost   = actualUnits * card.pricePerUnit;
+    const totalEnergy = actualUnits * (card.energyCostPerUnit || 0);
+    const totalReturn = actualUnits * card.monthlyReturn;
+
+    // ✅ Check energy
+    if (state.energy < totalEnergy) {
+        return `❌ 精力不足 ${totalEnergy} 點，無法購買 ${actualUnits} 部`;
+    }
+
+    // ✅ Check funds (investment — cash + loanCash)
+    const { canAffordInvestment, spendForInvestment } =
+        require('../systems/WalletSystem.js');
+
+    if (!canAffordInvestment(state, totalCost)) {
+        return `❌ 資金不足 $${totalCost.toLocaleString()}，無法購買 ${actualUnits} 部`;
+    }
+
+    // ✅ Deduct via wallet (loanCash first)
+    // Mark to skip interceptor since we handle it here
+    card._skipWalletInterceptor = true;
+
+    const spendResult = spendForInvestment(state, totalCost);
+    state.energy        -= totalEnergy;
+    state.passiveIncome += totalReturn;
+    state.totalAssets   += totalCost;
+
+    // Record investment
+    state.businessInvestments = state.businessInvestments || [];
+    if (existing) {
+        existing.units         += actualUnits;
+        existing.totalCost     += totalCost;
+        existing.monthlyReturn  = existing.units * card.monthlyReturn;
+    } else {
+        state.businessInvestments.push({
+            id:            card.id,
+            name:          card.name,
+            units:         actualUnits,
+            pricePerUnit:  card.pricePerUnit,
+            monthlyReturn: card.monthlyReturn * actualUnits,
+            totalCost:     totalCost
+        });
+    }
+
+    const currentUnits = existingUnits + actualUnits;
+    const remaining    = (card.maxUnits || 1) - currentUnits;
+
+    let msg = `✅ 購買 ${actualUnits} 部「${card.name}」成功！\n` +
+        `   💰 花費: $${totalCost.toLocaleString()}\n` +
+        `   📈 被動收入: +$${totalReturn.toLocaleString()}/月\n` +
+        `   ⚡ 精力: -${totalEnergy}\n` +
+        `   📊 目前持有: ${currentUnits}/${card.maxUnits} 部` +
+        (remaining > 0 ? `（剩餘 ${remaining} 部可投資）` : '（已達上限）');
+
+    if (spendResult.spentLoan > 0) {
+        msg += `\n   🏦 使用貸款金: $${spendResult.spentLoan.toLocaleString()}`;
+        if (spendResult.spentRegular > 0) {
+            msg += ` + 現金: $${spendResult.spentRegular.toLocaleString()}`;
+        }
+    }
+
+    return msg;
 }
 
 function _handleStock(card, data, player, ws, room) {

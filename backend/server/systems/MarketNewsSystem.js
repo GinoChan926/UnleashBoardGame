@@ -1,10 +1,11 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingAssetChoices = new Map();  // key: choiceId → { card, room, roomId, responses, expectedPlayerIds }
 
-const ASSET_CHOICE_TIMEOUT = 30000;
+const ASSET_CHOICE_TIMEOUT = SERVER_CONFIG.assetChoiceTimeoutSec;  // 30 seconds default
 
 /**
  * Entry point - called by RevelationCardHandler when a market_news card executes.

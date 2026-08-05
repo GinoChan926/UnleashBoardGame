@@ -138,4 +138,6 @@ export class CardHandler {
     handlePropertyChoiceResult(m) { this.property.handlePropertyChoiceResult(m); }
     handlePropertyList(m)         { this.property.handlePropertyList(m); }
     handlePropertyPaidOff(m)      { this.property.handlePropertyPaidOff(m); }
+    // ── Business Unit ────────────────────────────────────────────────
+    handleBusinessUnitMenu(m) { this.opportunity.handleBusinessUnitMenu(m); }
 }

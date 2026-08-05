@@ -3044,6 +3044,7 @@ const financeCards = [
 
 // ==================== 創業类机会卡 (Business) ====================
 const businessCards = [
+    /*
      {
         id: "C01",
         name: "自助咖啡售賣機",
@@ -3055,7 +3056,7 @@ const businessCards = [
         pricePerUnit: 50000,
         monthlyReturn: 5000,
         energyCostPerUnit: 2,
-        minUnits: 1,
+        minUnits: 0,
         maxUnits: 3,
         effect: (state, units = 1) => {
             // 检查已有投資数量
@@ -3109,18 +3110,20 @@ const businessCards = [
         getEffectDescription: (units = 1) => `購買 ${units} 部，花費 ${(units * 50000).toLocaleString()} 元，被動收入 +${(units * 5000).toLocaleString()}/月，精力 -${units * 2}`
     },
 
+     */
+
      {
         id: "C02",
         name: "格仔舖",
         description: "投資:$5,000/格 (最多可投資3格) | 約6個月回本 | 被動收入:+$800/格/月 | 精力: -2",
-        image: "../cards/business/aicafe.png",
+        image: "../cards/business/blockshop.png",
         cost: 500,
         type: "business",
         category: "創業",
         pricePerUnit: 5000,
         monthlyReturn: 800,
         energyCostPerUnit: 2,
-        minUnits: 1,
+        minUnits: 0,
         maxUnits: 3,
         effect: (state, units = 1) => {
             // 检查已有投資数量
@@ -3274,69 +3277,7 @@ const businessCards = [
         },
         getEffectDescription: () => "投資 100,000 元，被動收入 +8,000/月，精力 -3。另可用 $50,000 兌換 10 精力"
     },
-    {
-        id: "C05",
-        name: "人工智能無人便利店",
-        description: "首期投資:$200,000/店 | 約10個月回本 | 被動收入:+$20,000/月 | 精力:-4",
-        image: "../cards/business/ai_store.png",
-        cost: 500,
-        type: "business",
-        category: "創業",
-        investmentCost: 200000,
-        energyCost: 4,
-        monthlyReturn: 20000,
-        hasDrawCardsFeature: true,
-        effect: (state) => {
-            // 检查是否有生意成本折扣（从短片制作、平面设计等卡片獲得的技能）
-            let discount = 0;
-            let discountMessage = '';
 
-            if (state.businessCostDiscount) {
-                discount = state.businessCostDiscount;
-            }
-            if (state.hasBusinessDiscount) {
-                discount = Math.max(discount, state.businessCostDiscount || 0);
-            }
-
-            let finalCost = 200000;
-            if (discount > 0) {
-                const saved = Math.round(200000 * discount / 100);
-                finalCost = 200000 - saved;
-                discountMessage = ` (生意成本折扣 ${discount}%，節省 ${saved.toLocaleString()} 元)`;
-            }
-
-            if (state.cash < finalCost) {
-                return `❌ 現金不足 ${finalCost.toLocaleString()} 元，無法開設人工智能無人便利店`;
-            }
-
-            if (state.energy < 4) {
-                return `❌ 精力不足 4 點，無法開設人工智能無人便利店`;
-            }
-
-            // 执行投資
-            state.cash -= finalCost;
-            state.energy -= 4;
-            state.passiveIncome += 20000;
-            state.totalAssets += finalCost;
-
-            // 记录投資
-            state.businessInvestments = state.businessInvestments || [];
-            state.businessInvestments.push({
-                id: "C05",
-                name: "人工智能無人便利店",
-                cost: finalCost,
-                monthlyReturn: 20000,
-                energyCost: 4,
-                hasDiscount: discount > 0
-            });
-
-            // 獲得科技技能（可选：未来可能有额外加成）
-            state.hasTechSkill = true;
-
-            return `✅ 開設人工智能無人便利店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 4 點。AI 技術提升營運效率！`;
-        },
-        getEffectDescription: () => "投資 200,000 元，被動收入 +20,000/月，精力 -4"
-    },
      {
         id: "C05",
         name: "人工智能無人便利店",

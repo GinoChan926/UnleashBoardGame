@@ -58,6 +58,7 @@ export class MessageRouter {
             'card_executed':         m => ch().handleCardExecuted(m),
             'card_skipped':          m => ch().handleCardSkipped(m),
             'purchase_failed':       m => ch().handlePurchaseFailed(m),
+            'business_unit_menu': m => ch().handleBusinessUnitMenu(m),
 
             // ── Revelation cards
             'revelation_type_selection':  m => ch().handleRevelationTypeSelection(m),

@@ -288,16 +288,32 @@ function handleRoll(ws, data, roomId, rooms, deps) {
             state.reversePos  = currentReversePos;
 
             if (completedReverse) {
-                state.inReverse = false;
-                ws.send(JSON.stringify({ type: 'notification', message: '🎉 恭喜完成逆流層，回到平流層！' }));
-                broadcastToRoom(roomId, { type: 'notification', message: `🎉 ${player.playerName} 完成逆流層！` }, ws);
+                state.inReverse  = false;
+                state.reversePos = 0;   // ✅ reset for future entries
 
+                // ✅ Teleport to reverse_exit tile on the streamline
+                const exitIndex = room.streamlineTiles.findIndex(t => t.type === 'reverse_exit');
+                if (exitIndex >= 0) {
+                    state.streamlinePos = exitIndex;
+                }
+
+                ws.send(JSON.stringify({
+                    type: 'notification',
+                    message: `🎉 恭喜完成逆流層，回到平流層「${room.streamlineTiles[state.streamlinePos].name}」！`
+                }));
+                broadcastToRoom(roomId, {
+                    type: 'notification',
+                    message: `🎉 ${player.playerName} 完成逆流層！`
+                }, ws);
+
+                // ✅ Any leftover steps continue from the reverse_exit tile
                 const remaining = steps - i;
                 if (remaining > 0) {
                     _processStreamlinePassthrough(state, player, ws, roomId, remaining, room, broadcastToRoom, deps);
                 }
+
                 tile         = room.streamlineTiles[state.streamlinePos];
-                eventMessage = `完成逆流層，回到平流層「${tile.name}」`;
+                eventMessage = `完成逆流層，抵達「${tile.name}」`;
                 break;
             }
         }

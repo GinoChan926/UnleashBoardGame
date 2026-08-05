@@ -1,10 +1,11 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingGroupInvestments = new Map();  // groupId → state
 
-const GROUP_TIMEOUT = 45000;  // 45 seconds for everyone to decide
+const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec;  // 45 seconds for everyone to decide
 
 /**
  * Start group investment flow.

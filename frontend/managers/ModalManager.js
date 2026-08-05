@@ -1,13 +1,13 @@
+import { UI_CONFIG } from '../constants/UIConfig.js';
+
 export class ModalManager {
     constructor() {
         this.modals = new Map();
         this.waitingForAction = false;
 
-        // ✅ Minimize state
-        this.minimizedStack = [];   // stack of { id, savedContent } — supports multiple minimized modals
+        this.minimizedStack = [];
         this.minimizeExcludeIds = new Set([
-            'professionModal',        // don't minimize profession selection
-            // add other modal IDs here if you want to exclude
+            'professionModal',
         ]);
 
         this.setupNotificationContainer();
@@ -271,13 +271,6 @@ export class ModalManager {
             warning: '#ff9800'
         };
 
-        const durations = {
-            success: 8000,
-            error:   12000,
-            info:    20000,
-            warning: 10000
-        };
-
         const notification = document.createElement('div');
         notification.style.cssText = `
             background: ${colors[type] || colors.info};
@@ -296,10 +289,14 @@ export class ModalManager {
         notification.onclick = () => notification.remove();
         container.appendChild(notification);
 
-        const duration = durations[type] || 8000;
+        // ✅ Use UI_CONFIG
+        const duration = UI_CONFIG.notifications[type]
+            || UI_CONFIG.notifications.default;
+        const fadeOut  = UI_CONFIG.modalFadeOutMs;
+
         setTimeout(() => {
             notification.style.opacity = '0';
-            setTimeout(() => notification.remove(), 500);
+            setTimeout(() => notification.remove(), fadeOut);
         }, duration);
     }
 

@@ -1,9 +1,10 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingGroupFinance = new Map();  // groupId → state
-const GROUP_TIMEOUT = 45000;
+const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec;  // 45 seconds default
 
 /**
  * When a player draws a finance card (stock/crypto),

@@ -174,7 +174,7 @@ const hardshipCards = [
     {
         id: "S03",
         name: "集體逆境 - 流感病毒肆虐",
-        description: "流感病毒肆虐，精力指數少於3的玩家都需要入院治療，並支付住院醫療費用。\n住院醫療費用：$10,000\n精力：-3",
+        description: "流感病毒肆虐。\n精力 ≥ 3：精力 -3\n精力 < 3：入院治療，支付 $10,000（精力不變）",
         image: "../cards/hardship/S03.png",
         type: "hardship",
         category: "逆境自強卡",
@@ -194,18 +194,18 @@ const hardshipCards = [
                 const stateBefore = JSON.parse(JSON.stringify(pState));
 
                 if (pState.energy < 3) {
-                    // ✅ Low energy - must go to hospital
+                    // ✅ Low energy — MUST go to hospital, pay $10,000 (energy unchanged)
                     const actualCost = Math.min(hospitalCost, pState.cash);
                     const shortfall  = hospitalCost - actualCost;
 
-                    pState.cash   -= actualCost;
-                    pState.energy  = Math.max(0, pState.energy - energyLoss);
+                    pState.cash -= actualCost;
+                    // ❌ Do NOT change energy — pState.energy stays as-is
 
                     // If can't afford full cost, add to pending debt
                     if (shortfall > 0) {
                         pState.pendingDebts = pState.pendingDebts || [];
                         pState.pendingDebts.push({
-                            id:           `debt_S03_${Date.now()}`,
+                            id:           `debt_S03_${Date.now()}_${p.playerId}`,
                             amount:       shortfall,
                             source:       '住院醫療費用',
                             creditor:     'bank',
@@ -220,7 +220,7 @@ const hardshipCards = [
 
                     results.push(
                         `${p.playerName} (精力 ${stateBefore.energy}): ` +
-                        `入院治療！${costMsg}，精力 -${energyLoss}`
+                        `入院治療！${costMsg}，精力不變`
                     );
 
                     ctx.addTransactionRecord(
@@ -228,7 +228,7 @@ const hardshipCards = [
                         { name: "流感病毒肆虐", type: "hardship", id: "S03" },
                         "住院醫療費用",
                         -actualCost,
-                        `精力不足 (${stateBefore.energy})，入院治療！${costMsg}，精力 -${energyLoss}`,
+                        `精力不足 (${stateBefore.energy})，入院治療！${costMsg}`,
                         stateBefore,
                         pState
                     );
@@ -237,41 +237,61 @@ const hardshipCards = [
                         pWs.send(JSON.stringify({
                             type: 'hardship_card_execute',
                             card: ctx.serializeCard({
-                                id: "S03",
-                                name: "流感病毒肆虐",
+                                id:          "S03",
+                                name:        "流感病毒肆虐",
                                 description: `你的精力只有 ${stateBefore.energy}，需要入院治療！`,
-                                image: "../cards/hardship/S03.png"
+                                image:       "../cards/hardship/S03.png"
                             }),
-                            effectMessage: `🦠 流感入院！${costMsg}，精力 -${energyLoss}`,
-                            gameState: pState
+                            effectMessage: `🦠 流感入院！${costMsg}，精力不變`,
+                            gameState:     pState
                         }));
                     }
 
                 } else {
-                    // ✅ Enough energy - not affected
+                    // ✅ Enough energy (≥ 3) — just lose 3 energy, no hospital fee
+                    pState.energy = Math.max(0, pState.energy - energyLoss);
+
                     results.push(
-                        `${p.playerName} (精力 ${pState.energy}): 身體健康，不受影響`
+                        `${p.playerName} (精力 ${stateBefore.energy} → ${pState.energy}): ` +
+                        `患上流感！精力 -${energyLoss}`
+                    );
+
+                    ctx.addTransactionRecord(
+                        p.playerName,
+                        { name: "流感病毒肆虐", type: "hardship", id: "S03" },
+                        "流感影響",
+                        0,
+                        `精力充足 (${stateBefore.energy})，僅精力 -${energyLoss}`,
+                        stateBefore,
+                        pState
                     );
 
                     if (pWs && pWs.readyState === 1) {
                         pWs.send(JSON.stringify({
-                            type: 'notification',
-                            message: `🦠 流感病毒肆虐！但你精力充沛 (${pState.energy})，不受影響`
+                            type: 'hardship_card_execute',
+                            card: ctx.serializeCard({
+                                id:          "S03",
+                                name:        "流感病毒肆虐",
+                                description: `你精力充足 (${stateBefore.energy})，患上流感但不需入院`,
+                                image:       "../cards/hardship/S03.png"
+                            }),
+                            effectMessage: `🦠 患上流感！精力 -${energyLoss}`,
+                            gameState:     pState
                         }));
                     }
                 }
             });
 
-            const affectedCount = results.filter(r => r.includes('入院')).length;
-            const safeCount     = results.filter(r => r.includes('不受影響')).length;
+            const hospitalizedCount = results.filter(r => r.includes('入院')).length;
+            const infectedCount     = results.filter(r => r.includes('患上流感')).length;
 
             return `🦠 集體逆境「流感病毒肆虐」！\n` +
-                `🏥 入院治療: ${affectedCount} 人 (醫療費 $${hospitalCost.toLocaleString()} + 精力 -${energyLoss})\n` +
-                `💪 不受影響: ${safeCount} 人 (精力 ≥ 3)\n\n` +
+                `🏥 入院治療: ${hospitalizedCount} 人 (醫療費 $${hospitalCost.toLocaleString()}，精力不變)\n` +
+                `😷 患上流感: ${infectedCount} 人 (精力 -${energyLoss})\n\n` +
                 results.join('\n');
         },
 
-        getEffectDescription: () => "集體逆境：精力 < 3 的玩家入院，醫療費 $10,000，精力 -3"
+        getEffectDescription: () => "集體逆境：精力 ≥ 3 精力 -3；精力 < 3 入院支付 $10,000（精力不變）"
     },
     {
         id: "S04",

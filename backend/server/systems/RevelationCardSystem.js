@@ -4,11 +4,12 @@ const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 const { broadcastCardReveal }  = require('../utils/CardBroadcastHelper.js');
 const { processDebtCollection } = require('./AutoDebtSystem.js');
 const { spendForInvestment, canAffordInvestment } = require('./WalletSystem.js');
+const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingPersonal = new Map();  // playerId → { card, room, roomId }
 const pendingTeam     = new Map();  // teamId → { card, room, roomId, responses, playerIds }
 
-const TEAM_TIMEOUT = 30000;  // 30s for team decisions
+const TEAM_TIMEOUT = SERVER_CONFIG.teamCardTimeoutSec;
 
 // ==================== Personal card flow ====================
 

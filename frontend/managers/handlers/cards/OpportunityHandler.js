@@ -162,35 +162,40 @@ export class OpportunityHandler {
 
     async handleFoodDeliveryMenu(message) {
         const { client } = this;
-        const { StockCryptoMenuTemplate } = await import('../../cards/templates/StockCryptoMenuTemplate.js');
+        const { FoodDeliveryTemplate } = await import('../../cards/templates/FoodDeliveryTemplate.js');
 
         const old = document.getElementById('foodDeliveryModal');
         if (old) old.remove();
 
-        client.modalManager.createModal('foodDeliveryModal', StockCryptoMenuTemplate.buildFoodDeliveryMenu(message));
+        client.modalManager.createModal(
+            'foodDeliveryModal',
+            FoodDeliveryTemplate.buildModal(message)
+        );
         client.modalManager.openModal('foodDeliveryModal');
 
-        StockCryptoMenuTemplate.bindFoodDeliveryButtons(
-            () => {
+        FoodDeliveryTemplate.bind(
+            message,
+            // onConfirm — receives { invest, exchange }
+            (choice) => {
                 client.connection.send({
                     type: 'execute_card',
                     execute: true,
-                    userAction: 'invest'
+                    userAction: {
+                        invest:   choice.invest,
+                        exchange: choice.exchange
+                    }
                 });
                 client.modalManager.closeModal('foodDeliveryModal');
+
+                const parts = [];
+                if (choice.invest)   parts.push('開店');
+                if (choice.exchange) parts.push('兌換精力');
+                client.logManager.addLog(
+                    `🍜 執行外賣店: ${parts.join(' + ')}`,
+                    'success'
+                );
             },
-            () => {
-                const units = parseInt(prompt(`要兌換幾次精力？(每次 $${message.exchangeCost} = ${message.exchangeEnergy} 精力)`, '1'));
-                if (units && units > 0) {
-                    client.connection.send({
-                        type: 'execute_card',
-                        execute: true,
-                        userAction: 'exchange',
-                        units: units
-                    });
-                    client.modalManager.closeModal('foodDeliveryModal');
-                }
-            },
+            // onCancel
             () => {
                 client.connection.send({
                     type: 'execute_card',
@@ -261,6 +266,46 @@ export class OpportunityHandler {
         );
 
         client.logManager.addLog(message.message, 'event');
+    }
+
+    async handleBusinessUnitMenu(message) {
+        const { client } = this;
+        const { BusinessUnitTemplate } = await import('../../cards/templates/BusinessUnitTemplate.js');
+
+        const old = document.getElementById('businessUnitModal');
+        if (old) old.remove();
+
+        client.modalManager.createModal(
+            'businessUnitModal',
+            BusinessUnitTemplate.buildModal(message)
+        );
+        client.modalManager.openModal('businessUnitModal');
+
+        BusinessUnitTemplate.bind(
+            message,
+            // onConfirm — receives units count
+            (units) => {
+                client.connection.send({
+                    type:    'execute_card',
+                    execute: true,
+                    units
+                });
+                client.modalManager.closeModal('businessUnitModal');
+                client.logManager.addLog(
+                    `🏢 購買 ${units} 部「${message.cardName}」`,
+                    'success'
+                );
+            },
+            // onCancel
+            () => {
+                client.connection.send({
+                    type:    'execute_card',
+                    execute: false
+                });
+                client.modalManager.closeModal('businessUnitModal');
+                client.logManager.addLog(`❌ 已取消購買「${message.cardName}」`, 'warning');
+            }
+        );
     }
 
     handleGroupInvestmentResult(message) {
