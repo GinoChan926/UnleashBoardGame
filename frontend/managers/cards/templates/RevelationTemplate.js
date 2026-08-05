@@ -443,4 +443,92 @@ export class RevelationTemplate {
         imgEl.style.border = '3px dashed #ff9800';
         imgEl.onerror = () => { imgEl.style.display = 'none'; };
     }
+    /**
+     * Build the IN03 (慢活) reward choice modal.
+     * Shows the dice value prominently so player knows why they got this choice.
+     */
+    static buildIN03RewardModal(diceRoll, options) {
+        const diceFaces = {
+            1: '⚀', 2: '⚁', 3: '⚂',
+            4: '⚃', 5: '⚄', 6: '⚅'
+        };
+        const diceFace = diceFaces[diceRoll] || '🎲';
+
+        const optionButtons = options.map(opt => {
+            const gradient = opt.id === 'cash'
+                ? '#ff9800, #f57c00'
+                : '#4caf50, #388e3c';
+
+            return `
+            <button class="in03-choice-btn"
+                    data-choice="${opt.id}"
+                    style="background: linear-gradient(135deg, ${gradient});
+                           color: white; padding: 16px; border: none;
+                           border-radius: 16px; cursor: pointer;
+                           font-size: 14px; font-weight: bold;
+                           transition: all 0.2s ease;">
+                <div style="font-size: 18px; margin-bottom: 4px;">
+                    ${opt.label}
+                </div>
+                <div style="font-size: 11px; opacity: 0.9;">
+                    ${opt.description}
+                </div>
+            </button>
+        `;
+        }).join('');
+
+        return `
+        <div class="modal-content" style="max-width: 420px;
+             background: linear-gradient(135deg, #2a4a5a, #1a2a3a);
+             border-radius: 24px; padding: 24px;
+             border: 2px solid #4fc3f7; text-align: center;">
+
+            <div style="font-size: 22px; color: #4fc3f7;
+                        font-weight: bold; margin-bottom: 8px;">
+                🧘 慢活 - 選擇獎勵
+            </div>
+
+            <!-- ✅ Big dice display -->
+            <div style="background: rgba(79,195,247,0.15);
+                        padding: 16px; border-radius: 16px;
+                        margin: 12px 0 16px 0;
+                        border: 1px solid rgba(79,195,247,0.4);">
+                <div style="font-size: 12px; color: #b3e5fc; margin-bottom: 4px;">
+                    🎲 系統為你擲出的點數
+                </div>
+                <div style="font-size: 80px; line-height: 1;
+                            color: #ffd966;
+                            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                            animation: diceRoll 0.6s ease-out;">
+                    ${diceFace}
+                </div>
+                <div style="font-size: 32px; color: #4fc3f7;
+                            font-weight: bold; margin-top: 4px;">
+                    ${diceRoll} 點
+                </div>
+            </div>
+
+            <style>
+                @keyframes diceRoll {
+                    0%   { transform: rotate(0deg) scale(0.5); opacity: 0; }
+                    50%  { transform: rotate(360deg) scale(1.2); opacity: 1; }
+                    100% { transform: rotate(720deg) scale(1); opacity: 1; }
+                }
+            </style>
+
+            <div style="font-size: 13px; color: #b3e5fc; margin-bottom: 12px;">
+                🎉 擲到 5-6 點！請選擇你的獎勵：
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr;
+                        gap: 12px; margin: 16px 0;">
+                ${optionButtons}
+            </div>
+
+            <div style="margin-top: 10px; font-size: 11px; color: #90a4ae;">
+                💡 只能選擇一個獎勵
+            </div>
+        </div>
+    `;
+    }
 }

@@ -11,14 +11,25 @@ export class PoliceHandler {
 
     handlePoliceCardExecute(message) {
         const { client } = this;
-        client.logManager.addLog(`👮 ${message.message || '警察卡執行'}`, 'success');
-        client.logManager.showNotification(message.message || '警察卡觸發', 'success');
+
+        // ✅ Modal handles its own log + notification internally
         if (message.card) {
             client.cardModal.showPoliceCardModal(
                 message.card,
                 message.effectMessage || message.message || '警察卡'
             );
+        } else {
+            // Fallback if no card object
+            client.logManager.addLog(
+                `👮 ${message.effectMessage || message.message || '警察卡執行'}`,
+                'success'
+            );
+            client.logManager.showNotification(
+                message.effectMessage || message.message || '警察卡觸發',
+                'success'
+            );
         }
+
         this._applyState(message);
     }
 
@@ -141,6 +152,7 @@ export class PoliceHandler {
 
     handlePoliceFineExecuted(message) {
         const { client } = this;
+        this._applyState(message);
         client.logManager.addLog(message.message, 'success');
         client.logManager.showNotification(message.message, 'success');
     }

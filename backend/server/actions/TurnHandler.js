@@ -5,9 +5,11 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     const player = room?.players.get(ws);
     if (!room || !player) return;
 
+    const forceSkip = data?.forceSkip === true;
+
     if (!player.gameState.isMyTurn) return;
 
-    if (!player.gameState.hasRolledThisTurn) {
+    if (!forceSkip && !player.gameState.hasRolledThisTurn) {
         ws.send(JSON.stringify({
             type: 'error',
             message: '請先擲骰子再結束回合'
@@ -18,19 +20,12 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     // Reset roll flag
     player.gameState.hasRolledThisTurn = false;
 
-    // Restore energy
-    // player.gameState.energy = Math.min(
-        // player.gameState.maxEnergy,
-        // player.gameState.energy + 1
-    // );
-
-    // ✅ Check for extra turn (IN12 時間管理)
-    if (player.gameState.extraTurn) {
+    // ✅ Extra turn only applies on a real completed turn, not forced skip
+    if (!forceSkip && player.gameState.extraTurn) {
         player.gameState.extraTurn = false;
 
         console.log(`⏰ ${player.playerName} 獲得額外回合！`);
 
-        // Broadcast the extra turn — player stays as current
         _broadcastTurnState(room, roomId, player.playerName, broadcastToRoom);
 
         ws.send(JSON.stringify({
@@ -49,43 +44,88 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
     // ── Normal turn cycle ─────────────────────────────────────────────────
     const playersArray = Array.from(room.players.values());
     const currentIndex = playersArray.findIndex(p => p.playerId === player.playerId);
-    const nextPlayer   = playersArray[(currentIndex + 1) % playersArray.length];
 
-    player.gameState.isMyTurn     = false;
+    player.gameState.isMyTurn = false;
+
+    let nextIndex  = (currentIndex + 1) % playersArray.length;
+    let nextPlayer = playersArray[nextIndex];
+    let safety     = 0;
+
+    // ✅ Auto-skip any skipped players before selecting the real next player
+    while (nextPlayer && nextPlayer.gameState.skipNextTurn && safety < playersArray.length) {
+        nextPlayer.gameState.skipNextTurn = false;
+        nextPlayer.gameState.hasRolledThisTurn = false;
+        nextPlayer.gameState.isMyTurn = false;
+
+        let skippedWs = null;
+        for (const [pWs, p] of room.players) {
+            if (p.playerId === nextPlayer.playerId) {
+                skippedWs = pWs;
+                break;
+            }
+        }
+
+        const skipPayload = {
+            type: 'turn_skipped',
+            playerId: nextPlayer.playerId,
+            skippedPlayerId: nextPlayer.playerId,
+            skippedPlayerName: nextPlayer.playerName,
+            gameState: nextPlayer.gameState,
+            message: `⏸️ ${nextPlayer.playerName} 被暫停一回合，本回合已自動跳過`
+        };
+
+        if (skippedWs && skippedWs.readyState === 1) {
+            skippedWs.send(JSON.stringify(skipPayload));
+            skippedWs.send(JSON.stringify({
+                type: 'notification',
+                message: '⏸️ 你被暫停一回合，本回合已自動跳過'
+            }));
+        }
+
+        broadcastToRoom(roomId, skipPayload, skippedWs);
+        broadcastToRoom(roomId, {
+            type: 'state_updated',
+            playerId: nextPlayer.playerId,
+            gameState: nextPlayer.gameState
+        });
+
+        nextIndex = (nextIndex + 1) % playersArray.length;
+        nextPlayer = playersArray[nextIndex];
+        safety++;
+    }
+
+    if (!nextPlayer) return;
+
     nextPlayer.gameState.isMyTurn = true;
-    room.currentTurnPlayer        = nextPlayer.playerName;
+    room.currentTurnPlayer = nextPlayer.playerName;
 
-    // ✅ Update ALL players' currentTurnPlayer so their UI shows the same thing
     room.players.forEach(p => {
         p.gameState.currentTurnPlayer = nextPlayer.playerName;
     });
 
-    // Notify the player whose turn just ended
     broadcastToRoom(roomId, {
-        type:     'turn_ended',
+        type: 'turn_ended',
         playerId: player.playerId,
         gameState: player.gameState
     });
 
-    // ✅ Broadcast state for BOTH players (previous + next)
     broadcastToRoom(roomId, {
-        type:      'state_updated',
-        playerId:  player.playerId,
+        type: 'state_updated',
+        playerId: player.playerId,
         gameState: player.gameState
     });
 
     broadcastToRoom(roomId, {
-        type:      'state_updated',
-        playerId:  nextPlayer.playerId,
+        type: 'state_updated',
+        playerId: nextPlayer.playerId,
         gameState: nextPlayer.gameState
     });
 
-    // ✅ Broadcast dedicated turn_status message everyone can listen to
     broadcastToRoom(roomId, {
-        type:              'turn_status',
+        type: 'turn_status',
         currentTurnPlayer: nextPlayer.playerName,
         currentTurnPlayerId: nextPlayer.playerId,
-        previousPlayer:    player.playerName
+        previousPlayer: player.playerName
     });
 
     console.log(`⏭️ 回合結束: ${player.playerName} → ${nextPlayer.playerName}`);
@@ -94,25 +134,22 @@ function handleEndTurn(ws, data, roomId, rooms, broadcastToRoom) {
 // ── Helper ────────────────────────────────────────────────────────────────────
 
 function _broadcastTurnState(room, roomId, currentTurnPlayerName, broadcastToRoom) {
-    // Sync currentTurnPlayer across all players
     room.players.forEach(p => {
         p.gameState.currentTurnPlayer = currentTurnPlayerName;
     });
 
-    // Broadcast state update for the current turn player
     room.players.forEach(p => {
         if (p.playerName === currentTurnPlayerName) {
             broadcastToRoom(roomId, {
-                type:      'state_updated',
-                playerId:  p.playerId,
+                type: 'state_updated',
+                playerId: p.playerId,
                 gameState: p.gameState
             });
         }
     });
 
-    // Broadcast dedicated turn_status message
     broadcastToRoom(roomId, {
-        type:              'turn_status',
+        type: 'turn_status',
         currentTurnPlayer: currentTurnPlayerName
     });
 }

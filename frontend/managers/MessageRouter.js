@@ -63,6 +63,9 @@ export class MessageRouter {
             'revelation_type_selection':  m => ch().handleRevelationTypeSelection(m),
             'revelation_card_draw':       m => ch().handleRevelationCardDraw(m),
             'revelation_card_purchased':  m => ch().handleRevelationCardPurchased(m),
+            'in03_reward_choice':         m => ch().handleIN03RewardChoice(m),
+            'in03_reward_choice_result':  m => ch().handleIN03RewardChoiceResult(m),
+            'bank_debt_repay_success': m => ch().handleBankDebtRepaySuccess(m),
 
             // ── Volunteer cards
             'volunteer_card_execute': m => ch().handleVolunteerCardExecute(m),
@@ -83,6 +86,7 @@ export class MessageRouter {
             // ── Finance
             'loan_approved':          m => fh().handleLoanApproved(m),
             'loan_repaid':            m => fh().handleLoanRepaid(m),
+            'loan_info':              m => fh().handleLoanInfo(m),
             'loan_rejected':          m => fh().handleLoanRejected(m),
             'forced_repayment':       m => fh().handleForcedRepayment(m),
             'settlement_reminder':    m => fh().handleSettlementReminder(m),
@@ -171,6 +175,7 @@ export class MessageRouter {
 
             'hardship_choice_prompt': m => ch().handleHardshipChoicePrompt(m),
             'hardship_choice_result': m => ch().handleHardshipChoiceResult(m),
+            'reverse_tile_reveal': m => ch().handleReverseTileReveal(m),
 
             'volunteer_donation_prompt': m => ch().handleVolunteerDonationPrompt(m),
 

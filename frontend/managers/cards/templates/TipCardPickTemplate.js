@@ -49,61 +49,69 @@ export class TipCardPickTemplate {
 
         if (taken) {
             div.style.cssText = `
-                background: rgba(0,0,0,0.5); border-radius: 12px;
-                padding: 14px; text-align: center; opacity: 0.3;
-                border: 2px dashed #666; min-height: 200px;
-                display: flex; flex-direction: column;
-                align-items: center; justify-content: center;
-            `;
+            background: rgba(0,0,0,0.5); border-radius: 12px;
+            padding: 14px; text-align: center; opacity: 0.3;
+            border: 2px dashed #666; min-height: 200px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        `;
             div.innerHTML = `
-                <div style="font-size: 48px;">✅</div>
-                <div style="color: #888; font-size: 12px; margin-top: 8px;">已選取</div>
-            `;
+            <div style="font-size: 48px;">✅</div>
+            <div style="color: #888; font-size: 12px; margin-top: 8px;">已選取</div>
+        `;
             return div;
         }
 
         div.style.cssText = `
-            background: linear-gradient(135deg, #5a3a6a, #3a2a4a);
-            border-radius: 12px; padding: 14px; text-align: center;
-            cursor: pointer; transition: all 0.2s ease;
-            border: 2px solid #ba68c8;
-            box-shadow: 0 4px 12px rgba(156,39,176,0.3);
-        `;
+        background: linear-gradient(135deg, #5a3a6a, #3a2a4a);
+        border-radius: 12px; padding: 14px; text-align: center;
+        cursor: pointer; transition: all 0.2s ease;
+        border: 2px solid #ba68c8;
+        box-shadow: 0 4px 12px rgba(156,39,176,0.3);
+    `;
         div.dataset.cardIndex = index;
 
+        // ✅ Fix path resolution
         let imageUrl = card.image || '';
+        imageUrl = imageUrl.replace(/^(\.\.\/)+/, '/');
         if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/')) {
             imageUrl = '/' + imageUrl;
         }
 
         const scopeBadge = card.scope === 'team'
-            ? '<span style="display: inline-block; padding: 2px 8px; background: #ff9800; color: white; border-radius: 10px; font-size: 10px; margin-top: 6px;">🌟 團隊</span>'
+            ? '<span style="display:inline-block; padding:2px 8px;' +
+            ' background:#ff9800; color:white; border-radius:10px;' +
+            ' font-size:10px; margin-top:6px;">🌟 團隊</span>'
             : '';
 
         div.innerHTML = `
-            <img src="${imageUrl}"
-                 style="width: 100%; height: 110px; object-fit: contain;
-                        border-radius: 8px; background: rgba(0,0,0,0.3);"
-                 onerror="this.style.display='none';">
-            <div style="color: #ffd966; font-size: 14px; font-weight: bold;
-                        margin-top: 8px;">
-                ${escapeHtml(card.name)}
-            </div>
-            <div style="color: #e1bee7; font-size: 11px; margin-top: 6px;
-                        line-height: 1.4; max-height: 45px; overflow: hidden;">
-                ${escapeHtml((card.description || '').substring(0, 70))}
-            </div>
-            ${scopeBadge}
-        `;
+        <img src="${imageUrl}"
+             style="width:100%; height:110px; object-fit:contain;
+                    border-radius:8px; background:rgba(0,0,0,0.3);"
+             onerror="this.src='data:image/svg+xml,\
+<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100\\' height=\\'100\\'>\
+<rect width=\\'100\\' height=\\'100\\' fill=\\'%239c27b0\\'/>\
+<text x=\\'50\\' y=\\'55\\' text-anchor=\\'middle\\' fill=\\'white\\' font-size=\\'30\\'>🎁</text>\
+</svg>'">
+        <div style="color:#ffd966; font-size:14px; font-weight:bold;
+                    margin-top:8px;">
+            ${escapeHtml(card.name)}
+        </div>
+        <div style="color:#e1bee7; font-size:11px; margin-top:6px;
+                    line-height:1.4; max-height:45px; overflow:hidden;">
+            ${escapeHtml((card.description || '').substring(0, 70))}
+        </div>
+        ${scopeBadge}
+    `;
 
         div.onmouseenter = () => {
-            div.style.transform = 'scale(1.04)';
-            div.style.boxShadow = '0 8px 24px rgba(156,39,176,0.5)';
+            div.style.transform   = 'scale(1.04)';
+            div.style.boxShadow   = '0 8px 24px rgba(156,39,176,0.5)';
             div.style.borderColor = '#e91e63';
         };
         div.onmouseleave = () => {
-            div.style.transform = 'scale(1)';
-            div.style.boxShadow = '0 4px 12px rgba(156,39,176,0.3)';
+            div.style.transform   = 'scale(1)';
+            div.style.boxShadow   = '0 4px 12px rgba(156,39,176,0.3)';
             div.style.borderColor = '#ba68c8';
         };
 

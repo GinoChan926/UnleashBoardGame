@@ -28,11 +28,11 @@ const policeCards = [
         effect: (state) => {
             state.fraudShield = (state.fraudShield || 0) + 1;
             state.energy = Math.min(state.maxEnergy, state.energy + 1);
-            state.luck   = Math.min(state.maxLuck, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck, state.luck + 1);
 
-            return `🛡️ 獲得「防騙通行證」！可抵擋一次騙子卡/加密貨幣/P2P/信用卡有關的損失！\n   💪 精力 +1,幸運值 +1\n   📌 使用後此卡會棄到公共區`;
+            return `🛡️ 獲得「防騙通行證」！可抵擋一次騙子卡/加密貨幣/P2P/信用卡有關的損失！\n   💪 精力 +1\n   📌 使用後此卡會棄到公共區`;
         },
-        getEffectDescription: () => "抵擋一次損失，精力 +1,幸運值 +1"
+        getEffectDescription: () => "抵擋一次損失，精力 +1"
     },
 
     {
@@ -48,11 +48,11 @@ const policeCards = [
             state.volunteerCount  = (state.volunteerCount  || 0) + 1;
             state.volunteerShield = (state.volunteerShield || 0) + 1;
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck, state.luck + 2);
+            // state.luck   = Math.min(state.maxLuck, state.luck + 2);
 
-            return `📚 獲得「防騙教育」義工資格！\n   👮 下次其他玩家遇到騙子卡時，你可以幫他防範一次！\n   ⚡ 精力 -1,幸運值 +2\n   📝 遊戲完結時，此義工行為將被記錄！`;
+            return `📚 獲得「防騙教育」義工資格！\n   👮 下次其他玩家遇到騙子卡時，你可以幫他防範一次！\n   ⚡ 精力 -1\n   📝 遊戲完結時，此義工行為將被記錄！`;
         },
-        getEffectDescription: () => "幫助其他玩家防範一次損失，精力 -1,幸運值 +2,記錄義工行為"
+        getEffectDescription: () => "幫助其他玩家防範一次損失，精力 -1,記錄義工行為"
     },
 
     {
@@ -71,14 +71,14 @@ const policeCards = [
 
             state.hasLegalKnowledge = true;
             state.energy = Math.max(0, state.energy - 1);
-            state.luck   = Math.min(state.maxLuck, state.luck + 1);
+            // state.luck   = Math.min(state.maxLuck, state.luck + 1);
 
             const reductionRate = state.expenseReduction / 100;
             const newTotalExp = Math.floor(currentTotalExp * (1 - reductionRate));
 
-            return `📚 平常多了解法例！你學會了合法節稅技巧！\n   💰 總支出減少 ${state.expenseReduction}%\n   📊 新總支出: ${newTotalExp.toLocaleString()} 元/月\n   📈 每月節省: ${(currentTotalExp - newTotalExp).toLocaleString()} 元/月\n   ⚡ 精力 -1,幸運值 +1`;
+            return `📚 平常多了解法例！你學會了合法節稅技巧！\n   💰 總支出減少 ${state.expenseReduction}%\n   📊 新總支出: ${newTotalExp.toLocaleString()} 元/月\n   📈 每月節省: ${(currentTotalExp - newTotalExp).toLocaleString()} 元/月\n   ⚡ 精力 -1`;
         },
-        getEffectDescription: () => "支出減少 10%，精力 -1,幸運值 +1"
+        getEffectDescription: () => "支出減少 10%，精力 -1"
     },
 
     {
@@ -95,7 +95,6 @@ const policeCards = [
         },
         getEffectDescription: () => "移動另一位玩家 ±3 格，立即執行該格效果"
     },
-
     {
         id: "P06",
         name: "舉報違法",
@@ -110,7 +109,6 @@ const policeCards = [
         },
         getEffectDescription: () => "舉報一位玩家並罰款 $5,000"
     },
-
     {
         id: "P07",
         name: "忘記交罰款",

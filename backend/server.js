@@ -31,9 +31,8 @@ global.CARD_TYPES = CARD_TYPES;
 const { getTransactions, clearTransactions, loadFromFile } = require('./server/records/TransactionRecorder.js');
 const { broadcastToRoom, getOrCreateRoom }                 = require('./server/utils/helpers.js');
 const { createHttpServer }                                 = require('./server/HttpServer.js');
-
 // ── Systems ───────────────────────────────────────────────────────────────────
-const { handleLoan, handleRepayLoan }       = require('./server/systems/LoanSystem.js');
+const { handleLoan, handleRepayLoan, handleGetLoanInfo }       = require('./server/systems/LoanSystem.js');
 const { handleFlowLayerChoice }             = require('./server/systems/FlowLayerSystem.js');
 const { executeAssetTrust }                 = require('./server/systems/AssetTrustSystem.js');
 const { handleUseEmotionalSupport, handleSkipEmotionalSupport } = require('./server/systems/EmotionalSupportSystem.js');
@@ -88,10 +87,12 @@ const { handleGetPortfolio } = require('./server/systems/PortfolioSystem.js');
 const {
     handleLendMoney,
     handleRepayDebt,
-    handleGetLendingSummary
+    handleGetLendingSummary,
+    handlePayBankDebt
 } = require('./server/systems/LendingSystem.js');
 const { startGroupInvestment, handleGroupInvestmentResponse } = require('./server/systems/GroupInvestmentSystem.js');
 const { handleGroupFinanceResponse } = require('./server/systems/GroupFinanceSystem.js');
+const { handleIN03RewardChoice } = require('./server/systems/RevelationCardSystem.js');
 // ── Tile processors ───────────────────────────────────────────────────────────
 const { processStreamlineTile } = require('./server/tiles/StreamlineTileProcessor.js');
 const { processReverseTile }    = require('./server/tiles/ReverseTileProcessor.js');
@@ -115,6 +116,8 @@ console.log(`🆔 Server instance: ${SERVER_INSTANCE_ID}`);
 // ── Bound broadcast helper ────────────────────────────────────────────────────
 const broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, excl);
 
+global._rooms            = rooms;
+global._broadcastToRoom  = broadcast;
 // ── Dependency bundle passed to handlers that need multiple deps ──────────────
 function makeDeps(roomId) {
     return {
@@ -133,7 +136,7 @@ function makeDeps(roomId) {
             }),
         processReverseTile:           (state, tile, ws, rId, player) =>
             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
+                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms),{ rooms, tipCards }),
         processFlowTile:              (state, tile, ws, rId, player, room) =>
             processFlowTile(state, tile, ws, rId, player, room, {
                 broadcastToRoom: broadcast,
@@ -295,6 +298,9 @@ wss.on('connection', (ws) => {
                 case 'repay_loan':
                     handleRepayLoan(ws, data, playerRoomId, rooms, broadcast);
                     break;
+                case 'get_loan_info':
+                    handleGetLoanInfo(ws, data, playerRoomId, rooms);
+                    break;
                 case 'card_type_choice':
                     handleCardTypeChoice(ws, data, playerRoomId, rooms, CARD_TYPES);
                     break;
@@ -446,7 +452,7 @@ wss.on('connection', (ws) => {
                             }),
                         processReverseTile: (state, tile, ws, rId, player) =>
                             processReverseTile(state, tile, ws, rId, player, streamlineTiles, broadcast,
-                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms)),
+                                (ws, s, rId, p) => drawHardshipCard(ws, s, rId, p, hardshipCards, broadcast, rooms), { rooms, tipCards }),
                         processFlowTile: (state, tile, ws, rId, player, room) =>
                             processFlowTile(state, tile, ws, rId, player, room, {
                                 broadcastToRoom: broadcast,
@@ -505,6 +511,10 @@ wss.on('connection', (ws) => {
                     handleGetLendingSummary(ws, data, playerRoomId, rooms);
                     break;
 
+                case 'pay_bank_debt':
+                    handlePayBankDebt(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
                 case 'lend_money':
                     handleLendMoney(ws, data, playerRoomId, rooms, broadcast);
                     break;
@@ -539,6 +549,10 @@ wss.on('connection', (ws) => {
 
                 case 'lier_ack':
                     handleLierAck(ws, data, playerRoomId, rooms, broadcast);
+                    break;
+
+                case 'in03_reward_choice_response':
+                    handleIN03RewardChoice(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

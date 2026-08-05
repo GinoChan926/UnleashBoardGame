@@ -10,7 +10,16 @@ const GROUP_TIMEOUT = 45000;
  * all other players can also trade it.
  * If they buy, they pay 1 energy to the drawer.
  */
-function startGroupFinance(initiatorWs, roomId, initiator, card, broadcastToRoom, rooms, lockedPrice) {
+function startGroupFinance(
+    initiatorWs,
+    roomId,
+    initiator,
+    card,
+    broadcastToRoom,
+    rooms,
+    lockedPrice,
+    initiatorBought = false
+) {
     const room = rooms.get(roomId);
     if (!room) return;
 
@@ -26,8 +35,8 @@ function startGroupFinance(initiatorWs, roomId, initiator, card, broadcastToRoom
 
     const groupId = `gfin_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
-    // ✅ Use locked price from drawer's purchase, not a new random price
-    const currentPrice = lockedPrice || card.currentPrice || 0;
+    // Use locked price from drawer's card reveal / actual purchase price if available
+    const currentPrice = lockedPrice || card._lockedPrice || card.currentPrice || 0;
 
     const cardType = isCrypto ? 'crypto' : 'stock';
     const unit     = isCrypto ? '顆' : '股';
@@ -39,17 +48,20 @@ function startGroupFinance(initiatorWs, roomId, initiator, card, broadcastToRoom
         card,
         cardType,
         roomId,
-        initiatorId:   initiator.playerId,
-        initiatorName: initiator.playerName,
+        initiatorId:     initiator.playerId,
+        initiatorName:   initiator.playerName,
+        initiatorBought,
         currentPrice,
         unit,
         minTrade,
         multiple,
-        responses:     new Map(),
-        startedAt:     Date.now()
+        responses:       new Map(),
+        startedAt:       Date.now()
     });
 
-    console.log(`📊 團購金融卡: ${card.name}, 鎖定價格: $${currentPrice} (groupId=${groupId})`);
+    console.log(
+        `📊 團購金融: ${card.name}, 鎖定價格: $${currentPrice}, 發起人是否買入: ${initiatorBought ? '是' : '否'} (groupId=${groupId})`
+    );
 
     room.players.forEach((p, pWs) => {
         if (pWs === initiatorWs) return;
@@ -67,17 +79,22 @@ function startGroupFinance(initiatorWs, roomId, initiator, card, broadcastToRoom
             minTrade,
             multiple,
             initiatorName: initiator.playerName,
+            initiatorBought,
             energyCost:    1,
             playerCash:    p.gameState.cash,
             playerEnergy:  p.gameState.energy,
             timeout:       GROUP_TIMEOUT / 1000,
-            message: `📊 ${initiator.playerName} 抽到「${card.name}」！你可以一起買入（需付 1 精力給發起人）`
+            message: initiatorBought
+                ? `📊 ${initiator.playerName} 抽到並買入「${card.name}」！你也可以一起買入（需付 1 精力給發起人）`
+                : `📊 ${initiator.playerName} 抽到「${card.name}」但選擇不買！你仍可以一起買入（需付 1 精力給發起人）`
         }));
     });
 
     initiatorWs.send(JSON.stringify({
         type: 'notification',
-        message: `📊 其他玩家正在決定是否一起買入「${card.name}」...`
+        message: initiatorBought
+            ? `📊 其他玩家正在決定是否一起買入「${card.name}」...`
+            : `📊 雖然你沒有買入「${card.name}」，其他玩家仍可決定是否一起買入...`
     }));
 
     setTimeout(() => {

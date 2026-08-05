@@ -11,16 +11,13 @@ export class HardshipHandler {
         const { client } = this;
         const { CardRevealTemplate } = await import('../../cards/templates/CardRevealTemplate.js');
 
-        // Apply state
         this._applyState(message);
 
-        // Log
         client.logManager.addLog(
             `🎭 ${message.effectMessage || message.message || '逆境自強卡'}`,
             'error'
         );
 
-        // ✅ Always show modal - don't depend on message.card existing
         const old = document.getElementById('cardRevealModal');
         if (old) old.remove();
 
@@ -36,7 +33,6 @@ export class HardshipHandler {
         client.modalManager.createModal('cardRevealModal', modalHtml);
         client.modalManager.openModal('cardRevealModal');
 
-        // Build display card - works with or without message.card
         const displayCard = message.card
             ? {
                 ...message.card,
@@ -47,6 +43,73 @@ export class HardshipHandler {
                 description: message.effectMessage || message.message || '逆境自強卡效果',
                 image:       null
             };
+
+        CardRevealTemplate.populate(
+            displayCard,
+            null,
+            client.escapeHtml.bind(client)
+        );
+
+        CardRevealTemplate.bindConfirm(() => {
+            client.modalManager.closeModal('cardRevealModal');
+        });
+    }
+
+    // ==================== Reverse tile reveal ====================
+    // ✅ NEW — separate handler for non-hardship reverse tiles (awareness, miracle, etc)
+
+    async handleReverseTileReveal(message) {
+        const { client } = this;
+        const { CardRevealTemplate } = await import('../../cards/templates/CardRevealTemplate.js');
+
+        this._applyState(message);
+
+        const card = message.card || {};
+        const themeMap = {
+            awareness: {
+                title:        '🧘 覺察卡',
+                subtitle:     '在逆境中覺察自我，提升精力',
+                primaryColor: '#ff9800',
+                accentColor:  '#ffe0b2',
+                confirmText:  '✨ 繼續',
+                hint:         '💡 精力已恢復，繼續遊戲'
+            },
+            miracle: {
+                title:        '🌟 奇蹟',
+                subtitle:     '奇蹟降臨！你脫離了逆流層',
+                primaryColor: '#4caf50',
+                accentColor:  '#c8e6c9',
+                confirmText:  '🎉 太好了！',
+                hint:         '💡 你回到了平流層，繼續遊戲'
+            },
+            hardship: {
+                title:        `🌀 ${card.cardTypeName || '逆流事件'}`,
+                subtitle:     '逆流層的挑戰',
+                primaryColor: '#f44336',
+                accentColor:  '#ffcdd2',
+                confirmText:  '💪 接受命運',
+                hint:         '💡 這張卡片的效果已經生效'
+            }
+        };
+
+        const theme = themeMap[card.cardType] || themeMap.hardship;
+
+        client.logManager.addLog(
+            `${card.cardTypeIcon || '🌀'} ${message.effectMessage || card.name}`,
+            card.cardType === 'miracle' || card.cardType === 'awareness' ? 'success' : 'error'
+        );
+
+        const old = document.getElementById('cardRevealModal');
+        if (old) old.remove();
+
+        const modalHtml = CardRevealTemplate.buildModal(theme);
+        client.modalManager.createModal('cardRevealModal', modalHtml);
+        client.modalManager.openModal('cardRevealModal');
+
+        const displayCard = {
+            ...card,
+            description: message.effectMessage || card.description
+        };
 
         CardRevealTemplate.populate(
             displayCard,
@@ -70,7 +133,6 @@ export class HardshipHandler {
         client.logManager.addLog(`🛡️ ${message.shieldMessage}`, 'success');
         client.logManager.showNotification(message.shieldMessage, 'success');
 
-        // Show shield modal using template
         const old = document.getElementById('hardshipShieldModal');
         if (old) old.remove();
 
@@ -102,7 +164,6 @@ export class HardshipHandler {
             client.modalManager.closeModal('hardshipShieldModal');
         });
 
-        // Auto-close after 30 seconds
         setTimeout(() => {
             client.modalManager.closeModal('hardshipShieldModal');
         }, 30000);

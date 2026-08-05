@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { canAffordInvestment, spendForInvestment } = require('./WalletSystem.js');
 
 const pendingChoices = new Map();
 
@@ -113,8 +114,11 @@ function _handleRentOut(player, card, discount, finalDownPayment) {
 function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
     const state = player.gameState;
 
-    if (state.cash < finalDownPayment) {
-        return `❌ 現金不足 $${finalDownPayment.toLocaleString()}，無法支付首期`;
+    // ✅ Use wallet system for down payment (investment)
+    const { canAffordInvestment, spendForInvestment } = require('./WalletSystem.js');
+
+    if (!canAffordInvestment(state, finalDownPayment)) {
+        return `❌ 資金不足 $${finalDownPayment.toLocaleString()}，無法支付首期（現金 + 貸款金）`;
     }
 
     const totalPrice     = card.totalPrice || finalDownPayment;
@@ -122,23 +126,23 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
     const monthlyPayment = card.monthlyPayment || 0;
     const monthlyRent    = card.monthlyReturn  || 0;
 
-    state.cash        -= finalDownPayment;
+    // ✅ Deduct via wallet (loanCash first)
+    const spendResult = spendForInvestment(state, finalDownPayment);
+
     state.totalAssets += totalPrice;
 
-    // ── Expense: mortgage payment (always, if has mortgage) ──────────────────
+    // ── Mortgage payment: track separately as INVESTMENT expense ─────────────
     if (monthlyPayment > 0) {
         state.livingExpense = (state.livingExpense || 0) + monthlyPayment;
+        state.propertyMortgageExpense =
+            (state.propertyMortgageExpense || 0) + monthlyPayment;   // ✅ track investment portion
     }
 
-    // ── Income: rent (only if renting out) ───────────────────────────────────
-    // ✅ passiveIncome gets the FULL rent
-    // ✅ livingExpense already has the FULL mortgage
-    // ✅ Net = passiveIncome - livingExpense (handled by UI/settlement)
     if (usage === 'rent_out' && monthlyRent > 0) {
         state.passiveIncome = (state.passiveIncome || 0) + monthlyRent;
     }
 
-    // ── Property record ───────────────────────────────────────────────────────
+    // ── Property record ──────────────────────────────────────────────────────
     state.propertyInvestments = state.propertyInvestments || [];
     const propertyRecord = {
         instanceId:       `${card.id}_${Date.now()}`,
@@ -150,7 +154,6 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
         mortgageAmount,
         remainingBalance: mortgageAmount,
         monthlyPayment,
-        // ✅ Only track rent income if renting out
         monthlyReturn:    usage === 'rent_out' ? monthlyRent : 0,
         originalRent:     monthlyRent,
         monthsPaid:       0,
@@ -165,13 +168,15 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
     state.residentialCount = (state.residentialCount || 0) + 1;
     state.hasPropertySkill = true;
 
-    // ── Return message ────────────────────────────────────────────────────────
+    // ── Return message ───────────────────────────────────────────────────────
     const discountMsg = discount > 0 ? ` (折扣 ${discount}%)` : '';
     const usageLabel  = usage === 'self_use' ? '自用' : '出租';
     const rentIncome  = usage === 'rent_out' ? monthlyRent : 0;
+    const walletMsg   = spendResult.spentLoan > 0
+        ? `\n   ${spendResult.message}`
+        : '';
 
     if (monthlyPayment > 0) {
-        // ✅ Net = rent income - mortgage cost (correct sign)
         const netMonthly = rentIncome - monthlyPayment;
         const netStr = netMonthly >= 0
             ? `+$${netMonthly.toLocaleString()}`
@@ -179,9 +184,9 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
 
         return [
             `✅ ${usageLabel}「${card.name}」！`,
-            `   💰 首期: $${finalDownPayment.toLocaleString()}${discountMsg}`,
+            `   💰 首期: $${finalDownPayment.toLocaleString()}${discountMsg}${walletMsg}`,
             `   🏦 貸款: $${mortgageAmount.toLocaleString()}`,
-            `   📅 月供: -$${monthlyPayment.toLocaleString()}`,
+            `   📅 月供: -$${monthlyPayment.toLocaleString()} (投資支出)`,
             `   🏠 租金: +$${rentIncome.toLocaleString()}/月`,
             `   📊 淨月現金流: ${netStr}/月`
         ].join('\n');
@@ -189,7 +194,7 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
 
     return [
         `✅ ${usageLabel}「${card.name}」！`,
-        `   💰 支付: $${finalDownPayment.toLocaleString()}${discountMsg}`,
+        `   💰 支付: $${finalDownPayment.toLocaleString()}${discountMsg}${walletMsg}`,
         `   🏠 租金: +$${rentIncome.toLocaleString()}/月`
     ].join('\n');
 }
@@ -219,6 +224,10 @@ function processPropertyMortgages(player, ws, broadcastToRoom, roomId) {
         if (prop.remainingBalance <= 0) {
             prop.remainingBalance = 0;
             prop.paidOff = true;
+            state.livingExpense = Math.max(0, (state.livingExpense || 0) - prop.monthlyPayment);
+            state.propertyMortgageExpense = Math.max(0,
+                (state.propertyMortgageExpense || 0) - prop.monthlyPayment
+            );
 
             // Remove mortgage from livingExpense
             state.livingExpense = Math.max(0, (state.livingExpense || 0) - prop.monthlyPayment);
@@ -312,21 +321,23 @@ function handleEarlyPayoff(ws, data, roomId, rooms, broadcastToRoom) {
     }
 
     const remaining = prop.remainingBalance;
-    if (state.cash < remaining) {
+    if (!canAffordInvestment(state, remaining)) {
         ws.send(JSON.stringify({
-            type: 'notification',
-            message: `❌ 現金不足 $${remaining.toLocaleString()}，無法一次付清`
+            type:    'notification',
+            message: `❌ 資金不足 $${remaining.toLocaleString()}，無法一次付清（現金 + 貸款金）`
         }));
         return;
     }
 
     const stateBefore = JSON.parse(JSON.stringify(state));
-
-    // Pay off the remaining balance
-    state.cash -= remaining;
+    const spendResult = spendForInvestment(state, remaining);
     prop.totalPaid += remaining;
     prop.remainingBalance = 0;
     prop.paidOff = true;
+    state.livingExpense = Math.max(0, (state.livingExpense || 0) - prop.monthlyPayment);
+    state.propertyMortgageExpense = Math.max(0,
+        (state.propertyMortgageExpense || 0) - prop.monthlyPayment
+    );
 
     // Remove monthly payment from expenses
     state.livingExpense = Math.max(0, (state.livingExpense || 0) - prop.monthlyPayment);

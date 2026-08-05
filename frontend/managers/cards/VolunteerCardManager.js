@@ -9,65 +9,143 @@ export class VolunteerCardManager extends BaseCardManager {
         this._ensureModals();
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    _send(obj) {
+        const conn = this.ws;
+        if (conn && conn.isReady()) {
+            conn.send(obj);
+        } else {
+            console.error('❌ WebSocket not ready:', obj);
+        }
+    }
+
+    _escape(str) {
+        return this.gameClient.escapeHtml(str);
+    }
+
+    _log(msg, type = 'info') {
+        this.gameClient.logManager.addLog(msg, type);
+    }
+
     // ==================== Basic Volunteer Card ====================
 
     showVolunteerCardModal(card, effectMessage) {
         this._ensureModals();
         this.modalManager.openModal('volunteerCardModal');
 
-        // Set image
         VolunteerTemplate.applyCardImage(
             document.getElementById('volunteerCardImg'), card
         );
 
-        // Set body
         const body = document.getElementById('volunteerCardBody');
         if (body) body.innerHTML = VolunteerTemplate.buildCardBody(
-            card, effectMessage, this.ui.escapeHtml.bind(this.ui)
+            card, effectMessage, this._escape.bind(this)
         );
 
-        // Set effect message
         const effectSpan = document.getElementById('volunteerCardEffect');
         if (effectSpan) {
-            effectSpan.innerHTML = `📌 ${this.ui.escapeHtml(effectMessage)}`;
+            effectSpan.innerHTML = `📌 ${this._escape(effectMessage || '')}`;
         }
 
-        // Bind buttons
         VolunteerTemplate.bindCardButtons(
             () => this.modalManager.closeModal('volunteerCardModal')
         );
     }
 
-    // ==================== Donation Modal ====================
+    // ==================== Donation Modal (INITIATOR) ====================
 
     showVolunteerDonationModal(card) {
         this._ensureModals();
-        this.modalManager.openModal('volunteerDonationModal');
 
-        // Set image
-        VolunteerTemplate.applyCardImage(
-            document.getElementById('donationCardImg'), card
-        );
+        // ✅ All DOM manipulation delegated to template
+        VolunteerTemplate.setModalTitle('volunteerDonationModal', `🤝 ${card.name}`);
+        VolunteerTemplate.setImageVisible(document.getElementById('donationCardImg'), true);
+        VolunteerTemplate.applyCardImage(document.getElementById('donationCardImg'), card);
+        VolunteerTemplate.setDonationButtonLabels('✅ 執行義工', '❌ 取消');
 
-        // Set body
         const body = document.getElementById('donationModalBody');
         if (body) body.innerHTML = VolunteerTemplate.buildDonationBody(
-            card, this.ui.escapeHtml.bind(this.ui)
+            card, this._escape.bind(this)
         );
 
-        // Bind buttons
+        this.modalManager.openModal('volunteerDonationModal');
+
+        const self = this;
         VolunteerTemplate.bindDonationButtons(
-            // On confirm
             () => {
-                if (this.ws && this.ws.isReady()) {
-                    this.ws.send({ type: 'volunteer_card_confirm' });
-                }
-                this.modalManager.closeModal('volunteerDonationModal');
+                self._send({ type: 'volunteer_card_confirm' });
+                self.modalManager.closeModal('volunteerDonationModal');
             },
-            // On cancel
             () => {
-                this.modalManager.closeModal('volunteerDonationModal');
-                this.ui.addLog('已取消執行義工卡', 'warning');
+                self.modalManager.closeModal('volunteerDonationModal');
+                self._log('已取消執行義工卡', 'warning');
+            }
+        );
+    }
+
+    // ==================== Donation Prompt Modal (OTHER players) ====================
+
+    showVolunteerDonationPromptModal(message) {
+        this._ensureModals();
+
+        const donationType = message.donationType || 'cash';
+        const unit         = donationType === 'energy' ? '精力' : '元';
+        const imgEl        = document.getElementById('donationCardImg');
+        const canAfford    = message.canAfford !== false;
+
+        VolunteerTemplate.setModalTitle(
+            'volunteerDonationModal',
+            `🤝 ${message.cardName || '義工捐款'}`
+        );
+        VolunteerTemplate.setImageVisible(imgEl, false);
+        VolunteerTemplate.setDonationButtonLabels('✅ 願意捐贈', '❌ 不捐贈');
+
+        // ✅ Disable confirm button if player can't afford
+        const confirmBtn = document.getElementById('confirmDonationBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = !canAfford;
+            confirmBtn.style.opacity = canAfford ? '1' : '0.4';
+            confirmBtn.style.cursor  = canAfford ? 'pointer' : 'not-allowed';
+        }
+
+        const body = document.getElementById('donationModalBody');
+        if (body) body.innerHTML = VolunteerTemplate.buildDonationPromptBody(
+            message, this._escape.bind(this)
+        );
+
+        this.modalManager.openModal('volunteerDonationModal');
+
+        const self   = this;
+        const cardId = message.cardId;
+
+        VolunteerTemplate.bindDonationButtons(
+            // Willing to donate
+            () => {
+                // ✅ Double-check affordability
+                if (!canAfford) {
+                    self._log(`❌ 你的${unit}不足，無法捐贈`, 'error');
+                    return;
+                }
+                self._send({
+                    type: 'volunteer_donation_response',
+                    cardId,
+                    willDonate: true
+                });
+                VolunteerTemplate.setImageVisible(imgEl, true);
+                self.modalManager.closeModal('volunteerDonationModal');
+                self._log(`🤝 你同意捐贈 ${message.donationAmount} ${unit}`, 'success');
+            },
+            // Decline
+            () => {
+                self._send({
+                    type: 'volunteer_donation_response',
+                    cardId,
+                    willDonate: false
+                });
+                VolunteerTemplate.setImageVisible(imgEl, true);
+                self.modalManager.closeModal('volunteerDonationModal');
+                self._log('🤝 你選擇不捐贈', 'info');
             }
         );
     }
@@ -78,30 +156,27 @@ export class VolunteerCardManager extends BaseCardManager {
         this._ensureModals();
         this.modalManager.openModal('volunteerChoiceModal');
 
-        // Set image
         VolunteerTemplate.applyCardImage(
             document.getElementById('choiceCardImg'), card
         );
 
-        // Set body
         const body = document.getElementById('choiceModalBody');
         if (body) body.innerHTML = VolunteerTemplate.buildChoiceBody(
-            card, this.ui.escapeHtml.bind(this.ui)
+            card, this._escape.bind(this)
         );
 
-        // Bind buttons
+        const self = this;
         VolunteerTemplate.bindChoiceButtons(
-            // On choice selected
             (choice) => {
-                if (this.ws && this.ws.isReady()) {
-                    this.ws.send({ type: 'volunteer_card_choice_confirm', choice });
-                }
-                this.modalManager.closeModal('volunteerChoiceModal');
+                self._send({
+                    type: 'volunteer_card_choice_confirm',
+                    choice
+                });
+                self.modalManager.closeModal('volunteerChoiceModal');
             },
-            // On cancel
             () => {
-                this.modalManager.closeModal('volunteerChoiceModal');
-                this.ui.addLog('已取消選擇', 'warning');
+                self.modalManager.closeModal('volunteerChoiceModal');
+                self._log('已取消選擇', 'warning');
             }
         );
     }

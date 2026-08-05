@@ -7,12 +7,13 @@ import { LogManager }            from './managers/LogManager.js';
 import { BoardRenderer }         from './managers/BoardRenderer.js';
 import { PlayerPanelRenderer }   from './managers/PlayerPanelRenderer.js';
 import { CardModalManager }      from './managers/CardModalManager.js';
+import { VolunteerCardManager }  from './managers/cards/VolunteerCardManager.js'; // ✅ ADD
 import { MessageRouter }         from './managers/MessageRouter.js';
 import { RenameManager }         from './managers/RenameManager.js';
-import { TurnIndicator } from './managers/TurnIndicator.js';
-import { TileLandingManager } from './managers/TileLandingManager.js';
+import { TurnIndicator }         from './managers/TurnIndicator.js';
+import { TileLandingManager }    from './managers/TileLandingManager.js';
 import { SettlementRollManager } from './managers/SettlementRollManager.js';
-import { CardBroadcastManager } from './managers/CardBroadcastManager.js';
+import { CardBroadcastManager }  from './managers/CardBroadcastManager.js';
 
 import { GameLifecycleManager }  from './managers/lifecycle/GameLifecycleManager.js';
 import { PlayerActionSender }    from './managers/actions/PlayerActionSender.js';
@@ -34,13 +35,13 @@ class GameClient {
         this.logManager   = new LogManager(this.modalManager);
 
         // ── Renderers ─────────────────────────────────────────────────────
-        this.boardRenderer = new BoardRenderer();
-        this.playerPanel   = new PlayerPanelRenderer(this);
-        this.cardModal     = new CardModalManager(this.modalManager, this);
-        this.turnIndicator  = new TurnIndicator();
-        this.tileLandingManager = new TileLandingManager(this.modalManager);
-        // Expose ButtonStateManager so lifecycle/handlers can call it directly
-        this.buttonState = this.playerPanel.buttons;
+        this.boardRenderer      = new BoardRenderer();
+        this.playerPanel        = new PlayerPanelRenderer(this);
+        this.cardModal          = new CardModalManager(this.modalManager, this);
+        this.volunteerCardModal = new VolunteerCardManager(this.modalManager, this); // ✅ ADD
+        this.turnIndicator      = new TurnIndicator();
+        this.tileLandingManager = new TileLandingManager(this);  // ✅ FIX: was duplicated
+        this.buttonState        = this.playerPanel.buttons;
 
         // ── Domain handlers ───────────────────────────────────────────────
         this.joinHandler    = new JoinHandler(this);
@@ -49,17 +50,15 @@ class GameClient {
         this.financeHandler = new FinanceHandler(this);
         this.itemHandler    = new ItemHandler(this);
         this.marketHandler  = new MarketHandler(this);
-        this.renameManager  = new RenameManager(this);
-        this.renameManager      = new RenameManager(this);
-        this.tileLandingManager = new TileLandingManager(this);
+        this.renameManager  = new RenameManager(this);  // ✅ FIX: was duplicated
         this.settlementRollManager = new SettlementRollManager(this);
-        this.cardBroadcast = new CardBroadcastManager(this);
+        this.cardBroadcast  = new CardBroadcastManager(this);
 
         // ── Actions & lifecycle ───────────────────────────────────────────
         this.actions   = new PlayerActionSender(this);
         this.lifecycle = new GameLifecycleManager(this);
 
-        // ── Router (must be last - references all handlers above) ─────────
+        // ── Router (must be last) ─────────────────────────────────────────
         this.router = new MessageRouter(this);
 
         // ── State ─────────────────────────────────────────────────────────
@@ -100,8 +99,6 @@ class GameClient {
     getElement(id) { return document.getElementById(id); }
     getButton(id)  { return document.getElementById(id); }
     getInput(id)   { return document.getElementById(id); }
-
-    // ==================== Network status bar ====================
 
     updateNetworkStatus(connected) {
         const bar = this.getElement('networkStatus');
@@ -176,25 +173,43 @@ class GameClient {
     showProfessionModal() {
         this.modalManager.showProfessionModal(PROFESSIONS, this);
     }
+    updateUI()           { this.playerPanel.updateUI(this.gameState); }
+    updatePlayersList()  { this.playerPanel.updatePlayersList(this.gameState, this.otherPlayers); }
+    updateTurnStatus()   { this.turnHandler.updateTurnStatus(); }
+    renderAllTiles()     { this.boardRenderer.renderAllTiles(this.gameState, this.otherPlayers); }
 
-    doConnect()  { this.lifecycle.doConnect(); }
-    connect()    { this.lifecycle.doConnect(); }
-    disconnect() { this.lifecycle.disconnect(); }
+    showPropertyPanel()  { this.connection.send({ type: 'get_property_list' }); }
+    showPortfolio()      { if (this.isConnected) this.connection.send({ type: 'get_portfolio' }); }
+    showLendingPanel()   { if (this.isConnected) this.connection.send({ type: 'get_lending_summary' }); }
 
-    // ==================== Rename delegate ====================  ✅ ADD THIS
+    showProfessionModal() { this.modalManager.showProfessionModal(PROFESSIONS, this); }
+    doConnect()           { this.lifecycle.doConnect(); }
+    connect()             { this.lifecycle.doConnect(); }
+    disconnect()          { this.lifecycle.disconnect(); }
 
     showRenameModal()        { this.renameManager.show(); }
     handleRenameSuccess(msg) { this.renameManager.handleRenameSuccess(msg); }
     handlePlayerRenamed(msg) { this.renameManager.handlePlayerRenamed(msg); }
-    // ==================== Settlement roll delegate ====================
-    showSettlementRoll()               { this.settlementRollManager.show(); }
-    handleSettlementRollResult(msg)    { this.settlementRollManager.handleResult(msg); }
 
-    // ==================== Player actions ====================
+    showSettlementRoll()            { this.settlementRollManager.show(); }
+    handleSettlementRollResult(msg) { this.settlementRollManager.handleResult(msg); }
 
     rollDice()          { this.actions.rollDice(); }
     endTurn() {
-        // ✅ Disable button immediately to prevent double-click
+        // ✅ Check minimized modals BEFORE disabling button
+        if (this.modalManager.hasMinimizedModals()) {
+            const count = this.modalManager.getMinimizedCount();
+            this.logManager.addLog(
+                `⚠️ 還有 ${count} 個待處理的決定，請先處理完再結束回合`,
+                'warning'
+            );
+            this.logManager.showNotification(
+                `⚠️ 還有 ${count} 個待處理的決定！請點擊右下角的按鈕繼續`,
+                'warning'
+            );
+            return;
+        }
+
         const btn = document.getElementById('btnEndTurn');
         if (btn) {
             btn.disabled = true;
@@ -209,16 +224,12 @@ class GameClient {
     useFourLeafClover() { this.actions.useFourLeafClover(); }
     useLuckyStar()      { this.actions.useLuckyStar(); }
 
-    // ==================== Private ====================
-
     _bindEvents() {
         window.gameClient = this;
-
         const on = (id, fn) => {
             const el = document.getElementById(id);
             if (el) el.onclick = fn;
         };
-
         on('btnConnect',      () => this.showProfessionModal());
         on('btnRoll',         () => this.rollDice());
         on('btnEndTurn',      () => this.endTurn());
@@ -231,7 +242,6 @@ class GameClient {
     }
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     window.gameClient = new GameClient();
     setTimeout(() => {

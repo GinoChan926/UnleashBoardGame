@@ -73,9 +73,8 @@ function getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles
 
 function _rawExpense(state) {
     return (state.livingExpense || 0)
-        + (state.tax           || 0)
-        + (state.loanInterest  || 0)
-        + (state.childExpense  || 0);
+        + (state.tax || 0)
+        + (state.childExpense || 0);
 }
 
 module.exports = {

@@ -5,6 +5,14 @@ const { calculateReducedExpense }   = require('../utils/helpers.js');
 const { processHealthInvestment, processHealthSupplementInvestment } = require('../systems/HealthSystem.js');
 const { processSettlementRepayment } = require('../systems/LoanSystem.js');
 const { processTeaRestaurantFees }  = require('../systems/TeaRestaurantSystem.js');
+const {
+    spendForInvestment,
+    spendForNonInvestment,
+    canAffordInvestment,
+    canAffordNonInvestment
+} = require('../systems/WalletSystem.js');
+const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+
 
 function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
                                { broadcastToRoom, showCardTypeSelection, showRevelationCardTypeSelection,
@@ -103,8 +111,42 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
 
     if (!state.inReverse && totalExpense > 0) {
-        state.cash    -= totalExpense;
+        const mortgageExpense    = state.propertyMortgageExpense || 0;
+        const nonInvestExpense   = Math.max(0, totalExpense - mortgageExpense);
+
+        // ── Mortgage portion: investment (can use loanCash) ──────────────
+        if (mortgageExpense > 0) {
+            if (canAffordInvestment(state, mortgageExpense)) {
+                spendForInvestment(state, mortgageExpense);
+            } else {
+                // Fallback to debt
+                chargePlayer(player, mortgageExpense, {
+                    source:       '房貸月供',
+                    creditor:     'bank',
+                    creditorName: '銀行',
+                    room, roomId, broadcastToRoom, ws
+                });
+            }
+        }
+
+        // ── Other expenses: non-investment (regular cash only) ───────────
+        if (nonInvestExpense > 0) {
+            if (canAffordNonInvestment(state, nonInvestExpense)) {
+                spendForNonInvestment(state, nonInvestExpense);
+            } else {
+                chargePlayer(player, nonInvestExpense, {
+                    source:       '結算日支出',
+                    creditor:     'bank',
+                    creditorName: '銀行',
+                    room, roomId, broadcastToRoom, ws
+                });
+            }
+        }
+
         incomeMessage += `，支出 ${totalExpense.toLocaleString()} 元`;
+        if (mortgageExpense > 0) {
+            incomeMessage += ` (含房貸 ${mortgageExpense.toLocaleString()} 元，可用貸款金)`;
+        }
     }
 
     let expenseReductionMessage = reductionPercent > 0

@@ -15,7 +15,6 @@ export class PlayerStatsRenderer {
         // ── Expense calculation ──────────────────────────────────────────
         const rawExp = gameState.livingExpense
             + gameState.tax
-            + (gameState.loanInterest  || 0)
             + (gameState.childExpense   || 0);
 
         const reductionPct = gameState.expenseReduction || 0;
@@ -29,7 +28,8 @@ export class PlayerStatsRenderer {
             : gameState.passiveIncome;
 
         const monthlyCF     = (gameState.salary + gameState.sideIncome + effectivePassive) - totalExp;
-        const totalLoanRepay = gameState.loanAmount + Math.round(gameState.loanAmount * 0.1);
+        const totalLoanRepay = gameState.loanAmount + (gameState.accruedInterest || 0);
+
         const layerText      = gameState.inFlow    ? '顺流層'
             : gameState.inReverse ? '逆流層'
                 : '平流層';
@@ -68,6 +68,11 @@ export class PlayerStatsRenderer {
         this._set('statHardshipShield', gameState.hardshipShield || 0);
         this._set('statLayer',         layerText);
         this._set('layerText',         layerText);
+        this._set('statLoanCash', (gameState.loanCash || 0).toLocaleString());
+        this._set('statTotalCash',
+            ((gameState.cash || 0) + (gameState.loanCash || 0)).toLocaleString()
+        );
+        this._set('statAccruedInterest', (gameState.accruedInterest || 0).toLocaleString());
 
         // ── Coloured elements ─────────────────────────────────────────────
         this._setHtml('statMonthlyCF', el => {

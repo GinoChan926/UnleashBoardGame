@@ -522,7 +522,6 @@ setInterval(() => {
 // ==================== 財務类机会卡 (Finance) ====================
 const financeCards = [
     // 基金投資 F02
-    /*
     {
         id: "F02",
         code: "F02",
@@ -2364,7 +2363,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-*/
+
     {
         id: "F14",
         code: "H01",
@@ -2533,7 +2532,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-/*
+
     {
         id: "F15",
         code: "H01",
@@ -3040,7 +3039,7 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-*/
+
 ];
 
 // ==================== 創業类机会卡 (Business) ====================
@@ -3788,10 +3787,10 @@ const businessCards = [
 
             state.hasHealthIndustrySkill = true;
 
-            const luckBonus = 1;
-            state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
+            // const luckBonus = 1;
+            // state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
-            return `✅ 開設連鎖健康產品店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 5 點。健康產品深受歡迎，幸運值 +${luckBonus}！`;
+            return `✅ 開設連鎖健康產品店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 5 點！`;
         },
         getEffectDescription: () => "投資 280,000 元，被動收入 +20,000/月，精力 -5。幸運值 +1"
     },
@@ -4052,18 +4051,18 @@ const businessCards = [
             state.hasTrainingSkill = true;
 
             // 额外效益：幸运值提升（知識带来好运气）
-            const luckBonus = 2;
-            state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
+            // const luckBonus = 2;
+            // state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
             // 额外效益：被動收入加成（教育培训提升整体能力）
-            if (!state.passiveIncomeBonus) {
-                state.passiveIncomeBonus = 0;
-            }
-            state.passiveIncomeBonus += 5; // 所有被動收入 +5%
+            // if (!state.passiveIncomeBonus) {
+                // state.passiveIncomeBonus = 0;
+            // }
+            // state.passiveIncomeBonus += 5; // 所有被動收入 +5%
 
-            return `✅ 開設培訓機構成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，精力消耗 4 點。知識改變命運！幸運值 +${luckBonus}，所有被動收入 +5%！`;
+            return `✅ 開設培訓機構成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，精力消耗 4 點。知識改變命運！`;
         },
-        getEffectDescription: () => "投資 450,000 元，被動收入 +30,000/月，精力 -4。幸運值 +2,所有被動收入 +5%"
+        getEffectDescription: () => "投資 450,000 元，被動收入 +30,000/月，精力 -4。"
     },
 
     {
@@ -4342,18 +4341,18 @@ const businessCards = [
             state.hasTechSkill = true;
 
             // 额外效益：幸运值提升（AI辅助决策）
-            const luckBonus = 1;
-            state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
+            // const luckBonus = 1;
+            //state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
             // 额外效益：精力消耗永久减少（AI自動化辅助）
-            if (!state.energyCostReduction) {
-                state.energyCostReduction = 0;
-            }
-            state.energyCostReduction += 2;  // 所有行動精力消耗减少2%
+            // if (!state.energyCostReduction) {
+                // state.energyCostReduction = 0;
+            // }
+            // state.energyCostReduction += 2;  // 所有行動精力消耗减少2%
 
-            return `✅ 開發AI智能手機程式成功投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，精力消耗 5 點。AI技術提升效率,幸運值 +${luckBonus}，所有行動精力消耗 -2%！`;
+            return `✅ 開發AI智能手機程式成功投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，精力消耗 5 點。`;
         },
-        getEffectDescription: () => "投資 150,000 元，被動收入 +10,000/月，精力 -5。幸運值 +1,所有行動精力消耗 -2%"
+        getEffectDescription: () => "投資 150,000 元，被動收入 +10,000/月，精力 -5"
     },
 
     {
@@ -4419,16 +4418,16 @@ const businessCards = [
             state.hasSustainableSkill = true;
 
             // 额外效益：幸运值提升（环保形象提升品牌價值）
-            const luckBonus = 1;
-            state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
+            // const luckBonus = 1;
+            // state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
             // 额外效益：被動收入加成（环保产品溢價）
-            if (!state.passiveIncomeBonus) {
-                state.passiveIncomeBonus = 0;
-            }
-            state.passiveIncomeBonus += 3;  // 所有被動收入 +3%
+            // if (!state.passiveIncomeBonus) {
+                // state.passiveIncomeBonus = 0;
+            // }
+            // state.passiveIncomeBonus += 3;  // 所有被動收入 +3%
 
-            let resultMessage = `✅ 開設可持續發展碳中和釀酒廠成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +12,000 元/月，精力消耗 6 點。綠色企業形象提升品牌價值！幸運值 +${luckBonus}，所有被動收入 +3%！`;
+            let resultMessage = `✅ 開設可持續發展碳中和釀酒廠成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +12,000 元/月，精力消耗 6 點。`;
 
             // 环保和精力交易功能（预留，待未来实现）
             resultMessage += `\n🌱 環境保護：減少廢物產生，促進循環經濟！`;
@@ -4436,7 +4435,7 @@ const businessCards = [
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，精力 -6。幸運值 +1,所有被動收入 +3%。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能"
+        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，精力 -6。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能"
     },
 
     {
@@ -4502,8 +4501,8 @@ const businessCards = [
             state.hasInclusiveSkill = true;
 
             // 额外效益：幸运值提升（社会企业形象提升品牌價值）
-            const luckBonus = 1;
-            state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
+            // const luckBonus = 1;
+            // state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
             // 额外效益：最大精力值增加（正能量激励）
             const maxEnergyBonus = 3;
@@ -4513,7 +4512,7 @@ const businessCards = [
             state.energy += 2;
             state.energy = Math.min(state.maxEnergy, state.energy);
 
-            let resultMessage = `✅ 開設可持續發展傷健咖啡店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +9,000 元/月，精力消耗 6 點。社會企業形象提升品牌價值！幸運值 +${luckBonus}，最大精力值 +${maxEnergyBonus}，精力 +2！`;
+            let resultMessage = `✅ 開設可持續發展傷健咖啡店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +9,000 元/月，精力消耗 6 點。社會企業形象提升品牌價值！可從銀行提取5精力向其他玩家出售！`;
 
             // 知識共享和精力交易功能（预留，待未来实现）
             resultMessage += `\n📚 知識共享：分享創業知識和傷健共融理念！`;
@@ -4521,7 +4520,7 @@ const businessCards = [
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 140,000 元，被動收入 +9,000/月，精力 -6。幸運值 +1，最大精力值 +3。知識共享及精力交易功能"
+        getEffectDescription: () => "投資 140,000 元，被動收入 +9,000/月，精力 -6。可從銀行提取5精力向其他玩家出售！"
     }
 
 ];

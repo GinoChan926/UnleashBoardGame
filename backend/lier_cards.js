@@ -36,11 +36,11 @@ const lierCards = [
 
             if (diceRoll <= 3) {
                 state.cash = Math.max(0, state.cash - investmentAmount);
-                state.luck = Math.max(0, state.luck - 1);
-                resultMessage = `🎲 擲出 ${diceRoll} 點！投資失敗，損失 ${investmentAmount.toLocaleString()} 元 (現金的10%)，幸運值 -1`;
+                // state.luck = Math.max(0, state.luck - 1);
+                resultMessage = `🎲 擲出 ${diceRoll} 點！投資失敗，損失 ${investmentAmount.toLocaleString()} 元 (現金的10%)`;
             } else {
-                state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-                resultMessage = `🎲 擲出 ${diceRoll} 點！僥倖及時提取金錢，拿回 ${investmentAmount.toLocaleString()} 元，幸運值 +1`;
+                // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
+                resultMessage = `🎲 擲出 ${diceRoll} 點！僥倖及時提取金錢，拿回 ${investmentAmount.toLocaleString()} 元 (現金的10%)`;
             }
 
             return resultMessage;
@@ -110,11 +110,11 @@ const lierCards = [
             state.inReverse = true;
             state.reversePos = 0;
             state.energy = Math.max(0, state.energy - 3);
-            state.luck   = Math.max(0, state.luck - 2);
+            // state.luck   = Math.max(0, state.luck - 2);
 
-            return `📧 電郵假網址！被黑客入侵，退回逆流層！精力 -3，幸運值 -2`;
+            return `📧 電郵假網址！被黑客入侵，退回逆流層！精力 -3`;
         },
-        getEffectDescription: () => "後退到逆流層，精力 -3，幸運值 -2"
+        getEffectDescription: () => "後退到逆流層，精力 -3"
     },
 
     {
@@ -130,11 +130,11 @@ const lierCards = [
             state.inReverse = true;
             state.reversePos = 0;
             state.energy = Math.max(0, state.energy - 2);
-            state.luck   = Math.max(0, state.luck - 1);
+            // state.luck   = Math.max(0, state.luck - 1);
 
-            return `📱 不明短訊假連結！被黑客入侵手機，退回逆流層！精力 -2，幸運值 -1`;
+            return `📱 不明短訊假連結！被黑客入侵手機，退回逆流層！精力 -2`;
         },
-        getEffectDescription: () => "後退到逆流層，精力 -2，幸運值 -1"
+        getEffectDescription: () => "後退到逆流層，精力 -2"
     },
 
     {
@@ -157,39 +157,21 @@ const lierCards = [
 
             if (diceRoll >= 5) {
                 state.cash += investment;
-                state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
-                return `🎲 擲出 ${diceRoll} 點！幸運取回 ${investment.toLocaleString()} 元，幸運值 +1`;
+                // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
+                return `🎲 擲出 ${diceRoll} 點！幸運取回 ${investment.toLocaleString()} 元`;
             } else {
-                state.luck   = Math.max(0, state.luck - 1);
+                // state.luck   = Math.max(0, state.luck - 1);
                 state.energy = Math.max(0, state.energy - 1);
-                return `🎲 擲出 ${diceRoll} 點！騙局！損失 ${investment.toLocaleString()} 元，幸運值 -1，精力 -1`;
+                return `🎲 擲出 ${diceRoll} 點！騙局！損失 ${investment.toLocaleString()} 元，精力 -1`;
             }
         },
         getEffectDescription: () => "先付 20,000 元，擲骰1-4損失，5-6取回"
     },
-
     {
-        id: "SC08",
-        name: "虛擬貨幣騙局",
-        description: "投資虛擬貨幣，結果項目方跑路",
-        image: "../cards/lier/SC08.png",
-        cost: 0,
-        type: "lier",
-        category: "騙子卡",
-        effect: (state) => {
-            const loss = Math.floor(Math.random() * 20000) + 10000;
-            state.cash = Math.max(0, state.cash - loss);
-            state.luck = Math.max(0, state.luck - 2);
-            return `🪙 虛擬貨幣騙局！項目方跑路，損失 ${loss.toLocaleString()} 元，幸運值 -2`;
-        },
-        getEffectDescription: () => "損失 10,000-30,000 元（隨機），幸運值 -2"
-    },
-
-    {
-        id: "SC09",                    // ✅ Fixed: was duplicate SC08
+        id: "SC08",                    // ✅ Fixed: was duplicate SC08
         name: "被游說買了大量運動套票",
         description: "健身室倒閉，你損失了一半現金",
-        image: "../cards/lier/SC09.png",
+        image: "../cards/lier/SC08.png",
         cost: 0,
         type: "lier",
         category: "騙子卡",
@@ -200,12 +182,12 @@ const lierCards = [
 
             const loss = Math.floor(state.cash / 2);
             state.cash   = Math.max(0, state.cash - loss);
-            state.energy = Math.max(0, state.energy - 2);
-            state.luck   = Math.max(0, state.luck - 1);
+            // state.energy = Math.max(0, state.energy - 2);
+            // state.luck   = Math.max(0, state.luck - 1);
 
-            return `💪 被游說買運動套票，健身室倒閉！損失 ${loss.toLocaleString()} 元（一半現金），精力 -2，幸運值 -1`;
+            return `💪 被游說買運動套票，健身室倒閉！損失 ${loss.toLocaleString()} 元（一半現金）`;
         },
-        getEffectDescription: () => "損失一半現金，精力 -2，幸運值 -1"
+        getEffectDescription: () => "損失一半現金"
     }
 ];
 

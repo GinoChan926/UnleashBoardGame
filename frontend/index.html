@@ -357,7 +357,7 @@
             padding: 16px 18px;
             border: 1px solid #ffb347;
             backdrop-filter: blur(4px);
-            max-height: 420px;
+            max-height: 1000px;
             overflow-y: auto;
         }
 
@@ -703,35 +703,31 @@
             <div class="panel">
                 <div class="panel-title">💰 財務報表</div>
                 <div class="panel-row"><span>現金</span><strong id="statCash">10000</strong></div>
+                <div class="panel-row"><span>🏦 貸款金</span><strong id="statLoanCash" style="color:#4fc3f7;">0</strong></div>
+                <div class="panel-row"><span>💰 總可用</span><strong id="statTotalCash" style="color:#ffd966;">10000</strong></div>
                 <div class="panel-row"><span>月薪</span><strong id="statSalary">5000</strong></div>
                 <div class="panel-row"><span>副業</span><strong id="statSideIncome">0</strong></div>
                 <div class="panel-row"><span>被動收入</span><strong id="statPassiveIncome">0</strong></div>
                 <div class="panel-row"><span>📊 月現金流</span><strong id="statMonthlyCF">+5000</strong></div>
                 <div class="panel-row"><span>生活支出</span><strong id="statLiving">4000</strong></div>
                 <div class="panel-row"><span>稅金</span><strong id="statTax">500</strong></div>
-                <div class="panel-row"><span>貸款利息</span><strong id="statLoanInterest">0</strong></div>
-                <div class="panel-row"><span>💰 本利和</span><strong id="statTotalLoanRepay" style="color:#4caf50;">0</strong></div>
+                <div class="panel-row"><span>貸款利息 (月)</span><strong id="statLoanInterest">0</strong></div>
+                <div class="panel-row"><span>💸 累積利息</span><strong id="statAccruedInterest" style="color:#ff9800;">0</strong></div>
+                <div class="panel-row"><span>💰 本利和 (本金+累積利息)</span><strong id="statTotalLoanRepay" style="color:#4caf50;">0</strong></div>
                 <div class="panel-row"><span>💸 待償還債務</span><strong id="statPendingDebt" style="color:#ff9800;">0</strong></div>
                 <div class="panel-row"><span>總支出</span><strong id="statTotalExpense">4500</strong></div>
             </div>
 
             <div class="panel">
                 <div class="panel-title">⚡ 狀態</div>
-                <div class="panel-row"><span>精力</span><strong id="statEnergy">10</strong>/10</div>
-                <div class="panel-row"><span>幸運值</span><strong id="statLuck">5.0</strong>/10</div>
+                <div class="panel-row"><span>精力</span><strong id="statEnergy">10</strong></div>
+                <!--<div class="panel-row"><span>幸運值</span><strong id="statLuck">5.0</strong>/10</div> -->
                 <div class="panel-row"><span>⭐ 幸運星</span><strong id="statLuckyStar">0</strong></div>
                 <div class="panel-row"><span>🍀 四葉草</span><strong id="statFourLeafClover">0</strong></div>
                 <div class="panel-row"><span>🛡️ 逆境卡抵擋</span><strong id="statHardshipShield">0</strong></div>
                 <div class="panel-row"><span>👮 義工服務</span><strong id="statVolunteerProgress" style="font-weight: bold;">0/5</strong></div>
                 <div class="panel-row"><span>🤝 社會貢獻</span><strong id="statContributionProgress" style="font-weight: bold;">0/1</strong></div>
                 <div class="panel-row"><span>層級</span><strong id="statLayer">平流層</strong></div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-title">👥 在線玩家</div>
-                <div class="players-list" id="playersList">
-                    <div style="color: #999; font-size: 12px;">未連接</div>
-                </div>
             </div>
 
             <div class="panel control-panel" id="controlPanel">
@@ -754,6 +750,13 @@
                     💸 借還款
                 </button>
                 <button id="btnDisconnect" onclick="window.gameClient?.disconnect()">🔌 斷開連接</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">👥 在線玩家</div>
+                <div class="players-list" id="playersList">
+                    <div style="color: #999; font-size: 12px;">未連接</div>
+                </div>
             </div>
 
             <div class="panel log-panel">

@@ -3,7 +3,7 @@
 const { addTransactionRecord }            = require('../records/TransactionRecorder.js');
 const { checkAndNotifyEmotionalSupport }  = require('../systems/EmotionalSupportSystem.js');
 const { getWsByPlayerId }                 = require('../utils/helpers.js');
-const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
+const { broadcastCardReveal }             = require('../utils/CardBroadcastHelper.js');
 
 function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastToRoom, rooms) {
     const room = rooms.get(roomId);
@@ -111,35 +111,32 @@ function drawAndExecuteLierCard(ws, state, roomId, player, lierCards, broadcastT
         broadcastToRoom(roomId, dr, ws);
 
         ws.send(JSON.stringify({
-            type: 'lier_card_auto_execute', card: serializableCard,
-            effectMessage: effectResult, gameState: player.gameState
+            type:          'lier_card_auto_execute',
+            card:          serializableCard,
+            effectMessage: effectResult,
+            gameState:     player.gameState
         }));
 
         broadcastCardReveal({
             roomId,
-            drawerWs: ws,
-            drawerName: player.playerName,
-            drawerId: player.playerId,
+            drawerWs:      ws,
+            drawerName:    player.playerName,
+            drawerId:      player.playerId,
             card,
-            action: '抽到騙子卡',
+            action:        '抽到騙子卡',
             effectMessage: effectResult,
             broadcastToRoom
         });
 
-        // In the lier card modal confirm/close callback:
-        CardRevealTemplate.bindConfirm(() => {
-            client.modalManager.closeModal('lierCardModal');
-
-            // ✅ Notify server so it can draw the next queued lier card (if any)
-            client.connection.send({ type: 'lier_ack' });
-        });
-
         broadcastToRoom(roomId, {
-            type: 'notification',
+            type:    'notification',
             message: `🎭 ${player.playerName} 踩中騙子卡「${card.name}」！${effectResult}`
         }, ws);
+
         broadcastToRoom(roomId, {
-            type: 'state_updated', playerId: player.playerId, gameState: player.gameState
+            type:      'state_updated',
+            playerId:  player.playerId,
+            gameState: player.gameState
         });
 
         console.log(`✅ ${player.playerName} 自動執行了騙子卡: ${card.name}`);
@@ -175,20 +172,27 @@ function executeLierCard(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    const card        = pendingEvent.card;
-    const stateBefore = JSON.parse(JSON.stringify(player.gameState));
+    const card         = pendingEvent.card;
+    const stateBefore  = JSON.parse(JSON.stringify(player.gameState));
     const effectResult = card.effect(player.gameState);
 
     addTransactionRecord(player.playerName, card, '騙子卡',
         player.gameState.cash - stateBefore.cash, effectResult, stateBefore, player.gameState);
 
     broadcastToRoom(roomId, {
-        type: 'lier_card_executed', playerId: player.playerId, playerName: player.playerName,
-        cardName: card.name, effectMessage: effectResult, gameState: player.gameState
+        type:          'lier_card_executed',
+        playerId:      player.playerId,
+        playerName:    player.playerName,
+        cardName:      card.name,
+        effectMessage: effectResult,
+        gameState:     player.gameState
     });
+
     ws.send(JSON.stringify({
-        type: 'lier_card_result', cardName: card.name,
-        effectMessage: effectResult, gameState: player.gameState
+        type:          'lier_card_result',
+        cardName:      card.name,
+        effectMessage: effectResult,
+        gameState:     player.gameState
     }));
 
     room.pendingEvents.delete(ws);
@@ -208,35 +212,36 @@ function _estimateDamage(card, state) {
 }
 
 function _executeWithoutDamage(ws, player, card, roomId, broadcastToRoom) {
+    // ✅ fixed: define effectMessage in this scope
+    const effectMessage = `💝 情緒支援生效！抵銷了「${card.name}」的傷害！`;
+
     const dr = _diceResult(player, { name: "騙子卡", type: "lier" });
     ws.send(JSON.stringify(dr));
     broadcastToRoom(roomId, dr, ws);
+
     ws.send(JSON.stringify({
-        type: 'lier_card_auto_execute', card: _serializable(card),
-        effectMessage: `💝 情緒支援生效！抵銷了「${card.name}」的傷害！`,
-        gameState: player.gameState
+        type:          'lier_card_auto_execute',
+        card:          _serializable(card),
+        effectMessage,
+        gameState:     player.gameState
     }));
 
     broadcastCardReveal({
         roomId,
-        drawerWs: ws,
-        drawerName: player.playerName,
-        drawerId: player.playerId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
         card,
-        action: '抽到騙子卡',
-        effectMessage: effectResult,
+        action:        '抽到騙子卡',
+        effectMessage,    // ✅ fixed: use local effectMessage
         broadcastToRoom
     });
 
-    // In the lier card modal confirm/close callback:
-    CardRevealTemplate.bindConfirm(() => {
-        client.modalManager.closeModal('lierCardModal');
-
-        // ✅ Notify server so it can draw the next queued lier card (if any)
-        client.connection.send({ type: 'lier_ack' });
+    broadcastToRoom(roomId, {
+        type:      'state_updated',
+        playerId:  player.playerId,
+        gameState: player.gameState
     });
-
-    broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
 }
 
 function _sendShieldNotification(ws, roomId, player, card, msg, broadcastToRoom) {
@@ -244,9 +249,11 @@ function _sendShieldNotification(ws, roomId, player, card, msg, broadcastToRoom)
     ws.send(JSON.stringify(dr));
     broadcastToRoom(roomId, dr, ws);
     ws.send(JSON.stringify({
-        type: 'lier_card_shield_used', cardName: card.name,
-        shieldMessage: msg, remainingShield: player.gameState.fraudShield,
-        gameState: player.gameState
+        type:            'lier_card_shield_used',
+        cardName:        card.name,
+        shieldMessage:   msg,
+        remainingShield: player.gameState.fraudShield,
+        gameState:       player.gameState
     }));
 }
 

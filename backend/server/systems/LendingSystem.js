@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { creditPlayer } = require('./AutoDebtSystem.js');
 
 /**
  * Player A lends money to Player B with an interest rate.
@@ -59,8 +60,21 @@ function handleLendMoney(ws, data, roomId, rooms, broadcastToRoom) {
     const totalRepayment = lendAmount + interestAmount;
 
     // Transfer money
-    lender.gameState.cash   -= lendAmount;
-    borrower.gameState.cash += lendAmount;
+    lender.gameState.cash -= lendAmount;
+    const creditResult = creditPlayer(borrower, lendAmount, {
+        room, roomId, broadcastToRoom,
+        source: `借入自 ${lender.playerName}`
+    });
+
+// If auto-repay happened, notify borrower
+    if (creditResult.autoRepaid > 0) {
+        if (borrowerWs && borrowerWs.readyState === 1) {
+            borrowerWs.send(JSON.stringify({
+                type: 'notification',
+                message: `💸 收到借款後，$${creditResult.autoRepaid.toLocaleString()} 已自動償還銀行債務`
+            }));
+        }
+    }
 
     // Create debt record
     const debtId = `lend_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
@@ -204,8 +218,17 @@ function handleRepayDebt(ws, data, roomId, rooms, broadcastToRoom) {
 
     // Transfer
     borrower.gameState.cash -= actualPayment;
-    lender.gameState.cash   += actualPayment;
+    const creditResult = creditPlayer(lender, actualPayment, {
+        room, roomId, broadcastToRoom,
+        source: `收到 ${borrower.playerName} 還款`
+    });
 
+    if (creditResult.autoRepaid > 0 && lenderWs && lenderWs.readyState === 1) {
+        lenderWs.send(JSON.stringify({
+            type: 'notification',
+            message: `💸 收到還款後，$${creditResult.autoRepaid.toLocaleString()} 已自動償還你的銀行債務`
+        }));
+    }
     // Update remaining
     debt.amount -= actualPayment;
 
@@ -285,16 +308,65 @@ function handleGetLendingSummary(ws, data, roomId, rooms) {
     });
 
     ws.send(JSON.stringify({
-        type: 'lending_summary',
-        cash:        player.gameState.cash,
-        lentOut:     player.gameState.lentOut   || [],
-        debtsOwed:   player.gameState.debtsOwed || [],
+        type:         'lending_summary',
+        cash:         player.gameState.cash,
+        lentOut:      player.gameState.lentOut   || [],
+        debtsOwed:    player.gameState.debtsOwed || [],
+        pendingDebts: player.gameState.pendingDebts || [],   // ✅ NEW
         otherPlayers
     }));
+}
+
+/**
+ * Manually pay a bank-owed debt (from pendingDebts, not player-to-player).
+ */
+function handlePayBankDebt(ws, data, roomId, rooms, broadcastToRoom) {
+    const { payDebtManually } = require('./AutoDebtSystem.js');
+    const room   = rooms.get(roomId);
+    const player = room?.players.get(ws);
+    if (!room || !player) return;
+
+    const { debtId, amount } = data;
+    const payAmount = parseInt(amount);
+
+    if (!payAmount || payAmount < 1) {
+        ws.send(JSON.stringify({ type: 'error', message: '請輸入有效金額' }));
+        return;
+    }
+
+    const result = payDebtManually(
+        player, room, roomId, broadcastToRoom, payAmount, debtId || null
+    );
+
+    if (!result.success) {
+        ws.send(JSON.stringify({ type: 'error', message: result.message }));
+        return;
+    }
+
+    ws.send(JSON.stringify({
+        type:      'bank_debt_repay_success',
+        message:   `${result.message}${
+            result.clearedDebts.length > 0
+                ? `（清償 ${result.clearedDebts.length} 筆）`
+                : ''
+        }`,
+        totalPaid:      result.totalPaid,
+        remainingDebts: result.remainingDebts,
+        gameState:      player.gameState
+    }));
+
+    broadcastToRoom(roomId, {
+        type:      'state_updated',
+        playerId:  player.playerId,
+        gameState: player.gameState
+    });
+
+    console.log(`💰 ${player.playerName} 手動償還銀行債務 $${result.totalPaid.toLocaleString()}`);
 }
 
 module.exports = {
     handleLendMoney,
     handleRepayDebt,
-    handleGetLendingSummary
+    handleGetLendingSummary,
+    handlePayBankDebt
 };

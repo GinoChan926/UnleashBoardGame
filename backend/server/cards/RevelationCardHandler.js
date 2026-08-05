@@ -2,6 +2,7 @@
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 const { broadcastCardReveal }   = require('../utils/CardBroadcastHelper.js');
+const { spendForNonInvestment } = require('../systems/WalletSystem.js');
 
 function showRevelationCardTypeSelection(ws, state, roomId, player, marketNewsCards, tipCards, room) {
     const cardTypes = [
@@ -66,8 +67,12 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
     const multiplier = player.gameState.cardCostMultiplier || 1;
     const actualCost = baseCost * multiplier;
 
-    if (player.gameState.cash < actualCost) {
-        ws.send(JSON.stringify({ type: 'purchase_failed', message: `現金不足 ${actualCost} 元` }));
+    const feeResult = spendForNonInvestment(player.gameState, actualCost);
+    if (!feeResult.success) {
+        ws.send(JSON.stringify({
+            type:    'purchase_failed',
+            message: feeResult.message + `（$${actualCost.toLocaleString()} 抽卡費）`
+        }));
         room.pendingRevelationEvents.delete(ws);
         return;
     }
@@ -232,12 +237,51 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
+    // ✅ Snapshot cash before effect
+    const cashBefore = player.gameState.cash;
+
     let effectResult = '';
     try {
         effectResult = pendingEvent.card.effect(
             player.gameState, room, player, ws, roomId, data.playerChoices);
     } catch (e) {
         effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
+    }
+
+    // After `card.effect(...)` runs, add cash rerouting like personal tips:
+    const cashSnapshot = player.gameState.cash || 0;
+
+    try {
+        effectResult = pendingEvent.card.effect(
+            player.gameState, room, player, ws, roomId, data.playerChoices);
+    } catch (e) {
+        effectResult = `執行「${pendingEvent.card.name}」效果時發生錯誤`;
+    }
+
+// ✅ Market news = INVESTMENT — reroute cash spending
+    const { spendForInvestment, canAffordInvestment } = require('../systems/WalletSystem.js');
+    const cashAfter = player.gameState.cash || 0;
+    const cashSpent = cashSnapshot - cashAfter;
+
+    if (cashSpent > 0) {
+        player.gameState.cash = cashSnapshot;
+        if (canAffordInvestment(player.gameState, cashSpent)) {
+            const spendResult = spendForInvestment(player.gameState, cashSpent);
+            if (spendResult.spentLoan > 0) {
+                effectResult += ` | 🏦 貸款金 -$${spendResult.spentLoan.toLocaleString()}`;
+            }
+        }
+    }
+
+// ✅ Auto-repay debts if card gave player money
+    if (player.gameState.cash > cashSnapshot
+        && player.gameState.pendingDebts?.length > 0) {
+        const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+        const paidDebts = processDebtCollection(player, room, roomId, broadcastToRoom);
+        const totalRepaid = paidDebts.reduce((s, d) => s + d.paidAmount, 0);
+        if (totalRepaid > 0) {
+            effectResult += ` | 💸 自動償還債務 $${totalRepaid.toLocaleString()}`;
+        }
     }
 
     addTransactionRecord(player.playerName, pendingEvent.card, '市場消息', 0, effectResult, null, player.gameState);
@@ -247,10 +291,77 @@ function handleMarketNewsResponse(ws, data, roomId, rooms, broadcastToRoom) {
     room.pendingRevelationEvents.delete(ws);
 }
 
+/**
+ * ✅ Directly draw a random tip card.
+ * @param {boolean} free - if true, skip purchase step (used in reverse loop)
+ */
+function drawRevelationTipCard(ws, roomId, room, player, tipCards, free = false) {
+    if (!tipCards || tipCards.length === 0) {
+        ws.send(JSON.stringify({ type: 'error', message: '暫無錦囊卡資料' }));
+        return;
+    }
+
+    const originalCard = tipCards[Math.floor(Math.random() * tipCards.length)];
+    const card = { ...originalCard, cardType: 'tip' };
+    if (originalCard.effect) card.effect = originalCard.effect.bind(card);
+
+    const serializableCard = {
+        id:           card.id,
+        name:         card.name,
+        description:  card.description,
+        image:        card.image,
+        cost:         free ? 0 : card.cost,   // ✅ 0 cost when free
+        cardType:     'tip',
+        cardTypeName: '錦囊卡',
+        cardTypeIcon: '🎁',
+        scope:        card.scope || 'personal',
+        free:         free                     // ✅ tell frontend it's free
+    };
+
+    if (!room.pendingRevelationEvents) room.pendingRevelationEvents = new Map();
+    room.pendingRevelationEvents.set(ws, {
+        type:      'revelation_card',
+        card,
+        cardType:  'tip',
+        playerId:  player.playerId,
+        purchased: free,        // ✅ auto-mark as purchased when free
+        timestamp: Date.now(),
+        free
+    });
+
+    // ✅ If free, skip purchase and go straight to execute prompt
+    if (free) {
+        console.log(`🌀 ${player.playerName} 逆流層獲得免費錦囊卡: ${card.name}`);
+
+        ws.send(JSON.stringify({
+            type:      'revelation_card_purchased',   // ← same as after paying
+            card:      serializableCard,
+            message:   `🎁 逆流層免費獲得「${card.name}」！`,
+            gameState: player.gameState,
+            free:      true
+        }));
+
+        return;
+    }
+
+    // Normal flow (paid) — show purchase modal first
+    const multiplier = player.gameState.cardCostMultiplier || 1;
+    const canAfford  = player.gameState.cash >= (500 * multiplier);
+
+    ws.send(JSON.stringify({
+        type:      'revelation_card_draw',
+        card:      serializableCard,
+        canAfford
+    }));
+
+    console.log(`📜 ${player.playerName} 抽到錦囊卡: ${card.name}`);
+}
+
 module.exports = {
     showRevelationCardTypeSelection,
     handleRevelationCardTypeChoice,
     handlePurchaseRevelationCard,
     handleExecuteRevelationCard,
-    handleMarketNewsResponse
+    handleMarketNewsResponse,
+    drawRevelationTipCard
 };

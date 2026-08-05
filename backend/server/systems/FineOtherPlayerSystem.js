@@ -6,7 +6,6 @@ const { chargePlayer }         = require('./AutoDebtSystem.js');
 const pendingFines = new Map();
 
 function startFineOtherPlayer(ws, roomId, player, amount, broadcastToRoom, rooms) {
-    // ... unchanged ...
     const room = rooms.get(roomId);
     if (!room) return;
 
@@ -23,7 +22,7 @@ function startFineOtherPlayer(ws, roomId, player, amount, broadcastToRoom, rooms
 
     if (otherPlayers.length === 0) {
         ws.send(JSON.stringify({
-            type: 'notification',
+            type:    'notification',
             message: '👮 無其他玩家可以舉報，警察卡效果失效'
         }));
         return;
@@ -32,10 +31,10 @@ function startFineOtherPlayer(ws, roomId, player, amount, broadcastToRoom, rooms
     pendingFines.set(player.playerId, { amount, roomId });
 
     ws.send(JSON.stringify({
-        type: 'police_fine_prompt',
+        type:         'police_fine_prompt',
         amount,
         otherPlayers,
-        message: `👮 選擇要舉報的玩家 (罰款 $${amount.toLocaleString()})`
+        message:      `👮 選擇要舉報的玩家 (罰款 $${amount.toLocaleString()})`
     }));
 
     console.log(`👮 ${player.playerName} 準備使用 P06 舉報玩家`);
@@ -59,11 +58,11 @@ function handleFineOtherPlayer(ws, data, roomId, rooms, broadcastToRoom) {
     }
 
     let targetPlayer = null;
-    let targetWs = null;
+    let targetWs     = null;
     for (const [pWs, p] of room.players) {
         if (p.playerId === targetPlayerId) {
             targetPlayer = p;
-            targetWs = pWs;
+            targetWs     = pWs;
             break;
         }
     }
@@ -74,13 +73,12 @@ function handleFineOtherPlayer(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    const amount = pending.amount;
+    const amount      = pending.amount;
     const stateBefore = JSON.parse(JSON.stringify(targetPlayer.gameState));
 
-    // ✅ Use AutoDebtSystem - fine goes to initiator, unpaid becomes auto-debt
     const chargeResult = chargePlayer(targetPlayer, amount, {
         source:          '舉報違法罰款',
-        creditor:        'bank',                   // fines go to bank, not initiator
+        creditor:        'bank',
         creditorName:    '銀行',
         room,
         roomId,
@@ -88,7 +86,8 @@ function handleFineOtherPlayer(ws, data, roomId, rooms, broadcastToRoom) {
         ws:              targetWs
     });
 
-    // Record for initiator (who initiated the fine)
+    // ── Transaction records ───────────────────────────────────────────────────
+
     addTransactionRecord(
         initiator.playerName,
         { name: '舉報違法', type: 'police', id: 'P06' },
@@ -99,10 +98,12 @@ function handleFineOtherPlayer(ws, data, roomId, rooms, broadcastToRoom) {
         initiator.gameState
     );
 
-    // Record for target
-    let targetActionDesc = `被 ${initiator.playerName} 舉報，罰款 $${amount.toLocaleString()}`;
+    let targetActionDesc =
+        `被 ${initiator.playerName} 舉報，罰款 $${amount.toLocaleString()}`;
     if (chargeResult.debtCreated) {
-        targetActionDesc += ` (現金 $${chargeResult.paid.toLocaleString()}，$${chargeResult.debtAmount.toLocaleString()} 待未來償還)`;
+        targetActionDesc +=
+            ` (現金 $${chargeResult.paid.toLocaleString()}，` +
+            `$${chargeResult.debtAmount.toLocaleString()} 待未來償還)`;
     }
     addTransactionRecord(
         targetPlayer.playerName,
@@ -114,46 +115,69 @@ function handleFineOtherPlayer(ws, data, roomId, rooms, broadcastToRoom) {
         targetPlayer.gameState
     );
 
-    // Notify initiator
-    let initMsg = `👮 你成功舉報 ${targetPlayer.playerName}！扣除 $${chargeResult.paid.toLocaleString()} 元`;
+    // ── Notify initiator ──────────────────────────────────────────────────────
+
+    let initMsg =
+        `👮 你成功舉報 ${targetPlayer.playerName}！` +
+        `扣除 $${chargeResult.paid.toLocaleString()} 元`;
     if (chargeResult.debtCreated) {
-        initMsg += ` (剩餘 $${chargeResult.debtAmount.toLocaleString()} 將由對方未來收入自動償還)`;
+        initMsg +=
+            ` (剩餘 $${chargeResult.debtAmount.toLocaleString()} 將由對方未來收入自動償還)`;
     }
+
     ws.send(JSON.stringify({
-        type: 'police_fine_executed',
+        type:      'police_fine_executed',
+        playerId:  initiator.playerId,       // ✅ so _applyState works
+        gameState: initiator.gameState,      // ✅ initiator UI update
         targetName: targetPlayer.playerName,
-        amount: chargeResult.paid,
+        amount:    chargeResult.paid,
         debtAmount: chargeResult.debtAmount,
-        message: initMsg
+        message:   initMsg
     }));
 
-    // Notify target
+    // ── Notify target ─────────────────────────────────────────────────────────
+
     if (targetWs && targetWs.readyState === 1) {
-        let targetMsg = `你被 ${initiator.playerName} 舉報違法！罰款 $${amount.toLocaleString()} 元`;
+        let targetMsg =
+            `你被 ${initiator.playerName} 舉報違法！` +
+            `罰款 $${amount.toLocaleString()} 元`;
         if (chargeResult.debtCreated) {
-            targetMsg += `\n💸 現金不足，剩餘 $${chargeResult.debtAmount.toLocaleString()} 將由未來收入自動償還`;
+            targetMsg +=
+                `\n💸 現金不足，剩餘 $${chargeResult.debtAmount.toLocaleString()} ` +
+                `將由未來收入自動償還`;
         }
+
         targetWs.send(JSON.stringify({
-            type: 'police_fine_received',
+            type:          'police_fine_received',
+            playerId:      targetPlayer.playerId,  // ✅ so _applyState works
             initiatorName: initiator.playerName,
             amount,
-            actualFined: chargeResult.paid,
-            debtAmount: chargeResult.debtAmount,
-            gameState: targetPlayer.gameState,
-            message: `⚠️ ${targetMsg}`
+            actualFined:   chargeResult.paid,
+            debtAmount:    chargeResult.debtAmount,
+            gameState:     targetPlayer.gameState, // ✅ target UI update
+            message:       `⚠️ ${targetMsg}`
         }));
     }
 
-    // Broadcast
-    broadcastToRoom(roomId, {
-        type: 'notification',
-        message: `👮 ${initiator.playerName} 舉報了 ${targetPlayer.playerName}！罰款 $${amount.toLocaleString()}`
-    }, ws);
+    // ── Broadcast to room ─────────────────────────────────────────────────────
 
     broadcastToRoom(roomId, {
-        type: 'state_updated',
-        playerId: targetPlayer.playerId,
+        type:    'notification',
+        message: `👮 ${initiator.playerName} 舉報了 ${targetPlayer.playerName}！` +
+            `罰款 $${amount.toLocaleString()}`
+    }, ws);
+
+    // ✅ Broadcast both players' updated states to whole room
+    broadcastToRoom(roomId, {
+        type:      'state_updated',
+        playerId:  targetPlayer.playerId,
         gameState: targetPlayer.gameState
+    });
+
+    broadcastToRoom(roomId, {
+        type:      'state_updated',
+        playerId:  initiator.playerId,
+        gameState: initiator.gameState
     });
 
     pendingFines.delete(initiator.playerId);
