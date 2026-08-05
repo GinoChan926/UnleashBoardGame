@@ -39,7 +39,17 @@ function handleJoin(ws, data, roomId, rooms) {
             otherPlayers,
             streamlineTiles: room.streamlineTiles,
             reverseTiles:    room.reverseTiles,
-            flowTiles:       room.flowTiles
+            flowTiles:       room.flowTiles,
+            timer: {
+                running: room.timer.running,
+                paused:  room.timer.paused,
+                duration: room.timer.duration,
+                remaining: room.timer.running && room.timer.endAt
+                    ? Math.max(0, Math.round((room.timer.endAt - Date.now()) / 1000))
+                    : room.timer.remaining,
+                endAt: room.timer.endAt
+            },
+            isHost: room.hostId === playerId
         }));
 
         console.log(`🔌 玩家重新加入: ${existingPlayer.playerName}`);
@@ -81,6 +91,9 @@ function handleJoin(ws, data, roomId, rooms) {
         disconnectedAt:   null,
         disconnectedWs:   null
     });
+    if (!room.hostId) {
+        room.hostId = playerId;
+    }
     room.currentTurnPlayer = playerName;
 
     const otherPlayers = Array.from(room.players.values())
@@ -96,7 +109,17 @@ function handleJoin(ws, data, roomId, rooms) {
         streamlineTiles: room.streamlineTiles,
         reverseTiles:    room.reverseTiles,
         flowTiles:       room.flowTiles,
-        serverInstanceId: global.SERVER_INSTANCE_ID
+        serverInstanceId: global.SERVER_INSTANCE_ID,
+        timer: {
+            running: room.timer.running,
+            paused: room.timer.paused,
+            duration: room.timer.duration,
+            remaining: room.timer.running && room.timer.endAt
+                ? Math.max(0, Math.round((room.timer.endAt - Date.now()) / 1000))
+                : room.timer.remaining,
+            endAt: room.timer.endAt
+        },
+        isHost: room.hostId === playerId
     }));
 
     _broadcast(roomId, { type: 'player_joined', player: { id: playerId, gameState } }, ws);

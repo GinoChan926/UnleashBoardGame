@@ -129,6 +129,30 @@ class GameClient {
         this.turnHandler.updateTurnStatus();
     }
 
+    handleTimerStart(message) {
+        if (window.sharedTimer && typeof window.sharedTimer.handleStart === 'function') {
+            window.sharedTimer.handleStart(message);
+        }
+    }
+
+    handleTimerPaused(message) {
+        if (window.sharedTimer && typeof window.sharedTimer.handlePause === 'function') {
+            window.sharedTimer.handlePause(message);
+        }
+    }
+
+    handleTimerReset(message) {
+        if (window.sharedTimer && typeof window.sharedTimer.handleReset === 'function') {
+            window.sharedTimer.handleReset(message);
+        }
+    }
+
+    handleTimerStop(message) {
+        if (window.sharedTimer && typeof window.sharedTimer.handleStop === 'function') {
+            window.sharedTimer.handleStop(message);
+        }
+    }
+
     // ✅ Always pass both gameState AND otherPlayers - no global reads
     renderAllTiles() {
         this.boardRenderer.renderAllTiles(this.gameState, this.otherPlayers);

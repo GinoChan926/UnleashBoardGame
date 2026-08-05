@@ -180,6 +180,10 @@ export class MessageRouter {
             // ── Disconnect / reconnect
             'player_temp_disconnected': m => c.joinHandler.handleTempDisconnected(m),
             'player_reconnected':       m => c.joinHandler.handleReconnected(m),
+            'timer_start':              m => c.handleTimerStart(m),
+            'timer_paused':             m => c.handleTimerPaused(m),
+            'timer_reset':              m => c.handleTimerReset(m),
+            'timer_stop':               m => c.handleTimerStop(m),
 
             // ── Card reveal broadcast
             'card_revealed': m => c.cardBroadcast.handleCardRevealed(m),
