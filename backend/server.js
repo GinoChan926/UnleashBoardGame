@@ -149,6 +149,105 @@ function makeDeps(roomId) {
     };
 }
 
+function _sanitizeTimer(timer) {
+    return {
+        running:  timer.running,
+        duration: timer.duration,
+        endAt:    timer.endAt
+    };
+}
+
+function _clearRoomTimer(room) {
+    if (room?.timer?.intervalId) {
+        clearInterval(room.timer.intervalId);
+        room.timer.intervalId = null;
+    }
+}
+
+function _broadcastTimerStart(roomId, room, broadcastToRoom) {
+    const remaining = room.timer.endAt
+        ? Math.max(0, Math.round((room.timer.endAt - Date.now()) / 1000))
+        : room.timer.remaining;
+
+    broadcastToRoom(roomId, {
+        type: 'timer_start',
+        duration: room.timer.duration,
+        remaining,
+        endAt: room.timer.endAt
+    });
+}
+
+function _broadcastTimerPaused(roomId, room, broadcastToRoom) {
+    broadcastToRoom(roomId, {
+        type: 'timer_paused',
+        duration: room.timer.duration,
+        remaining: room.timer.remaining
+    });
+}
+
+function _broadcastTimerReset(roomId, room, broadcastToRoom) {
+    broadcastToRoom(roomId, {
+        type: 'timer_reset',
+        duration: Math.round(room.timer.duration / 60)
+    });
+}
+
+function _startRoomTimer(roomId, minutes, broadcastToRoom, rooms) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    _clearRoomTimer(room);
+
+    if (room.timer.paused && room.timer.remaining > 0) {
+        room.timer.running = true;
+        room.timer.paused = false;
+        room.timer.endAt = Date.now() + room.timer.remaining * 1000;
+        room.timer.duration = room.timer.duration || room.timer.remaining;
+    } else {
+        room.timer.running = true;
+        room.timer.paused = false;
+        room.timer.duration = Number(minutes) * 60;
+        room.timer.remaining = room.timer.duration;
+        room.timer.endAt = Date.now() + room.timer.duration * 1000;
+    }
+
+    _broadcastTimerStart(roomId, room, broadcastToRoom);
+    room.timer.intervalId = setInterval(() => {
+        const remaining = Math.round((room.timer.endAt - Date.now()) / 1000);
+        room.timer.remaining = Math.max(0, remaining);
+        if (remaining <= 0) {
+            _stopRoomTimer(roomId, broadcastToRoom, rooms);
+        }
+    }, 1000);
+}
+
+function _pauseRoomTimer(roomId, broadcastToRoom, rooms) {
+    const room = rooms.get(roomId);
+    if (!room || !room.timer.running) return;
+    _clearRoomTimer(room);
+    const remaining = Math.max(0, Math.round((room.timer.endAt - Date.now()) / 1000));
+    room.timer.running = false;
+    room.timer.paused = true;
+    room.timer.remaining = remaining;
+    room.timer.endAt = 0;
+    _broadcastTimerPaused(roomId, room, broadcastToRoom);
+}
+
+function _resetRoomTimer(roomId, broadcastToRoom, rooms, durationMinutes = null) {
+    const room = rooms.get(roomId);
+    if (!room) return;
+    _clearRoomTimer(room);
+    room.timer.running = false;
+    room.timer.paused = false;
+    if (durationMinutes !== null) {
+        room.timer.duration = Number(durationMinutes) * 60;
+        room.timer.remaining = room.timer.duration;
+    } else {
+        room.timer.remaining = room.timer.duration || 0;
+    }
+    room.timer.endAt = 0;
+    _broadcastTimerReset(roomId, room, broadcastToRoom);
+}
+
 // ✅ Store the streamline tile processor globally so systems can access it
 global._streamlineTileProcessor = (state, tile, ws, rId, player, exact) => {
     processStreamlineTile(state, tile, ws, rId, player, exact, {
@@ -259,6 +358,36 @@ wss.on('connection', (ws) => {
                 case 'social_service_choice':
                     handleSocialServiceChoice(ws, data, playerRoomId, rooms, broadcast, investmentCards, socialCards);
                     break;
+                case 'start_timer': {
+                    const room = rooms.get(playerRoomId);
+                    const player = room?.players.get(ws);
+                    if (!room || !player || room.hostId !== player.playerId) {
+                        ws.send(JSON.stringify({ type: 'error', message: '只有房主可以控制計時器。' }));
+                        break;
+                    }
+                    _startRoomTimer(playerRoomId, data.duration, broadcast, rooms);
+                    break;
+                }
+                case 'pause_timer': {
+                    const room = rooms.get(playerRoomId);
+                    const player = room?.players.get(ws);
+                    if (!room || !player || room.hostId !== player.playerId) {
+                        ws.send(JSON.stringify({ type: 'error', message: '只有房主可以控制計時器。' }));
+                        break;
+                    }
+                    _pauseRoomTimer(playerRoomId, broadcast, rooms);
+                    break;
+                }
+                case 'reset_timer': {
+                    const room = rooms.get(playerRoomId);
+                    const player = room?.players.get(ws);
+                    if (!room || !player || room.hostId !== player.playerId) {
+                        ws.send(JSON.stringify({ type: 'error', message: '只有房主可以控制計時器。' }));
+                        break;
+                    }
+                    _resetRoomTimer(playerRoomId, broadcast, rooms, Number(data.duration));
+                    break;
+                }
                 case 'auxiliary_police_choice':
                     handleAuxiliaryPoliceChoice(ws, data, playerRoomId, rooms, broadcast);
                     break;

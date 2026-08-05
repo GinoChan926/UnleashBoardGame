@@ -42,6 +42,20 @@ export class JoinHandler {
         client.updatePlayersList();
         client.turnHandler.updateTurnStatus();
 
+        if (message.timer && window.sharedTimer) {
+            if (message.timer.running) {
+                window.sharedTimer.handleStart(message.timer);
+            } else if (message.timer.paused) {
+                window.sharedTimer.handlePause(message.timer);
+            } else {
+                window.sharedTimer.handleStop();
+            }
+        }
+
+        if (typeof message.isHost === 'boolean' && window.sharedTimer) {
+            window.sharedTimer.setHost(message.isHost);
+        }
+
         if (message.reconnected) {
             client.logManager.addLog(
                 `🔌 已重新連接遊戲！歡迎回來 ${message.playerName}`,
