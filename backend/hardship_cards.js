@@ -24,8 +24,14 @@ const hardshipCards = [
 
                 if (pState.inFlow) {
                     // 順流層: 損失一半金錢
-                    const loss = Math.floor(pState.cash / 2);
-                    pState.cash -= loss;
+                    const intendedLoss = Math.floor(pState.cash / 2);
+                    const protection   = _applyTrust(pState, intendedLoss);
+                    const loss         = protection.actualLoss;
+                    pState.cash       -= loss;
+
+                    const trustMsg = protection.protected
+                        ? `（🛡️ 資產信託保護，實際損失 $${loss.toLocaleString()}）`
+                        : '';
 
                     results.push(`${p.playerName} (順流層): 損失一半金錢 $${loss.toLocaleString()}`);
 
@@ -1076,8 +1082,14 @@ const hardshipCards = [
 
                 if (pState.inFlow) {
                     // ✅ Flow layer: lose half cash
-                    const loss = Math.floor(pState.cash / 2);
-                    pState.cash -= loss;
+                    const intendedLoss = Math.floor(pState.cash / 2);
+                    const protection   = _applyTrust(pState, intendedLoss);
+                    const loss         = protection.actualLoss;
+                    pState.cash       -= loss;
+
+                    const trustMsg = protection.protected
+                        ? `（🛡️ 資產信託保護，實際損失 $${loss.toLocaleString()}）`
+                        : '';
 
                     results.push(`${p.playerName} (順流層): 損失一半金錢 $${loss.toLocaleString()}`);
 
@@ -1129,8 +1141,14 @@ const hardshipCards = [
 
                 } else {
                     // ✅ Streamline layer: lose half cash
-                    const loss = Math.floor(pState.cash / 2);
-                    pState.cash -= loss;
+                    const intendedLoss = Math.floor(pState.cash / 2);
+                    const protection   = _applyTrust(pState, intendedLoss);
+                    const loss         = protection.actualLoss;
+                    pState.cash       -= loss;
+
+                    const trustMsg = protection.protected
+                        ? `（🛡️ 資產信託保護，實際損失 $${loss.toLocaleString()}）`
+                        : '';
 
                     results.push(`${p.playerName} (平流層): 損失一半金錢 $${loss.toLocaleString()}`);
 

@@ -158,6 +158,7 @@ export class MessageRouter {
             'move_forward_choice_prompt':      m => ch().handleMoveForwardChoicePrompt(m),
 
             'asset_choice_prompt':  m => ch().handleAssetChoicePrompt(m),
+            'asset_trust_prompt': m => c.assetTrustHandler.handleAssetTrustPrompt(m),
 
             'stock_menu':          m => ch().handleStockMenu(m),
             'crypto_menu':         m => ch().handleCryptoMenu(m),

@@ -4489,7 +4489,7 @@ const propertyCards = [
         },
         getEffectDescription: () => "投資 700,000 元，租金 +10,000/月。可選自用或轉讓"
     },
-
+/*
     {
         id: "H02",
         name: "香港中西區住宅",
@@ -4573,6 +4573,8 @@ const propertyCards = [
         },
         getEffectDescription: () => "總價 500,000 元，租金 10,000/月。可選自用或轉讓"
     }
+
+ */
 ];
 
 // 导出所有卡片

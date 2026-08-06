@@ -81,24 +81,30 @@ function handleMoveForwardChoice(ws, data, roomId, rooms, broadcastToRoom, tileP
 function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, tileProcessor) {
     const state = player.gameState;
 
-    if (state.inFlow || state.inReverse) {
+    // ✅ Only reject in flow layer (reverse is now allowed)
+    if (state.inFlow) {
         ws.send(JSON.stringify({
             type: 'notification',
-            message: '❌ 此卡只能在平流層使用'
+            message: '❌ 此卡不能在順流層使用'
         }));
         return;
     }
 
+    // ✅ Reverse loop movement
+    if (state.inReverse) {
+        return _executeReverseMove(ws, roomId, player, card, steps, room, broadcastToRoom, tileProcessor);
+    }
+
+    // ─── Streamline movement (unchanged) ─────────────────────────────────────
     const oldPos = state.streamlinePos;
     const newPos = (oldPos + steps) % room.streamlineTiles.length;
 
-    // ✅ Process ALL tiles passed through (including settlement)
+    // Process ALL tiles passed through (including settlement)
     for (let i = 1; i < steps; i++) {
         const passPos  = (oldPos + i) % room.streamlineTiles.length;
         const passTile = room.streamlineTiles[passPos];
         const isLanding = (i === steps);
 
-        // Settlement tiles passed through (not landed on) - give income
         if (passTile.type === 'settlement' && !isLanding) {
             const totalIncome = state.salary + state.sideIncome;
             state.cash       += totalIncome;
@@ -107,12 +113,10 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
             const { totalExpense } = calculateReducedExpense(state);
             state.cash -= totalExpense;
 
-            // Bakery energy
             if (state.bakeryCount > 0) {
                 state.energy = Math.min(state.maxEnergy, state.energy + state.bakeryCount);
             }
 
-            // Half income check (S13)
             if (state.nextSettlementHalfIncome) {
                 state.nextSettlementHalfIncome = false;
             }
@@ -129,7 +133,6 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         }
     }
 
-    // Move to final position
     state.streamlinePos = newPos;
     const landedTile = room.streamlineTiles[newPos];
 
@@ -140,7 +143,6 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         null, state
     );
 
-    // Send dice_result for token animation
     broadcastToRoom(roomId, {
         type: 'dice_result',
         playerId: player.playerId,
@@ -157,7 +159,6 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         multiplierMessage: ''
     });
 
-    // ✅ Process the LANDED tile (including settlement)
     if (tileProcessor) {
         setTimeout(() => {
             tileProcessor(state, landedTile, ws, roomId, player, landedTile.type === 'settlement');
@@ -169,6 +170,140 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         playerId: player.playerId,
         gameState: state
     });
+}
+
+// ✅ NEW: reverse loop movement
+function _executeReverseMove(ws, roomId, player, card, steps, room, broadcastToRoom, tileProcessor) {
+    const state = player.gameState;
+    const oldReversePos = state.reversePos;
+
+    let currentReversePos = oldReversePos;
+    let completedReverse  = false;
+
+    // ✅ Passthrough: DON'T trigger hardship cards on tiles passed through
+    for (let i = 1; i <= steps; i++) {
+        currentReversePos += 1;
+
+        if (currentReversePos >= room.reverseTiles.length) {
+            completedReverse  = true;
+            currentReversePos = room.reverseTiles.length - 1;
+            break;
+        }
+    }
+
+    state.reversePos = currentReversePos;
+
+    // ✅ If completed the reverse loop → exit to reverse_exit tile on streamline
+    if (completedReverse) {
+        state.inReverse  = false;
+        state.reversePos = 0;
+
+        const exitIndex = room.streamlineTiles.findIndex(t => t.type === 'reverse_exit');
+        if (exitIndex >= 0) {
+            state.streamlinePos = exitIndex;
+        }
+
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `🎉 恭喜完成逆流層，回到平流層「${room.streamlineTiles[state.streamlinePos].name}」！`
+        }));
+        broadcastToRoom(roomId, {
+            type: 'notification',
+            message: `🎉 ${player.playerName} 完成逆流層！`
+        }, ws);
+    }
+
+    // ✅ Determine final landed tile
+    const landedTile = completedReverse
+        ? room.streamlineTiles[state.streamlinePos]
+        : room.reverseTiles[state.reversePos];
+
+    const eventMsg = completedReverse
+        ? `🐴 黑馬思維前進 ${steps} 格，完成逆流層並回到平流層！`
+        : `🐴 黑馬思維在逆流層前進 ${steps} 格`;
+
+    addTransactionRecord(
+        player.playerName, card, '黑馬思維移動 (逆流層)',
+        0,
+        completedReverse
+            ? `逆流層前進 ${steps} 格，完成逆流層並回到平流層「${landedTile.name}」`
+            : `逆流層前進 ${steps} 格 (${oldReversePos + 1} → ${state.reversePos + 1})，踩中「${landedTile.name}」`,
+        null, state
+    );
+
+    // Send dice_result for token animation
+    broadcastToRoom(roomId, {
+        type: 'dice_result',
+        playerId: player.playerId,
+        playerName: player.playerName,
+        steps,
+        originalSteps: steps,
+        multiplierUsed: false,
+        diceValues: [steps],
+        diceCount: 1,
+        diceType: 'normal',
+        gameState: state,
+        tile: landedTile,
+        eventMessage: eventMsg,
+        multiplierMessage: ''
+    });
+
+    // ✅ Process landed tile
+    if (completedReverse && tileProcessor) {
+        // Just exited reverse — process the streamline exit tile normally
+        setTimeout(() => {
+            tileProcessor(state, landedTile, ws, roomId, player, landedTile.type === 'settlement');
+        }, 500);
+    } else if (!completedReverse) {
+        // Still in reverse — process the landed reverse tile
+        setTimeout(() => {
+            _processLandedReverseTile(state, landedTile, ws, roomId, player, room, broadcastToRoom);
+        }, 500);
+    }
+
+    broadcastToRoom(roomId, {
+        type: 'state_updated',
+        playerId: player.playerId,
+        gameState: state
+    });
+}
+
+// ✅ NEW: Process the landed reverse tile
+// Uses the same handlers as normal reverse movement (uses processReverseTile)
+function _processLandedReverseTile(state, tile, ws, roomId, player, room, broadcastToRoom) {
+    try {
+        const { processReverseTile } = require('../tiles/ReverseTileProcessor.js');
+        const { drawHardshipCard }   = require('../cards/HardshipCardHandler.js');
+
+        let hardshipCards = [];
+        try {
+            hardshipCards = require('../../hardship_cards.js').hardshipCards || [];
+        } catch (e) {
+            console.log('⚠️ 無法載入逆境卡');
+        }
+
+        const rooms = global._rooms;
+        const tipCards = global._tipCards || [];
+
+        const drawHardshipCardFn = (ws2, s2, rId2, p2) => {
+            drawHardshipCard(ws2, s2, rId2, p2, hardshipCards, broadcastToRoom, rooms);
+        };
+
+        const msg = processReverseTile(
+            state, tile, ws, roomId, player,
+            room.streamlineTiles, broadcastToRoom, drawHardshipCardFn,
+            { rooms, tipCards }
+        );
+
+        if (msg) {
+            ws.send(JSON.stringify({
+                type:    'notification',
+                message: `${player.playerName}: ${msg}`
+            }));
+        }
+    } catch (e) {
+        console.error('❌ Reverse tile processing error:', e);
+    }
 }
 
 function _findStepsToIncomeTile(state, streamlineTiles) {

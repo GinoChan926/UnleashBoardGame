@@ -976,7 +976,6 @@ const marketNewsCards = [
 
 // ==================== 錦囊卡 ====================
 const tipCards = [
-    /*
     // ==================== IN01 - Team: Health Investment ====================
     {
         id: "IN01",
@@ -1512,8 +1511,6 @@ const tipCards = [
         getEffectDescription: () => "個人錦囊：隨機前進 1-3 格並執行格子效果"
     },
 
-     */
-
     // ==================== IN15 - Personal: Move 1-3 Choose ====================
     {
         id: "IN15",
@@ -1533,7 +1530,6 @@ const tipCards = [
         },
         getEffectDescription: () => "個人錦囊：自選前進 1-3 格並執行格子效果"
     },
-/*
     // ==================== IN16 - Personal: Move to Income Tile ====================
     {
         id: "IN16",
@@ -1573,7 +1569,6 @@ const tipCards = [
         },
         getEffectDescription: () => "個人錦囊：前進到最近玩家格子"
     }
- */
 ];
 
 // 合并所有启示卡

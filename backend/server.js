@@ -118,6 +118,7 @@ const broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, exc
 
 global._rooms            = rooms;
 global._broadcastToRoom  = broadcast;
+global._tipCards        = tipCards;
 // ── Dependency bundle passed to handlers that need multiple deps ──────────────
 function makeDeps(roomId) {
     return {
@@ -254,11 +255,11 @@ wss.on('connection', (ws) => {
                     handleAuctionPass(ws, data, playerRoomId, rooms, broadcast);
                     break;
                 case 'asset_trust_setup': {
-                    const amount = parseInt(data.amount);
-                    const room   = rooms.get(playerRoomId);
-                    if (!isNaN(amount) && amount > 0 && room?.players.has(ws)) {
+                    const room = rooms.get(playerRoomId);
+                    if (room?.players.has(ws)) {
                         const player = room.players.get(ws);
-                        executeAssetTrust(player.gameState, amount, ws, playerRoomId, player, broadcast);
+                        // ✅ No amount needed — trust has fixed setup fee
+                        executeAssetTrust(player.gameState, ws, playerRoomId, player, broadcast);
                     }
                     break;
                 }

@@ -2,94 +2,144 @@
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 
-const MAX_AMOUNT  = 10_000_000;
-const FEE_PERCENT = 10;
+const PROTECTION_FLOOR = 10_000_000;   // Guaranteed cash floor after loss
+const SETUP_FEE        = 1_000_000;    // One-time setup fee
+
+// ── Setup prompt (unchanged) ──────────────────────────────────────────────
 
 function promptAssetTrustSetup(state, ws) {
     if (state.assetTrust?.active) {
         ws.send(JSON.stringify({
-            type: 'notification',
-            message: `🏦 你已設立資產信託！金額: ${state.assetTrust.amount.toLocaleString()} 元`
+            type:    'notification',
+            message: `🏦 你已設立資產信託！每次逆境保證現金不低於 $${PROTECTION_FLOOR.toLocaleString()}`
         }));
         return false;
     }
+
     ws.send(JSON.stringify({
-        type:         'asset_trust_prompt',
-        message:      `🏦 資產信託設立\n信託上限: ${MAX_AMOUNT.toLocaleString()} 元\n手續費: ${FEE_PERCENT}%\n當前現金: ${state.cash.toLocaleString()} 元`,
-        maxAmount:    MAX_AMOUNT,
-        feePercent:   FEE_PERCENT,
-        currentCash:  state.cash
+        type:            'asset_trust_prompt',
+        message:         `🏦 資產信託設立\n` +
+            `📌 保障：逆境事件後現金保底 $${PROTECTION_FLOOR.toLocaleString()}\n` +
+            `💵 手續費: $${SETUP_FEE.toLocaleString()} (僅使用現金)\n` +
+            `💡 一次設立，永久有效`,
+        setupFee:        SETUP_FEE,
+        protectionFloor: PROTECTION_FLOOR,
+        currentCash:     state.cash || 0
     }));
     return true;
 }
 
-function executeAssetTrust(state, depositAmount, ws, roomId, player, broadcastToRoom) {
-    if (depositAmount < 1 || depositAmount > MAX_AMOUNT) {
-        ws.send(JSON.stringify({ type: 'error', message: `❌ 信託金額必須在 1 ~ ${MAX_AMOUNT.toLocaleString()} 元之間` }));
+// ── Execute setup (unchanged from previous version) ───────────────────────
+
+function executeAssetTrust(state, ws, roomId, player, broadcastToRoom) {
+    if (state.assetTrust?.active) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: '❌ 你已設立資產信託'
+        }));
         return false;
     }
 
-    const fee       = Math.ceil(depositAmount * FEE_PERCENT / 100);
-    const totalCost = depositAmount + fee;
+    const { canAffordNonInvestment, spendForNonInvestment } =
+        require('./WalletSystem.js');
 
-    if (state.cash < totalCost) {
-        ws.send(JSON.stringify({ type: 'error', message: `❌ 現金不足！需要 ${totalCost.toLocaleString()} 元` }));
+    if (!canAffordNonInvestment(state, SETUP_FEE)) {
+        ws.send(JSON.stringify({
+            type: 'error',
+            message: `❌ 現金不足！需要 $${SETUP_FEE.toLocaleString()} 現金 (貸款金不可用)`
+        }));
         return false;
     }
 
-    const stateBefore  = JSON.parse(JSON.stringify(state));
-    state.cash        -= totalCost;
-    state.assetTrust   = {
-        active: true, amount: depositAmount,
-        maxAmount: MAX_AMOUNT, feePercent: FEE_PERCENT,
-        totalCost, fee, createdAt: Date.now(),
-        protectedAmount: depositAmount
+    const stateBefore = JSON.parse(JSON.stringify(state));
+    spendForNonInvestment(state, SETUP_FEE);
+
+    state.assetTrust = {
+        active:           true,
+        protectionFloor:  PROTECTION_FLOOR,
+        setupFee:         SETUP_FEE,
+        createdAt:        Date.now(),
+        totalProtected:   0,
+        activationCount:  0
     };
 
-    addTransactionRecord(state.playerName,
-        { name: "資產信託設立", type: "trust", id: "TRUST01" },
-        "設立資產信託", -totalCost,
-        `存入 ${depositAmount.toLocaleString()} 元，手續費 ${fee.toLocaleString()} 元`,
-        stateBefore, state);
+    addTransactionRecord(
+        player.playerName,
+        { name: '資產信託設立', type: 'trust', id: 'TRUST_SETUP' },
+        '設立資產信託',
+        -SETUP_FEE,
+        `支付 $${SETUP_FEE.toLocaleString()} 手續費，每次逆境現金保底 $${PROTECTION_FLOOR.toLocaleString()}`,
+        stateBefore,
+        state
+    );
 
     ws.send(JSON.stringify({
-        type: 'notification',
-        message: `🏦 資產信託設立成功！存入 ${depositAmount.toLocaleString()} 元，總花費 ${totalCost.toLocaleString()} 元`
+        type:    'notification',
+        message: `🏦 資產信託設立成功！\n💵 支付 $${SETUP_FEE.toLocaleString()} 手續費\n🛡️ 每次逆境現金保底 $${PROTECTION_FLOOR.toLocaleString()}`
     }));
+
     broadcastToRoom(roomId, {
-        type: 'notification',
-        message: `🏦 ${state.playerName} 設立了資產信託，存入 ${depositAmount.toLocaleString()} 元！`
+        type:    'notification',
+        message: `🏦 ${player.playerName} 設立了資產信託！`
     }, ws);
 
     return true;
 }
 
-function retrieveAssetTrustOnBankruptcy(state, ws, roomId, broadcastToRoom) {
-    if (!state.assetTrust?.active) return null;
+/**
+ * ✅ Apply asset trust protection to a cash-loss event.
+ *
+ * Behavior:
+ * - Trust guarantees post-loss cash ≥ min($10M, pre-loss cash)
+ * - Cannot make player gain money (post-loss cash never exceeds pre-loss cash)
+ *
+ * @param {object} state - player's gameState
+ * @param {number} intendedLoss - the amount the player would lose without trust
+ * @returns {object} {
+ *     absorbedLoss: how much the trust absorbed
+ *     actualLoss:   how much the player will actually lose
+ *     protected:    true if trust kicked in
+ * }
+ */
+function applyAssetTrustProtection(state, intendedLoss) {
+    if (!state.assetTrust?.active || intendedLoss <= 0) {
+        return {
+            absorbedLoss: 0,
+            actualLoss:   intendedLoss,
+            protected:    false
+        };
+    }
 
-    const stateBefore      = JSON.parse(JSON.stringify(state));
-    const protectedAmount  = state.assetTrust.amount;
-    state.cash            += protectedAmount;
+    const preLossCash    = state.cash || 0;
+    const rawPostLoss    = preLossCash - intendedLoss;
 
-    addTransactionRecord(state.playerName,
-        { name: "資產信託取回", type: "trust", id: "TRUST_RETRIEVE" },
-        "信託取回", protectedAmount,
-        `破產保護！取回 ${protectedAmount.toLocaleString()} 元`,
-        stateBefore, state);
+    // Floor = min($10M, pre-loss cash)
+    // — can't guarantee more cash than the player had before
+    const floor = Math.min(PROTECTION_FLOOR, preLossCash);
 
-    state.assetTrust.active           = false;
-    state.assetTrust.usedOnBankruptcy = true;
+    // Final cash = max(rawPostLoss, floor)
+    const finalCash    = Math.max(rawPostLoss, floor);
+    const actualLoss   = preLossCash - finalCash;
+    const absorbedLoss = intendedLoss - actualLoss;
 
-    ws.send(JSON.stringify({
-        type: 'notification',
-        message: `🛡️ 破產保護生效！取回 ${protectedAmount.toLocaleString()} 元！`
-    }));
-    broadcastToRoom(roomId, {
-        type: 'notification',
-        message: `🛡️ ${state.playerName} 觸發破產保護，取回 ${protectedAmount.toLocaleString()} 元！`
-    }, ws);
+    const kicked = absorbedLoss > 0;
 
-    return protectedAmount;
+    if (kicked) {
+        state.assetTrust.totalProtected  = (state.assetTrust.totalProtected  || 0) + absorbedLoss;
+        state.assetTrust.activationCount = (state.assetTrust.activationCount || 0) + 1;
+    }
+
+    return {
+        absorbedLoss,
+        actualLoss,
+        protected: kicked
+    };
 }
 
-module.exports = { promptAssetTrustSetup, executeAssetTrust, retrieveAssetTrustOnBankruptcy };
+module.exports = {
+    promptAssetTrustSetup,
+    executeAssetTrust,
+    applyAssetTrustProtection,
+    PROTECTION_FLOOR,
+    SETUP_FEE
+};

@@ -2,8 +2,7 @@
 
 const { addTransactionRecord }           = require('../records/TransactionRecorder.js');
 const { revertFlowLayerIncomeBoost }     = require('../systems/FlowLayerSystem.js');
-const { retrieveAssetTrustOnBankruptcy } = require('../systems/AssetTrustSystem.js');
-const { promptAssetTrustSetup }          = require('../systems/AssetTrustSystem.js');
+const { promptAssetTrustSetup, applyAssetTrustProtection } = require('../systems/AssetTrustSystem.js');
 
 function processFlowTile(state, tile, ws, roomId, player, room,
                          { broadcastToRoom, startAuction, processSocialServiceTile, investmentCards }) {
@@ -268,34 +267,33 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
 }
 
 function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
-    if (state.assetTrust?.active) {
-        const protectedAmount = retrieveAssetTrustOnBankruptcy(state, ws, roomId, broadcastToRoom);
-        state.inFlow        = false;
-        state.streamlinePos = 0;
-        state.inReverse     = false;
-        state.loanAmount    = 0;
-        state.loanInterest  = 0;
-        state.stockHoldings = {};
-        state.cryptoHoldings = {};
-        state.financeInvestments  = [];
-        state.businessInvestments = [];
-        state.propertyInvestments = [];
-        revertFlowLayerIncomeBoost(state);
-        return `💥 破產陷阱觸發！資產信託保護生效，取回 ${protectedAmount.toLocaleString()} 元，跌回平流層！`;
-    }
+    const { applyAssetTrustProtection } = require('../systems/AssetTrustSystem.js');
 
-    const previousCash   = state.cash;
+    const previousCash = state.cash;
+    const intendedLoss = Math.floor(previousCash * 0.9);
+
+    const protection = applyAssetTrustProtection(state, intendedLoss);
+    const actualLoss = protection.actualLoss;
+
     state.inFlow         = false;
     state.streamlinePos  = 0;
     state.inReverse      = false;
-    state.cash           = Math.max(0, Math.floor(previousCash * 0.1));
+    state.cash           = Math.max(0, previousCash - actualLoss);
     state.stockHoldings  = {};
     state.cryptoHoldings = {};
     state.financeInvestments  = [];
     state.businessInvestments = [];
     state.propertyInvestments = [];
     revertFlowLayerIncomeBoost(state);
-    return `💥 破產陷阱！幾乎失去所有資產，僅保留 ${state.cash.toLocaleString()} 元，跌回平流層。`;
+
+    if (protection.protected) {
+        return `💥 破產陷阱！但你的資產信託保護生效！\n` +
+            `🛡️ 保住現金: $${state.cash.toLocaleString()}\n` +
+            `💸 實際損失: $${actualLoss.toLocaleString()}\n` +
+            `跌回平流層。`;
+    }
+
+    return `💥 破產陷阱！損失 $${actualLoss.toLocaleString()}，僅保留 $${state.cash.toLocaleString()} 元，跌回平流層。`;
 }
 
 module.exports = { processFlowTile };

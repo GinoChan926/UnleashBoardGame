@@ -24,6 +24,7 @@ import { CardHandler }           from './managers/handlers/CardHandler.js';
 import { FinanceHandler }        from './managers/handlers/FinanceHandler.js';
 import { ItemHandler }           from './managers/handlers/ItemHandler.js';
 import { MarketHandler }         from './managers/handlers/MarketHandler.js';
+import { AssetTrustHandler } from './managers/handlers/AssetTrustHandler.js';
 
 class GameClient {
     constructor() {
@@ -50,6 +51,7 @@ class GameClient {
         this.financeHandler = new FinanceHandler(this);
         this.itemHandler    = new ItemHandler(this);
         this.marketHandler  = new MarketHandler(this);
+        this.assetTrustHandler = new AssetTrustHandler(this);
         this.renameManager  = new RenameManager(this);  // ✅ FIX: was duplicated
         this.settlementRollManager = new SettlementRollManager(this);
         this.cardBroadcast  = new CardBroadcastManager(this);
