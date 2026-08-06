@@ -149,12 +149,15 @@ class GameClient {
             return;
         }
 
-        const btn = document.getElementById('btnEndTurn');
-        if (btn) {
-            btn.disabled = true;
-            btn.style.opacity = '0.4';
-            btn.style.cursor = 'not-allowed';
-        }
+        ['btnEndTurn', 'btnEndTurnTop'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.disabled      = true;
+                btn.style.opacity = '0.4';
+                btn.style.cursor  = 'not-allowed';
+            }
+        });
+
 
         this.actions.endTurn();
     }

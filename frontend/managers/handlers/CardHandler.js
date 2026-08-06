@@ -75,6 +75,8 @@ export class CardHandler {
     handleIN03RewardChoice(m)       { this.revelation.handleIN03RewardChoice(m); }
     handleIN03RewardChoiceResult(m) { this.revelation.handleIN03RewardChoiceResult(m); }
     handleBankDebtRepaySuccess(m) { this.lending.handleBankDebtRepaySuccess(m); }
+    handleGiftCardPrompt(m)          { this.revelation.handleGiftCardPrompt(m); }
+    handleMoveForwardChoicePrompt(m) { this.revelation.handleMoveForwardChoicePrompt(m); }
 
     // ── Volunteer ─────────────────────────────────────────────────────────
     handleVolunteerCardExecute(m) { this.volunteer.handleVolunteerCardExecute(m); }

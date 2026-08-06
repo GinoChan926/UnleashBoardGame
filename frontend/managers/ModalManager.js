@@ -34,8 +34,8 @@ export class ModalManager {
             dock.id = 'minimizedModalDock';
             dock.style.cssText = `
                 position: fixed;
-                bottom: 20px;
-                right: 20px;
+                left: 20px;
+                top: 20px;
                 z-index: 9998;
                 display: flex;
                 flex-direction: column;

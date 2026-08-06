@@ -36,6 +36,7 @@ export class ButtonStateManager {
         this._set('btnRoll',          canRoll);
         this._set('btnRollTop',       canRoll);
         this._set('btnEndTurn',       canEndTurn);
+        this._set('btnEndTurnTop',    canEndTurn);
         this._set('btnLoan',          canLoan);
         this._set('btnRepayLoan',     canRepay);
         this._set('btnUseClover',     canUseClover);
@@ -44,10 +45,14 @@ export class ButtonStateManager {
         // End turn label
         if (isMyTurn && hasMinimized) {
             const count = this.client.modalManager.getMinimizedCount();
-            this._setLabel('btnEndTurn', `⚠️ 還有 ${count} 個待處理的決定`);
+            const label = `⚠️ 還有 ${count} 個待處理的決定`;
+            this._setLabel('btnEndTurn',    label);
+            this._setLabel('btnEndTurnTop', label);   // ✅ ADD
         } else {
-            this._setLabel('btnEndTurn', '⏭️ 結束回合');
+            this._setLabel('btnEndTurn',    '⏭️ 結束回合');
+            this._setLabel('btnEndTurnTop', '⏭️ 結束回合');   // ✅ ADD
         }
+
 
         // Loan button label
         const ratePercent = (gameState.permanentLoanRate ?? 10).toFixed(1);
@@ -106,6 +111,7 @@ export class ButtonStateManager {
             'btnRoll',
             'btnRollTop',
             'btnEndTurn',
+            'btnEndTurnTop',
             'btnLoan',
             'btnRepayLoan',
             'btnUseClover',

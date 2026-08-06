@@ -5,10 +5,11 @@
  */
 export class TurnIndicator {
     constructor() {
-        this.el       = document.getElementById('turnIndicator');
-        this.nameEl   = document.getElementById('turnIndicatorName');
-        this.statusEl = document.getElementById('turnIndicatorStatus');
-        this.rollBtn  = document.getElementById('btnRollTop');   // ✅ NEW
+        this.el         = document.getElementById('turnIndicator');
+        this.nameEl     = document.getElementById('turnIndicatorName');
+        this.statusEl   = document.getElementById('turnIndicatorStatus');
+        this.rollBtn    = document.getElementById('btnRollTop');
+        this.endTurnBtn = document.getElementById('btnEndTurnTop');   // ✅ NEW
     }
 
     /**
@@ -22,6 +23,7 @@ export class TurnIndicator {
             this.statusEl.textContent = '';
             this.el.classList.remove('my-turn');
             this._hideRollBtn();
+            this._hideEndTurnBtn();   // ✅ NEW
             return;
         }
 
@@ -33,16 +35,19 @@ export class TurnIndicator {
 
             if (hasRolled) {
                 this.statusEl.textContent = '⏭️ 請結束回合';
-                this._hideRollBtn();   // ✅ Hide after rolling
+                this._hideRollBtn();
+                this._showEndTurnBtn(gameState);   // ✅ NEW — show end turn after rolling
             } else {
                 this.statusEl.textContent = '🎲 請擲骰子';
-                this._showRollBtn(gameState);   // ✅ Show ready to roll
+                this._showRollBtn(gameState);
+                this._hideEndTurnBtn();   // ✅ NEW — hide end turn while ready to roll
             }
         } else {
             this.nameEl.textContent = `👤 ${currentPlayerName}`;
             this.el.classList.remove('my-turn');
             this.statusEl.textContent = '⏳ 等待其他玩家...';
             this._hideRollBtn();
+            this._hideEndTurnBtn();   // ✅ NEW
         }
     }
 
@@ -52,6 +57,7 @@ export class TurnIndicator {
         this.statusEl.textContent = '';
         this.el.classList.remove('my-turn');
         this._hideRollBtn();
+        this._hideEndTurnBtn();   // ✅ NEW
     }
 
     // ── Private ───────────────────────────────────────────────────────────
@@ -61,7 +67,6 @@ export class TurnIndicator {
 
         this.rollBtn.style.display = 'inline-block';
 
-        // Disable if energy too low (matching sidebar button logic if any)
         const canRoll = !gameState?.skipNextTurn;
         this.rollBtn.disabled = !canRoll;
 
@@ -75,6 +80,31 @@ export class TurnIndicator {
     _hideRollBtn() {
         if (this.rollBtn) {
             this.rollBtn.style.display = 'none';
+        }
+    }
+
+    // ✅ NEW METHODS
+
+    _showEndTurnBtn(gameState) {
+        if (!this.endTurnBtn) return;
+
+        this.endTurnBtn.style.display = 'inline-block';
+
+        // Check for pending modals (blocks end turn)
+        const hasMinimized = window.gameClient?.modalManager?.hasMinimizedModals?.() || false;
+        this.endTurnBtn.disabled = hasMinimized;
+
+        if (hasMinimized) {
+            const count = window.gameClient.modalManager.getMinimizedCount();
+            this.endTurnBtn.textContent = `⚠️ 還有 ${count} 個待處理`;
+        } else {
+            this.endTurnBtn.textContent = '⏭️ 結束回合';
+        }
+    }
+
+    _hideEndTurnBtn() {
+        if (this.endTurnBtn) {
+            this.endTurnBtn.style.display = 'none';
         }
     }
 }

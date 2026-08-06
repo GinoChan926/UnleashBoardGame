@@ -531,4 +531,86 @@ export class RevelationTemplate {
         </div>
     `;
     }
+
+    // ==================== Move Forward Choice Modal (IN14-17 黑馬思維) ====================
+
+    /**
+     * Build the move-forward step chooser modal.
+     * @param {string} cardName - display name of the card
+     * @param {string} message  - prompt shown to the player
+     * @param {Array<number>} steps - allowed step values, e.g. [1, 2, 3]
+     */
+    static buildMoveForwardModal(cardName, message, steps = [1, 2, 3]) {
+        const stepButtons = steps.map(n => `
+        <button class="move-forward-step-btn"
+                data-steps="${n}"
+                style="flex: 1; background: linear-gradient(135deg, #4fc3f7, #1976d2);
+                       color: white; padding: 20px 12px; border: none;
+                       border-radius: 16px; cursor: pointer;
+                       font-size: 20px; font-weight: bold;
+                       transition: all 0.2s ease;
+                       box-shadow: 0 4px 12px rgba(79,195,247,0.4);">
+            ${n} 格
+        </button>
+    `).join('');
+
+        return `
+        <div class="modal-content" style="max-width: 440px;
+             background: linear-gradient(135deg, #2a4a5a, #1a2a3a);
+             border-radius: 24px; padding: 24px;
+             border: 2px solid #4fc3f7; text-align: center;">
+
+            <div style="font-size: 22px; color: #4fc3f7;
+                        font-weight: bold; margin-bottom: 8px;">
+                🐴 ${cardName}
+            </div>
+            <div style="font-size: 13px; color: #b3e5fc; margin-bottom: 16px;">
+                ${message}
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+                ${stepButtons}
+            </div>
+
+            <div style="font-size: 11px; color: #90a4ae; margin-bottom: 14px;">
+                💡 選擇後立即前進，經過結算日會獲得收入
+            </div>
+
+            <button id="moveForwardCancelBtn"
+                    style="background: #9e9e9e; color: white;
+                           padding: 10px 28px; border: none;
+                           border-radius: 20px; cursor: pointer;
+                           font-size: 13px;">
+                稍後決定
+            </button>
+        </div>
+    `;
+    }
+
+    /**
+     * Bind the step buttons + cancel button.
+     * @param {Function} onChoice - called with chosen step count (number)
+     * @param {Function} onCancel - called when player clicks cancel
+     */
+    static bindMoveForwardButtons(onChoice, onCancel) {
+        document.querySelectorAll('.move-forward-step-btn').forEach(btn => {
+            btn.onclick = () => {
+                const steps = parseInt(btn.dataset.steps, 10);
+                onChoice(steps);
+            };
+            btn.onmouseenter = () => {
+                btn.style.transform = 'scale(1.05)';
+                btn.style.boxShadow = '0 6px 18px rgba(79,195,247,0.6)';
+            };
+            btn.onmouseleave = () => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = '0 4px 12px rgba(79,195,247,0.4)';
+            };
+        });
+
+        const cancelBtn = document.getElementById('moveForwardCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => onCancel();
+        }
+    }
 }

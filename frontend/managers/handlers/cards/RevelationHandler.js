@@ -276,4 +276,49 @@ export class RevelationHandler {
         client.logManager.addLog(message.message, 'success');
         client.logManager.showNotification(message.message, 'success');
     }
+
+    // ==================== Move Forward Choice (IN14-17 黑馬思維) ====================
+
+    handleMoveForwardChoicePrompt(message) {
+        const { client } = this;
+
+        const old = document.getElementById('moveForwardModal');
+        if (old) old.remove();
+
+        const cardName = client.escapeHtml(message.cardName || '前進格數');
+        const msg      = client.escapeHtml(message.message  || '請選擇要前進的格數');
+
+        const modalHtml = RevelationTemplate.buildMoveForwardModal(
+            cardName,
+            msg,
+            [1, 2, 3]
+        );
+
+        client.modalManager.createModal('moveForwardModal', modalHtml);
+        client.modalManager.openModal('moveForwardModal');
+
+        setTimeout(() => {
+            RevelationTemplate.bindMoveForwardButtons(
+                // onChoice
+                (steps) => {
+                    client.connection.send({
+                        type: 'move_forward_choice',
+                        steps
+                    });
+                    client.modalManager.closeModal('moveForwardModal');
+                    client.logManager.addLog(`🐴 選擇前進 ${steps} 格`, 'success');
+                },
+                // onCancel
+                () => {
+                    client.modalManager.closeModal('moveForwardModal');
+                    client.logManager.addLog('🐴 稍後再選擇前進格數', 'info');
+                }
+            );
+        }, 100);
+
+        client.logManager.addLog(
+            `🐴 ${message.cardName || '前進格數'}：${message.message || '請選擇前進格數'}`,
+            'event'
+        );
+    }
 }
