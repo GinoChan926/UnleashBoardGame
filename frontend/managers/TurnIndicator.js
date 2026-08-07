@@ -10,6 +10,7 @@ export class TurnIndicator {
         this.statusEl   = document.getElementById('turnIndicatorStatus');
         this.rollBtn    = document.getElementById('btnRollTop');
         this.endTurnBtn = document.getElementById('btnEndTurnTop');   // ✅ NEW
+        this.flowBtn    = document.getElementById('btnEnterFlow');
     }
 
     /**
@@ -24,6 +25,7 @@ export class TurnIndicator {
             this.el.classList.remove('my-turn');
             this._hideRollBtn();
             this._hideEndTurnBtn();   // ✅ NEW
+            this._hideFlowBtn();
             return;
         }
 
@@ -42,12 +44,14 @@ export class TurnIndicator {
                 this._showRollBtn(gameState);
                 this._hideEndTurnBtn();   // ✅ NEW — hide end turn while ready to roll
             }
+            this._updateFlowBtn(gameState);
         } else {
             this.nameEl.textContent = `👤 ${currentPlayerName}`;
             this.el.classList.remove('my-turn');
             this.statusEl.textContent = '⏳ 等待其他玩家...';
             this._hideRollBtn();
             this._hideEndTurnBtn();   // ✅ NEW
+            this._hideFlowBtn();
         }
     }
 
@@ -58,6 +62,7 @@ export class TurnIndicator {
         this.el.classList.remove('my-turn');
         this._hideRollBtn();
         this._hideEndTurnBtn();   // ✅ NEW
+        this._hideFlowBtn();
     }
 
     // ── Private ───────────────────────────────────────────────────────────
@@ -106,5 +111,40 @@ export class TurnIndicator {
         if (this.endTurnBtn) {
             this.endTurnBtn.style.display = 'none';
         }
+    }
+    _updateFlowBtn(gameState) {
+        if (!this.flowBtn) return;
+
+        // Only show if:
+        // - Not already in flow
+        // - Not in reverse
+        // - Passive income ≥ total expenses (excluding loan interest since it's accrued now)
+        // - No active loan
+        // - Energy > 0
+        if (!gameState || gameState.inFlow || gameState.inReverse) {
+            this._hideFlowBtn();
+            return;
+        }
+
+        const totalExpense = (gameState.livingExpense || 0)
+            + (gameState.tax || 0)
+            + (gameState.childExpense || 0);
+        const hasLoan   = (gameState.loanAmount || 0) > 0;
+        const hasEnergy = (gameState.energy || 0) > 0;
+        const qualifies = gameState.passiveIncome >= totalExpense && !hasLoan && hasEnergy;
+
+        if (qualifies) {
+            this.flowBtn.style.display = 'inline-block';
+            this.flowBtn.title =
+                `📈 被動收入: $${gameState.passiveIncome.toLocaleString()}\n` +
+                `💸 每月支出: $${totalExpense.toLocaleString()}\n` +
+                `✅ 你已達成順流層資格！點擊進入`;
+        } else {
+            this._hideFlowBtn();
+        }
+    }
+
+    _hideFlowBtn() {
+        if (this.flowBtn) this.flowBtn.style.display = 'none';
     }
 }

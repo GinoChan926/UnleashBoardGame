@@ -68,10 +68,17 @@ function _rawExpense(state) {
         + (state.childExpense || 0);
 }
 
+function getEffectivePassiveIncome(state) {
+    if (state.inFlow && state.flowPassiveIncome !== undefined && state.flowPassiveIncome !== null) {
+        return state.flowPassiveIncome;
+    }
+    return state.passiveIncome || 0;
+}
 module.exports = {
     calculateMonthlyCashFlow,
     calculateReducedExpense,
     broadcastToRoom,
     getWsByPlayerId,
-    getOrCreateRoom
+    getOrCreateRoom,
+    getEffectivePassiveIncome,
 };

@@ -16,13 +16,19 @@ export class OpportunityHandler {
         const { client } = this;
         if (!message.card) return;
 
-        // ✅ Flow-layer investment: skip purchase modal, auto-confirm for free
-        if (message.activationOnly || message.freeReveal || message.card?.activationOnly) {
+        // ✅ Auto-confirm flow investment ONLY if canAfford
+        if ((message.activationOnly || message.freeReveal || message.card?.activationOnly)
+            && message.canAfford !== false) {
             client.connection.send({ type: 'purchase_card' });
             return;
         }
 
-        client.cardModal.showPurchaseConfirm(message.card, message.canAfford);
+        // Show modal (may be blocked or purchasable)
+        client.cardModal.showPurchaseConfirm(
+            message.card,
+            message.canAfford,
+            message.blockedReasons || []
+        );
     }
 
     handleCardPurchased(message) {

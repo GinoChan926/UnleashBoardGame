@@ -12,6 +12,7 @@ const {
     canAffordNonInvestment
 } = require('../systems/WalletSystem.js');
 const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
 
 
 function processStreamlineTile(state, tile, ws, roomId, player, isExactLanding,
@@ -84,16 +85,20 @@ function _processSettlement(state, tile, ws, roomId, player, isExactLanding, bro
             incomeMessage = `⚠️ 因通貨膨脹影響，本次結算日沒有收入！`;
             state.skipSettlementIncome = false;
         } else if (state.nextSettlementHalfIncome) {
-            totalIncome        = Math.floor((state.salary + state.sideIncome) / 2);
-            state.cash        += totalIncome;
-            state.totalAssets += Math.floor(totalIncome * 0.2);
-            incomeMessage      = `📉 公司減薪！本次月收入減半，獲得 ${totalIncome.toLocaleString()} 元`;
+            const reducibleIncome = Math.floor((state.salary + state.sideIncome) / 2);
+            const passiveIncome   = getEffectivePassiveIncome(state);
+            totalIncome           = reducibleIncome + passiveIncome;
+            state.cash           += totalIncome;
+            state.totalAssets    += Math.floor(totalIncome * 0.2);
+            incomeMessage         = `📉 公司減薪！月薪+副業減半 $${reducibleIncome.toLocaleString()}，被動收入 $${passiveIncome.toLocaleString()}，合計 $${totalIncome.toLocaleString()}`;
             state.nextSettlementHalfIncome = false;
         } else {
-            totalIncome        = state.salary + state.sideIncome;
-            state.cash        += totalIncome;
-            state.totalAssets += Math.floor(totalIncome * 0.2);
-            incomeMessage      = `獲得 ${totalIncome.toLocaleString()} 元現金流`;
+            const reducibleIncome = state.salary + state.sideIncome;
+            const passiveIncome   = getEffectivePassiveIncome(state);
+            totalIncome           = reducibleIncome + passiveIncome;
+            state.cash           += totalIncome;
+            state.totalAssets    += Math.floor(totalIncome * 0.2);
+            incomeMessage         = `獲得 $${totalIncome.toLocaleString()} 元 (月薪+副業 $${reducibleIncome.toLocaleString()} + 被動收入 $${passiveIncome.toLocaleString()})`;
         }
 
         if (room) {

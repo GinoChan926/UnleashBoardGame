@@ -38,7 +38,7 @@ export class OpportunityCardManager extends BaseCardManager {
 
     // ==================== Purchase Confirm ====================
 
-    showPurchaseConfirm(card, canAfford) {
+    showPurchaseConfirm(card, canAfford, blockedReasons = []) {
         this._ensureModals();
         this.modalManager.openModal('purchaseConfirmModal');
 
@@ -62,24 +62,77 @@ export class OpportunityCardManager extends BaseCardManager {
             document.getElementById('purchaseCardImg'), card
         );
 
-        // ✅ Set purchase cost (respects S08 multiplier)
+        // Set purchase cost
         const multiplier = this.gameState?.cardCostMultiplier || 1;
         OpportunityCardTemplate.updatePurchaseCost(multiplier, canAfford);
 
-        // Bind buttons
-        OpportunityCardTemplate.bindPurchaseButtons(
-            canAfford,
-            () => {
-                if (this.ws && this.ws.isReady()) {
-                    this.ws.send({ type: 'purchase_card' });
+        // ✅ Show blocked reasons if any
+        this._showBlockedReasons(blockedReasons, canAfford);
+
+        // ✅ Bind buttons — different behavior for blocked
+        if (!canAfford && blockedReasons.length > 0) {
+            // Dream tile (or similar) — player can view but not buy
+            OpportunityCardTemplate.bindPurchaseButtons(
+                false,   // disable purchase button
+                null,    // no purchase callback
+                () => {
+                    this.modalManager.closeModal('purchaseConfirmModal');
+                    this.ui.addLog(`👀 觀看了「${card.name}」，但條件不足`, 'info');
                 }
-                this.modalManager.closeModal('purchaseConfirmModal');
-            },
-            () => {
-                this.modalManager.closeModal('purchaseConfirmModal');
-                this.ui.addLog('已放棄購買', 'warning');
+            );
+        } else {
+            OpportunityCardTemplate.bindPurchaseButtons(
+                canAfford,
+                () => {
+                    if (this.ws && this.ws.isReady()) {
+                        this.ws.send({ type: 'purchase_card' });
+                    }
+                    this.modalManager.closeModal('purchaseConfirmModal');
+                },
+                () => {
+                    this.modalManager.closeModal('purchaseConfirmModal');
+                    this.ui.addLog('已放棄購買', 'warning');
+                }
+            );
+        }
+    }
+
+    _showBlockedReasons(reasons, canAfford) {
+        // Find or create the reasons container
+        let reasonsEl = document.getElementById('purchaseBlockedReasons');
+
+        if (!canAfford && reasons.length > 0) {
+            if (!reasonsEl) {
+                reasonsEl = document.createElement('div');
+                reasonsEl.id = 'purchaseBlockedReasons';
+                reasonsEl.style.cssText = `
+                background: rgba(244,67,54,0.15);
+                border: 1px solid rgba(244,67,54,0.4);
+                border-radius: 10px;
+                padding: 12px;
+                margin: 12px 0;
+                text-align: left;
+                color: #ff8a80;
+                font-size: 13px;
+            `;
+
+                const body = document.getElementById('purchaseModalBody');
+                if (body) body.parentNode.insertBefore(reasonsEl, body.nextSibling);
             }
-        );
+
+            reasonsEl.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 6px; color: #ffcdd2;">
+                ⚠️ 你目前無法購買此卡：
+            </div>
+            ${reasons.map(r => `<div style="margin: 4px 0; padding-left: 12px;">${r}</div>`).join('')}
+            <div style="margin-top: 8px; font-size: 11px; color: #ffab91;">
+                💡 但你可以先觀看，等條件足夠再觸發
+            </div>
+        `;
+            reasonsEl.style.display = 'block';
+        } else if (reasonsEl) {
+            reasonsEl.style.display = 'none';
+        }
     }
 
     // ==================== Effect Confirm ====================

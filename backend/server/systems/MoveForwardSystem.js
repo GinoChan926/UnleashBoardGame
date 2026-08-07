@@ -3,6 +3,7 @@
 const { addTransactionRecord }    = require('../records/TransactionRecorder.js');
 const { calculateReducedExpense } = require('../utils/helpers.js');
 const { processSettlementRepayment } = require('./LoanSystem.js');
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
 
 const pendingMoves = new Map();   // playerId → { card, mode }
 
@@ -106,8 +107,16 @@ function _executeMove(ws, roomId, player, card, steps, room, broadcastToRoom, ti
         const isLanding = (i === steps);
 
         if (passTile.type === 'settlement' && !isLanding) {
-            const totalIncome = state.salary + state.sideIncome;
-            state.cash       += totalIncome;
+            let reducibleIncome = state.salary + state.sideIncome;
+            const passiveIncome = getEffectivePassiveIncome(state);
+
+            if (state.nextSettlementHalfIncome) {
+                reducibleIncome = Math.floor(reducibleIncome / 2);
+                state.nextSettlementHalfIncome = false;
+            }
+
+            const totalIncome = reducibleIncome + passiveIncome;
+            state.cash        += totalIncome;
             state.totalAssets += Math.floor(totalIncome * 0.2);
 
             const { totalExpense } = calculateReducedExpense(state);

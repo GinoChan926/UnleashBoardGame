@@ -24,22 +24,23 @@ export class SettlementRollManager {
     }
 
     async handleResult(message) {
-        // Show dice animation
         const { DiceAnimationTemplate } = await import('./cards/templates/DiceAnimationTemplate.js');
 
-        // Close the roll prompt modal
         this._close();
+
+        // ✅ Support N dice values
+        const diceValues = message.diceValues || [message.diceRoll];
+        const diceCount  = message.diceCount || 1;
 
         await new Promise(resolve => {
             DiceAnimationTemplate.show(
-                [message.diceRoll],
-                'energy',   // uses your custom 'energy' theme, or 'flow' if you skipped that
-                `${message.playerName || '你'} - ⚡ 結算日精力`,
+                diceValues,
+                'energy',
+                `${message.playerName || '你'} - ⚡ 結算日精力 (${diceCount} 顆骰)`,
                 resolve
             );
         });
 
-        // Apply state
         const isMe = message.playerId === this.client.playerId;
         if (isMe && message.gameState) {
             this.client.gameState = message.gameState;
@@ -48,18 +49,21 @@ export class SettlementRollManager {
             this.client.otherPlayers.set(message.playerId, message.gameState);
         }
 
-        // Notifications
         const playerLabel = isMe ? '你' : (message.playerName || '玩家');
+
+        const diceDetail = diceValues.length > 1
+            ? `擲 ${diceValues.join(' + ')} = ${message.diceRoll}`
+            : `擲 ${message.diceRoll}`;
 
         if (isMe) {
             this.client.logManager.showNotification(
-                `⚡ 擲出 ${message.diceRoll} 點，精力 +${message.energyGained}！`,
+                `⚡ ${diceDetail} 點，精力 +${message.energyGained}！`,
                 'success'
             );
         }
 
         this.client.logManager.addLog(
-            `⚡ ${playerLabel} 結算日擲骰得 ${message.diceRoll} 點，精力 +${message.energyGained}`,
+            `⚡ ${playerLabel} 結算日${diceDetail} 點，精力 +${message.energyGained}`,
             'success'
         );
 

@@ -9,7 +9,6 @@ function handleSettlementRoll(ws, data, roomId, rooms, broadcastToRoom) {
 
     const state = player.gameState;
 
-    // ✅ Verify player has a pending settlement roll
     if (!state.pendingSettlementRoll) {
         ws.send(JSON.stringify({
             type:    'error',
@@ -18,45 +17,51 @@ function handleSettlementRoll(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // Clear the pending flag
     state.pendingSettlementRoll = false;
 
-    // Roll a 6-sided die
-    const diceRoll = Math.floor(Math.random() * 6) + 1;
-    const before   = state.energy;
-    state.energy   = Math.min(state.maxEnergy, state.energy + diceRoll);
-    const gained   = state.energy - before;
+    // ✅ Roll N dice (default 1, flow layer sets 2)
+    const diceCount  = state.settlementRollDiceCount || 1;
+    const diceValues = [];
+    for (let i = 0; i < diceCount; i++) {
+        diceValues.push(Math.floor(Math.random() * 6) + 1);
+    }
+    const totalRoll = diceValues.reduce((a, b) => a + b, 0);
 
-    // Log transaction
+    // Clear the dice count flag
+    state.settlementRollDiceCount = 1;
+
+    const before  = state.energy;
+    state.energy  = Math.min(state.maxEnergy, state.energy + totalRoll);
+    const gained  = state.energy - before;
+
+    const layerLabel = state.inFlow ? '順流層' : '平流層';
+    const diceDetail = diceCount > 1
+        ? ` (${diceValues.join(' + ')} = ${totalRoll})`
+        : ` (${totalRoll})`;
+
     addTransactionRecord(
         player.playerName,
         { name: '結算日精力擲骰', type: 'settlement', id: 'SETTLE_ROLL' },
         '精力獲得',
         0,
-        `結算日擲骰得 ${diceRoll} 點，精力 +${gained}`,
+        `${layerLabel}結算日擲 ${diceCount} 骰得 ${totalRoll} 點${diceDetail}，精力 +${gained}`,
         null,
         state
     );
 
-    // Notify player
-    ws.send(JSON.stringify({
-        type:          'settlement_roll_result',
-        playerId:      player.playerId,
-        playerName:    player.playerName,
-        diceRoll,
-        energyGained:  gained,
-        gameState:     state
-    }));
-
-    // Broadcast to others
-    broadcastToRoom(roomId, {
+    const payload = {
         type:         'settlement_roll_result',
         playerId:     player.playerId,
         playerName:   player.playerName,
-        diceRoll,
+        diceRoll:     totalRoll,     // total for backwards compat
+        diceValues,                  // ✅ NEW — individual dice values
+        diceCount,                   // ✅ NEW
         energyGained: gained,
         gameState:    state
-    }, ws);
+    };
+
+    ws.send(JSON.stringify(payload));
+    broadcastToRoom(roomId, payload, ws);
 
     broadcastToRoom(roomId, {
         type:      'state_updated',
@@ -64,7 +69,7 @@ function handleSettlementRoll(ws, data, roomId, rooms, broadcastToRoom) {
         gameState: state
     });
 
-    console.log(`⚡ ${player.playerName} 結算日擲骰: ${diceRoll} 點，精力 +${gained}`);
+    console.log(`⚡ ${player.playerName} ${layerLabel}結算日擲 ${diceCount} 骰: ${diceValues.join(', ')} = ${totalRoll}，精力 +${gained}`);
 }
 
 module.exports = { handleSettlementRoll };

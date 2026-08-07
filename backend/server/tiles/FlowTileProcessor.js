@@ -3,9 +3,10 @@
 const { addTransactionRecord }           = require('../records/TransactionRecorder.js');
 const { revertFlowLayerIncomeBoost }     = require('../systems/FlowLayerSystem.js');
 const { promptAssetTrustSetup, applyAssetTrustProtection } = require('../systems/AssetTrustSystem.js');
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
 
 function processFlowTile(state, tile, ws, roomId, player, room,
-                         { broadcastToRoom, startAuction, processSocialServiceTile, investmentCards }) {
+                         { broadcastToRoom, startAuction, processSocialServiceTile, investmentCards, dreamCards }) {
 
     if (!player || !state) return '❌ 數據異常';
 
@@ -28,7 +29,7 @@ function processFlowTile(state, tile, ws, roomId, player, room,
         // ✅ Dream tile also draws an investment card with energy requirement
         case 'dream':
             return _handleDreamTile(state, tile, ws, roomId, player, room,
-                { broadcastToRoom, startAuction, investmentCards });
+                { broadcastToRoom, startAuction, investmentCards, dreamCards });
 
         case 'flowbankruptcy':
             return _processBankruptcy(state, ws, roomId, player, broadcastToRoom);
@@ -54,7 +55,7 @@ function processFlowTile(state, tile, ws, roomId, player, room,
         }
 
         case 'settlement':
-            return null;
+            return _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, true);   // true = landing
 
         default:
             return `📌 順流層格子：${tile.name}`;
@@ -168,25 +169,47 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
 }
 
 function _handleDreamTile(state, tile, ws, roomId, player, room,
-                          { broadcastToRoom, startAuction, investmentCards }) {
+                          { broadcastToRoom, startAuction, dreamCards }) {
 
-    // ✅ Check energy requirement first
-    if (tile.needEnergy && state.energy < tile.needEnergy) {
-        ws.send(JSON.stringify({
-            type:    'notification',
-            message: `⭐ 接近夢想「${tile.name}」，需要 ${tile.needEnergy} 精力 (當前 ${state.energy})`
-        }));
-        return `⭐ 接近夢想「${tile.name}」，需要 ${tile.needEnergy} 精力 (當前 ${state.energy})`;
-    }
-
-    if (!investmentCards || investmentCards.length === 0) {
+    if (!dreamCards) {
         ws.send(JSON.stringify({ type: 'notification', message: '📭 暫無夢想卡數據' }));
         return '📭 暫無夢想卡數據';
     }
 
-    const card = investmentCards[Math.floor(Math.random() * investmentCards.length)];
+    // ✅ Find dream card whose name matches this tile
+    const dreamPool = Object.values(dreamCards);
+    const card = dreamPool.find(c => c.name === tile.name);
 
+    if (!card) {
+        console.warn(`⚠️ No dream card found matching tile name "${tile.name}"`);
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `⚠️ 夢想「${tile.name}」尚未實裝`
+        }));
+        return `⚠️ 夢想「${tile.name}」尚未實裝`;
+    }
+
+    // ✅ Check requirements — prefer tile.needEnergy if set, else card.energyCost
+    const needEnergy = tile.needEnergy || card.energyCost || 0;
+    const investCost = card.investmentCost || 0;
+    const totalCash  = (state.cash || 0) + (state.loanCash || 0);
+
+    const lacks = [];
+    if (needEnergy && state.energy < needEnergy) {
+        lacks.push(`⚡ 精力不足 (需 ${needEnergy}，你有 ${state.energy})`);
+    }
+    if (investCost > totalCash) {
+        lacks.push(`💵 資金不足 (需 $${investCost.toLocaleString()}，你有 $${totalCash.toLocaleString()})`);
+    }
+
+    const canAfford = lacks.length === 0;
+
+    // Auction card handling (rarely applies to dreams, keep for safety)
     if (card.isAuction) {
+        if (!canAfford) {
+            _sendDreamModal(ws, tile, card, canAfford, lacks);
+            return `⭐ 接近夢想「${tile.name}」，但條件不足`;
+        }
         if (room.players.size < 2) {
             ws.send(JSON.stringify({ type: 'notification', message: '👤 需要至少2名玩家才能進行競拍！' }));
             return '👤 需要至少2名玩家';
@@ -195,24 +218,7 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         return null;
     }
 
-    const serializableCard = {
-        id:             card.id,
-        name:           card.name,
-        description:    `🌟 實現夢想「${tile.name}」\n\n${card.description || ''}`,
-        image:          card.image || '',
-        cost:           0,
-        investmentCost: card.investmentCost || 0,
-        energyCost:     tile.needEnergy || 0,
-        monthlyReturn:  card.monthlyReturn || 0,
-        pricePerUnit:   card.pricePerUnit || card.investmentCost || 0,
-        cardType:       'dream',
-        cardTypeName:   '夢想',
-        cardTypeIcon:   '🌟',
-        type:           'dream',
-        freeReveal:     true,
-        activationOnly: true
-    };
-
+    // ✅ Store pending event
     if (!room.pendingEvents) room.pendingEvents = new Map();
 
     const originalEffect = card.effect;
@@ -224,76 +230,239 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         cardTypeIcon: '🌟'
     };
 
-    // ✅ Wrap effect to deduct dream tile energy on activation
     if (originalEffect) {
         fullCard.effect = function(s, ...args) {
-            if (tile.needEnergy && s.energy >= tile.needEnergy) {
-                s.energy -= tile.needEnergy;
-            }
-            const result = originalEffect.call(card, s, ...args);
-            return `🌟 實現夢想「${tile.name}」！消耗 ${tile.needEnergy || 0} 精力\n${result || ''}`;
+            return originalEffect.call(card, s, ...args);
         };
     }
 
-    room.pendingEvents.set(ws, {
-        type:             'opportunity_card',
-        card:             fullCard,
-        cardType:         { id: 'dream', name: '夢想', icon: '🌟', color: '#8e24aa' },
-        playerId:         player.playerId,
-        purchased:        false,
-        timestamp:        Date.now(),
-        isInvestmentCard: true,
-        isDreamCard:      true,
-        tileName:         tile.name,
-        skipPurchaseCost: true,
-        activationOnly:   true
-    });
+    if (canAfford) {
+        room.pendingEvents.set(ws, {
+            type:             'opportunity_card',
+            card:             fullCard,
+            cardType:         { id: 'dream', name: '夢想', icon: '🌟', color: '#8e24aa' },
+            playerId:         player.playerId,
+            purchased:        false,
+            timestamp:        Date.now(),
+            isInvestmentCard: true,
+            isDreamCard:      true,
+            tileName:         tile.name,
+            skipPurchaseCost: true,
+            activationOnly:   true
+        });
+    }
 
-    ws.send(JSON.stringify({
-        type:           'opportunity_card_draw',
-        card:           serializableCard,
-        canAfford:      true,
-        freeReveal:     true,
-        activationOnly: true,
-        message:        `🌟 你踩中了夢想「${tile.name}」！免費查看夢想卡，是否啟動實現夢想？`
-    }));
+    _sendDreamModal(ws, tile, card, canAfford, lacks);
 
     broadcastToRoom(roomId, {
         type:    'notification',
-        message: `🌟 ${player.playerName} 正在追逐夢想「${tile.name}」...`
+        message: canAfford
+            ? `🌟 ${player.playerName} 正在追逐夢想「${card.name}」...`
+            : `⭐ ${player.playerName} 接近夢想「${card.name}」，但條件不足`
     }, ws);
 
     return null;
 }
 
-function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
-    const { applyAssetTrustProtection } = require('../systems/AssetTrustSystem.js');
+// ✅ Send dream modal using the actual dream card's data
+function _sendDreamModal(ws, tile, card, canAfford, lacks) {
+    const serializableCard = {
+        id:             card.id,
+        name:           card.name,                              // ✅ e.g. "訂制夢想跑車"
+        description:    card.description || '',                 // ✅ actual dream description
+        image:          card.image || '',                       // ✅ actual dream image (D01.png etc)
+        cost:           0,
+        investmentCost: card.investmentCost || 0,
+        energyCost:     tile.needEnergy || card.energyCost || 0,
+        monthlyReturn:  card.monthlyReturn || 0,
+        pricePerUnit:   card.pricePerUnit || card.investmentCost || 0,
+        cardType:       'dream',
+        cardTypeName:   '夢想',
+        cardTypeIcon:   '🌟',
+        type:           'dream',
+        freeReveal:     true,
+        activationOnly: true,
+        canAfford,
+        blockedReasons: lacks
+    };
 
-    const previousCash = state.cash;
-    const intendedLoss = Math.floor(previousCash * 0.9);
-
-    const protection = applyAssetTrustProtection(state, intendedLoss);
-    const actualLoss = protection.actualLoss;
-
-    state.inFlow         = false;
-    state.streamlinePos  = 0;
-    state.inReverse      = false;
-    state.cash           = Math.max(0, previousCash - actualLoss);
-    state.stockHoldings  = {};
-    state.cryptoHoldings = {};
-    state.financeInvestments  = [];
-    state.businessInvestments = [];
-    state.propertyInvestments = [];
-    revertFlowLayerIncomeBoost(state);
-
-    if (protection.protected) {
-        return `💥 破產陷阱！但你的資產信託保護生效！\n` +
-            `🛡️ 保住現金: $${state.cash.toLocaleString()}\n` +
-            `💸 實際損失: $${actualLoss.toLocaleString()}\n` +
-            `跌回平流層。`;
-    }
-
-    return `💥 破產陷阱！損失 $${actualLoss.toLocaleString()}，僅保留 $${state.cash.toLocaleString()} 元，跌回平流層。`;
+    ws.send(JSON.stringify({
+        type:           'opportunity_card_draw',
+        card:           serializableCard,
+        canAfford,
+        blockedReasons: lacks,
+        freeReveal:     true,
+        activationOnly: true,
+        message:        canAfford
+            ? `🌟 你踩中了夢想「${card.name}」！是否啟動實現？`
+            : `⭐ 你踩中了夢想「${card.name}」！但你目前條件不足，只能觀看`
+    }));
 }
 
-module.exports = { processFlowTile };
+function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
+    const stateBefore = JSON.parse(JSON.stringify(state));
+
+    const lostPassiveIncome = state.flowPassiveIncome || state.passiveIncome || 0;
+    const lostSideIncome    = (state.sideIncome || 0) - (state.originalSideIncome || 0);
+
+    // ✅ Return to streamline layer at start
+    state.inFlow        = false;
+    state.streamlinePos = 0;
+    state.inReverse     = false;
+    state.flowPos       = 0;
+
+    // ✅ Clear all investments
+    state.stockHoldings        = {};
+    state.cryptoHoldings       = {};
+    state.financeInvestments   = [];
+    state.businessInvestments  = [];
+    state.propertyInvestments  = [];
+
+    // ✅ Remove property mortgage from livingExpense
+    if (state.propertyMortgageExpense) {
+        state.livingExpense = Math.max(0,
+            (state.livingExpense || 0) - state.propertyMortgageExpense
+        );
+        state.propertyMortgageExpense = 0;
+    }
+
+    // ✅ Revert flow income boost FIRST (this restores passiveIncomeBeforeFlow)
+    revertFlowLayerIncomeBoost(state);
+
+    // ✅ THEN force passive income to 0 (overrides whatever was restored)
+    state.passiveIncome = 0;
+
+    // ✅ Also clear the boost fields explicitly in case they weren't cleared
+    state.flowPassiveIncome           = 0;
+    state.passiveIncomeBeforeFlow     = 0;
+    state.passiveIncomeFlowMultiplier = 1;
+
+    state.sideIncome = state.originalSideIncome || 0;
+
+    // ✅ Recalculate totalAssets to match new state (just cash now)
+    state.totalAssets = state.cash;
+
+    addTransactionRecord(
+        player.playerName,
+        { name: '破產陷阱', type: 'flow', id: 'FLOW_BANKRUPTCY' },
+        '破產陷阱',
+        0,
+        `踩中破產陷阱！所有被動收入和投資消失，回到平流層。現金保留 $${state.cash.toLocaleString()}`,
+        stateBefore,
+        state
+    );
+
+    return `💥 破產陷阱！\n` +
+        `💰 現金保留: $${state.cash.toLocaleString()}\n` +
+        `📉 失去所有被動收入 (原 $${lostPassiveIncome.toLocaleString()}/月)\n` +
+        `📊 所有投資（股票、加密貨幣、基金、生意、物業）清空\n` +
+        `🌊 跌回平流層起點`;
+}
+
+/**
+ * Flow-layer settlement handling.
+ * @param {boolean} isLanding - true if player landed exactly, false for passthrough
+ */
+function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, isLanding) {
+    const { calculateReducedExpense } = require('../utils/helpers.js');
+    const { processSettlementRepayment } = require('../systems/LoanSystem.js');
+    const { spendForNonInvestment, canAffordNonInvestment,
+        spendForInvestment,    canAffordInvestment } =
+        require('../systems/WalletSystem.js');
+    const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+
+    // ✅ Salary + side income → cash (same as streamline)
+    let reducibleIncome = state.salary + state.sideIncome;
+    const passiveIncome = getEffectivePassiveIncome(state);
+
+    if (state.nextSettlementHalfIncome) {
+        reducibleIncome = Math.floor(reducibleIncome / 2);
+        state.nextSettlementHalfIncome = false;
+    }
+
+    const totalIncome = reducibleIncome + passiveIncome;
+    state.cash        += totalIncome;
+    state.totalAssets += Math.floor(totalIncome * 0.2);
+
+    // Auto-collect pending debts
+    const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
+    processDebtCollection(player, room, roomId, broadcastToRoom);
+
+    // ✅ Expense deduction — split mortgage (investment) from other (non-investment)
+    const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
+
+    const mortgageExpense  = state.propertyMortgageExpense || 0;
+    const nonInvestExpense = Math.max(0, totalExpense - mortgageExpense);
+
+    if (mortgageExpense > 0) {
+        if (canAffordInvestment(state, mortgageExpense)) {
+            spendForInvestment(state, mortgageExpense);
+        } else {
+            chargePlayer(player, mortgageExpense, {
+                source: '順流層房貸月供', creditor: 'bank', creditorName: '銀行',
+                room, roomId, broadcastToRoom, ws
+            });
+        }
+    }
+
+    if (nonInvestExpense > 0) {
+        if (canAffordNonInvestment(state, nonInvestExpense)) {
+            spendForNonInvestment(state, nonInvestExpense);
+        } else {
+            chargePlayer(player, nonInvestExpense, {
+                source: '順流層結算支出', creditor: 'bank', creditorName: '銀行',
+                room, roomId, broadcastToRoom, ws
+            });
+        }
+    }
+
+    const expenseReductionMessage = reductionPercent > 0
+        ? ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`
+        : '';
+
+    // Bakery energy bonus
+    if (state.bakeryCount > 0) {
+        state.energy = Math.min(state.maxEnergy, state.energy + state.bakeryCount);
+    }
+
+    // Property mortgages processing (deduction of principal from remaining balance)
+    const { processPropertyMortgages } = require('../systems/PropertyChoiceSystem.js');
+    processPropertyMortgages(player, ws, broadcastToRoom, roomId);
+
+    // Loan repayment tracking
+    const repaymentResult = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
+    if (repaymentResult) {
+        ws.send(JSON.stringify(repaymentResult));
+        broadcastToRoom(roomId, repaymentResult, ws);
+    }
+
+    // ✅ Landing = pending 2-dice roll; passthrough = no roll
+    if (isLanding) {
+        state.pendingSettlementRoll = true;
+        state.settlementRollDiceCount = 2;
+    }
+
+    const settlementMsg = {
+        type:                   'settlement',
+        playerId:               player.playerId,
+        playerName:             player.playerName,
+        salary:                 state.salary,
+        sideIncome:             state.sideIncome,
+        totalIncome,
+        totalExpense,
+        expenseReductionMessage,
+        teaRestaurantMessage:   '',
+        isExactLanding:         isLanding,
+        pendingSettlementRoll:  isLanding,
+        diceCount:              2,           // for frontend awareness
+        gameState:              state
+    };
+    ws.send(JSON.stringify(settlementMsg));
+    broadcastToRoom(roomId, settlementMsg, ws);
+
+    return isLanding
+        ? `🏝️ 順流層結算日！收入 $${totalIncome.toLocaleString()}${expenseReductionMessage} - 請擲 2 顆骰子獲取精力！`
+        : `🏝️ 順流層結算日途經！收入 $${totalIncome.toLocaleString()}${expenseReductionMessage}`;
+}
+
+module.exports = { processFlowTile, _processFlowSettlement };

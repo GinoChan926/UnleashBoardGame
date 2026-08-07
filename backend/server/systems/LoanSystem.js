@@ -1,5 +1,7 @@
 "use strict";
 
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getPlayerLoan(player) {
@@ -16,14 +18,14 @@ function getPlayerLoan(player) {
 }
 
 function calculateMonthlyCashflow(state) {
-    const income  = (state.salary || 0) + (state.sideIncome || 0) + (state.passiveIncome || 0);
+    const income  = (state.salary || 0) + (state.sideIncome || 0) + getEffectivePassiveIncome(state);
     const expense = (state.livingExpense || 0) + (state.tax || 0)
         + (state.childExpense || 0);
     return income - expense;
 }
 
 function calculateMonthlyIncome(state) {
-    return (state.salary || 0) + (state.sideIncome || 0) + (state.passiveIncome || 0);
+    return (state.salary || 0) + (state.sideIncome || 0) + getEffectivePassiveIncome(state);
 }
 
 function calculateMaxLoan(state) {

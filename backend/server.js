@@ -144,6 +144,7 @@ function makeDeps(roomId) {
                 startAuction:   (rId, card, player, ws) => startAuction(rId, card, player, ws, broadcast),
                 processSocialServiceTile: (s, ws, rId, p, t, r) => processSocialServiceTile(s, ws, rId, p, t, r),
                 investmentCards,
+                dreamCards,
                 rooms
             }),
         triggerDreamCard:             (state, tile, ws, rId, player, old, pos) =>
@@ -426,6 +427,73 @@ wss.on('connection', (ws) => {
                 case 'in03_reward_choice_response':
                     handleIN03RewardChoice(ws, data, playerRoomId, rooms, broadcast);
                     break;
+
+                case 'request_flow_choice': {
+                    const room = rooms.get(playerRoomId);
+                    const player = room?.players.get(ws);
+                    if (!room || !player) break;
+
+                    const state = player.gameState;
+
+                    if (state.inFlow) {
+                        ws.send(JSON.stringify({
+                            type: 'notification',
+                            message: '❌ 你已在順流層'
+                        }));
+                        break;
+                    }
+
+                    // ✅ Re-verify eligibility server-side
+                    const totalExpense = (state.livingExpense || 0)
+                        + (state.tax || 0)
+                        + (state.childExpense || 0);
+
+                    if (state.passiveIncome < totalExpense) {
+                        ws.send(JSON.stringify({
+                            type: 'notification',
+                            message: `❌ 被動收入不足 (需 $${totalExpense.toLocaleString()}，你有 $${state.passiveIncome.toLocaleString()})`
+                        }));
+                        break;
+                    }
+
+                    if (state.energy <= 0) {
+                        ws.send(JSON.stringify({
+                            type: 'notification',
+                            message: '❌ 精力不足，無法進入順流層'
+                        }));
+                        break;
+                    }
+
+                    if (state.loanAmount > 0) {
+                        ws.send(JSON.stringify({
+                            type: 'notification',
+                            message: `❌ 還有 $${state.loanAmount.toLocaleString()} 貸款未還清`
+                        }));
+                        break;
+                    }
+
+                    // Send the choice modal (reuse existing message type)
+                    ws.send(JSON.stringify({
+                        type: 'flow_layer_choice',
+                        message: `🎉 恭喜！你已滿足進入順流層的條件！\n` +
+                            `被動收入: $${state.passiveIncome.toLocaleString()}/月\n` +
+                            `總支出: $${totalExpense.toLocaleString()}/月\n\n` +
+                            `你是否願意進入順流層？`,
+                        canEnter:       true,
+                        passiveIncome:  state.passiveIncome,
+                        totalExpense,
+                        energy:         state.energy,
+                        maxEnergy:      state.maxEnergy,
+                        loanAmount:     state.loanAmount
+                    }));
+
+                    if (!room.pendingFlowChoices) room.pendingFlowChoices = new Map();
+                    room.pendingFlowChoices.set(ws, {
+                        playerId: player.playerId,
+                        timestamp: Date.now()
+                    });
+                    break;
+                }
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));
             }

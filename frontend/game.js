@@ -184,6 +184,16 @@ class GameClient {
         on('btnUseLuckyStar', () => this.useLuckyStar());
         on('btnRename',       () => this.showRenameModal());
     }
+
+    requestFlowEntry() {
+        if (!this.isConnected || !this.gameState) return;
+        if (this.gameState.inFlow) {
+            this.logManager.addLog('❌ 你已在順流層', 'warning');
+            return;
+        }
+        this.connection.send({ type: 'request_flow_choice' });
+        this.logManager.addLog('🌊 請求進入順流層', 'info');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

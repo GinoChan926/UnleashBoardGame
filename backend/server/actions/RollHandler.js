@@ -3,6 +3,8 @@
 const { calculateReducedExpense }   = require('../utils/helpers.js');
 const { processHealthInvestment, processHealthSupplementInvestment } = require('../systems/HealthSystem.js');
 const { processSettlementRepayment } = require('../systems/LoanSystem.js');
+const {_processFlowSettlement } = require('../tiles/FlowTileProcessor');
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
 
 function handleRoll(ws, data, roomId, rooms, deps) {
     const {
@@ -237,30 +239,29 @@ function handleRoll(ws, data, roomId, rooms, deps) {
     let tile     = null;
     let eventMessage = null;
 
+    // ── Flow layer movement ───────────────────────────────────────────────────
     if (state.inFlow) {
-        const flowSteps      = steps;
-        let   currentPos     = state.flowPos;
-        let   lastDreamPos   = -1;
-        const startPos       = currentPos;
+        const flowSteps  = steps;
+        let   currentPos = state.flowPos;
+        const startPos   = currentPos;
 
-        for (let i = 1; i <= flowSteps; i++) {
-            const newPos    = (currentPos + 1) % room.flowTiles.length;
-            const tileAtPos = room.flowTiles[newPos];
+        // ✅ Passthrough loop: ONLY handle settlement, ignore dreams and everything else
+        for (let i = 1; i < flowSteps; i++) {
+            currentPos = (currentPos + 1) % room.flowTiles.length;
+            const tileAtPos = room.flowTiles[currentPos];
 
-            if (tileAtPos.type === 'dream' && (newPos !== startPos || i === flowSteps)) {
-                triggerDreamCard(state, tileAtPos, ws, roomId, player, currentPos, newPos);
-                lastDreamPos = newPos;
+            if (tileAtPos.type === 'settlement') {
+                // ✅ Passthrough — no dice roll
+                _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, false);
             }
-            currentPos = newPos;
         }
 
+        // ✅ Advance to the LANDING position (final step)
+        currentPos = (currentPos + 1) % room.flowTiles.length;
         state.flowPos = currentPos;
         tile          = room.flowTiles[state.flowPos];
 
-        if (tile.type === 'dream' && lastDreamPos !== state.flowPos) {
-            triggerDreamCard(state, tile, ws, roomId, player, startPos, state.flowPos);
-        }
-
+        // ✅ Process the LANDED tile only
         eventMessage = processFlowTile(state, tile, ws, roomId, player, room, deps);
     }
     else if (state.inReverse) {
@@ -331,36 +332,6 @@ function handleRoll(ws, data, roomId, rooms, deps) {
         eventMessage = processStreamlineTile(state, tile, ws, roomId, player, isExactLanding, deps);
     }
 
-    if (!state.inReverse && !state.inFlow) {
-        const totalExpense = (state.livingExpense || 0) + (state.tax || 0)
-            + (state.loanInterest  || 0) + (state.childExpense || 0);
-
-        if (state.passiveIncome >= totalExpense) {
-            if (state.energy <= 0) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `❌ 無法進入順流層！精力不足 (當前 ${state.energy})`
-                }));
-            } else if (state.loanAmount > 0) {
-                ws.send(JSON.stringify({
-                    type: 'notification',
-                    message: `❌ 無法進入順流層！還有貸款 ${state.loanAmount.toLocaleString()} 元`
-                }));
-            } else {
-                ws.send(JSON.stringify({
-                    type: 'flow_layer_choice',
-                    message: `🎉 恭喜！你已滿足進入順流層的條件！\n被動收入: ${state.passiveIncome.toLocaleString()} 元/月\n總支出: ${totalExpense.toLocaleString()} 元/月\n\n你是否願意進入順流層？`,
-                    canEnter: true, passiveIncome: state.passiveIncome, totalExpense,
-                    energy: state.energy, maxEnergy: state.maxEnergy, loanAmount: state.loanAmount
-                }));
-
-                if (!room.pendingFlowChoices) room.pendingFlowChoices = new Map();
-                room.pendingFlowChoices.set(ws, { playerId: player.playerId, timestamp: Date.now() });
-                return;
-            }
-        }
-    }
-
     const result = {
         type: 'dice_result',
         playerId: player.playerId,
@@ -418,11 +389,15 @@ function _processPassthroughSettlement(state, player, ws, roomId, room, broadcas
         return;
     }
 
-    let totalIncome = state.salary + state.sideIncome;
+    let reducibleIncome = state.salary + state.sideIncome;
+    const passiveIncome = getEffectivePassiveIncome(state);
+
     if (state.nextSettlementHalfIncome) {
-        totalIncome = Math.floor(totalIncome / 2);
+        reducibleIncome = Math.floor(reducibleIncome / 2);
         state.nextSettlementHalfIncome = false;
     }
+
+    const totalIncome = reducibleIncome + passiveIncome;
     state.cash        += totalIncome;
     state.totalAssets += Math.floor(totalIncome * 0.2);
 

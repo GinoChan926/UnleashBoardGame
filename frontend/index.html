@@ -635,6 +635,39 @@
                 0 0 0 4px rgba(76,175,80,0.2);
             }
         }
+
+        .turn-indicator-flow-btn {
+            background: linear-gradient(135deg, #9c27b0, #6a1b9a);
+            color: white;
+            border: 2px solid #ce93d8;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(156, 39, 176, 0.5);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            width: auto;
+            margin: 10px 0 0 0;
+            animation: flowBtnGlow 2s ease infinite;
+        }
+
+        .turn-indicator-flow-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.8);
+            background: linear-gradient(135deg, #ba68c8, #7b1fa2);
+        }
+
+        @keyframes flowBtnGlow {
+            0%, 100% {
+                box-shadow: 0 4px 14px rgba(156, 39, 176, 0.5);
+            }
+            50% {
+                box-shadow: 0 4px 24px rgba(156, 39, 176, 1),
+                0 0 0 4px rgba(206, 147, 216, 0.3);
+            }
+        }
     </style>
 </head>
 <body>
@@ -675,6 +708,13 @@
                box-shadow: 0 4px 14px rgba(33,150,243,0.5);
                margin-top: 10px;">
                 ⏭️ 結束回合
+            </button>
+            <button id="btnEnterFlow"
+                    class="turn-indicator-flow-btn"
+                    onclick="window.gameClient?.requestFlowEntry()"
+                    style="display: none;"
+                    title="你已達成順流層資格！點擊進入">
+                🌊 進入順流層
             </button>
             <div class="board-wrapper">
                 <div class="three-tier-board" id="threeTierBoard">

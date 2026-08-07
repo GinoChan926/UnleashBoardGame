@@ -56,6 +56,7 @@ function handleJoin(ws, data, roomId, rooms) {
         cash:            professionData.cash,
         salary:          professionData.salary,
         sideIncome:      professionData.sideIncome || 0,
+        originalSideIncome: professionData.sideIncome || 0,
         passiveIncome:   0,
         livingExpense:   professionData.livingExpense,
         tax:             professionData.tax,

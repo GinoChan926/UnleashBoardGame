@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { getEffectivePassiveIncome } = require('../utils/helpers.js');
 
 // ── Entry condition check ─────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ function revertFlowLayerIncomeBoost(state) {
 // ── Monthly cash flow (flow layer) ────────────────────────────────────────────
 
 function calculateFlowMonthlyCashFlow(state) {
-    let effectivePassive = state.flowPassiveIncome || state.passiveIncome;
+    let effectivePassive = getEffectivePassiveIncome(state);
     if (state.passiveIncomeBonus > 0) {
         effectivePassive = Math.floor(effectivePassive * (1 + state.passiveIncomeBonus / 100));
     }
