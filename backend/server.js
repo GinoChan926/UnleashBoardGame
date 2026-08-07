@@ -5,6 +5,7 @@ const path      = require('path');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const { streamlineTiles, reverseTiles, flowTiles } = require('./server/constants/Tiles.js');
+const { handleGetFlowInventory } = require('./server/systems/FlowInventorySystem.js');
 
 // ── Card data ─────────────────────────────────────────────────────────────────
 const { partTimeCards, financeCards, businessCards, propertyCards } = _loadCards('./chance_cards.js',
@@ -494,6 +495,10 @@ wss.on('connection', (ws) => {
                     });
                     break;
                 }
+
+                case 'get_flow_inventory':
+                    handleGetFlowInventory(ws, data, playerRoomId, rooms);
+                    break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));
             }

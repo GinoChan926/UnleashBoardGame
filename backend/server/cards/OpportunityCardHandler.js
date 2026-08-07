@@ -311,6 +311,19 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             - (stateBefore.cash + (stateBefore.loanCash || 0)),
             effectResult, stateBefore, player.gameState);
 
+        if (pendingEvent.skipPurchaseCost && pendingEvent.isInvestmentCard) {
+            player.gameState.flowInvestments = player.gameState.flowInvestments || [];
+            player.gameState.flowInvestments.push({
+                id:            card.id,
+                name:          card.name,
+                image:         card.image || '',
+                tileName:      pendingEvent.tileName || '',
+                cost:          card.investmentCost || 0,
+                monthlyReturn: card.monthlyReturn || 0,
+                purchasedAt:   Date.now()
+            });
+        }
+
         if (player.gameState.cash > cashSnapshot
             && player.gameState.pendingDebts?.length > 0) {
             const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
@@ -746,7 +759,9 @@ function _handleFoodDelivery(card, data, player, room, ws, roomId) {
                 name:          card.name,
                 cost:          investCost,
                 monthlyReturn: card.monthlyReturn || 8000,
-                energyCost:    energyCost
+                energyCost:    energyCost,
+                layer:         state.inFlow ? 'flow' : 'streamline',   // ✅ NEW
+                purchasedAt:   Date.now()
             });
 
             let msg = `✅ 開設外賣店成功！投資 $${investCost.toLocaleString()}` +
@@ -877,7 +892,9 @@ function _handleUnitBusiness(card, data, player, room, ws, roomId) {
             units:         actualUnits,
             pricePerUnit:  card.pricePerUnit,
             monthlyReturn: card.monthlyReturn * actualUnits,
-            totalCost:     totalCost
+            totalCost:     totalCost,
+            layer:         state.inFlow ? 'flow' : 'streamline',   // ✅ NEW
+            purchasedAt:   Date.now()
         });
     }
 

@@ -26,6 +26,8 @@ import { ItemHandler }           from './managers/handlers/ItemHandler.js';
 import { MarketHandler }         from './managers/handlers/MarketHandler.js';
 import { AssetTrustHandler } from './managers/handlers/AssetTrustHandler.js';
 
+import { FlowInventoryHandler } from './managers/handlers/cards/FlowInventoryHandler.js';
+
 class GameClient {
     constructor() {
         console.log('🎮 GameClient constructor starting...');
@@ -55,6 +57,7 @@ class GameClient {
         this.renameManager  = new RenameManager(this);  // ✅ FIX: was duplicated
         this.settlementRollManager = new SettlementRollManager(this);
         this.cardBroadcast  = new CardBroadcastManager(this);
+        this.flowInventoryHandler = new FlowInventoryHandler(this);
 
         // ── Actions & lifecycle ───────────────────────────────────────────
         this.actions   = new PlayerActionSender(this);
@@ -193,6 +196,10 @@ class GameClient {
         }
         this.connection.send({ type: 'request_flow_choice' });
         this.logManager.addLog('🌊 請求進入順流層', 'info');
+    }
+    showFlowInventory() {
+        if (!this.isConnected) return;
+        this.connection.send({ type: 'get_flow_inventory' });
     }
 }
 

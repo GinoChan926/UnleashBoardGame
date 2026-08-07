@@ -57,7 +57,7 @@ const dreamCards = {
             
             state.cash -= cost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
-            state.hasPrivateIsland = true;
+            state.hasFamousPaint = true;
             
             return `🏝️ 購買私人島嶼成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -135,7 +135,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
-            state.hasArtCollection = true;
+            state.hasMediaPlatform = true;
             
             return `🎨 開設媒體平台成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -172,7 +172,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
-            state.hasSpaceTravel = true;
+            state.hasHoldConcert = true;
             
             return `🚀 成功舉辦大型演唱會！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -186,7 +186,7 @@ const dreamCards = {
     12: {
         id: "D06",
         name: "極限運動",
-        description: "達成人生終極成就，獲得諾貝爾獎或奧斯卡等最高榮譽，名留青史！",
+        description: "挑戰極限，體驗刺激！",
         image: "../cards/dream/D06.png",
         cost: 500,
         type: "dream",
@@ -198,19 +198,19 @@ const dreamCards = {
             const energyCost = 30;
             
             if (state.cash < cost) {
-                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法達成終極成就`;
+                return `❌ 現金不足 ${cost.toLocaleString()} 元，無法極限運動`;
             }
             
             if (state.energy < energyCost) {
-                return `❌ 精力不足 ${energyCost} 點，無法達成終極成就`;
+                return `❌ 精力不足 ${energyCost} 點，無法極限運動`;
             }
             
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 6);
-            state.hasUltimateAchievement = true;
+            state.hasDoneExtremeSports = true;
             
-            return `🏆 達成終極成就！\n` +
+            return `🏆 達成極限運動！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🌟 名留青史，永垂不朽！`;
@@ -244,7 +244,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
-            state.hasCharityFoundation = true;
+            state.hasDeepWaterExploration = true;
 
             return `🤝 成功進行深海探險！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -279,7 +279,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
-            state.hasDreamMansion = true;
+            state.hasDreamStore = true;
             
             return `🏰 成功開店！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -316,7 +316,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             //state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
-            state.hasYacht = true;
+            state.hasAfricaExploration = true;
             
             return `⛵ 成功進行非洲探險！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -352,9 +352,9 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 7);
-            state.hasUltimateDream = true;
+            state.hasDreamMansion = true;
             
-            return `🌟 實現終極夢想！\n` +
+            return `🌟 購買夢想中的豪宅！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🏆 人生巔峰，成就非凡！`;
@@ -365,7 +365,7 @@ const dreamCards = {
     // 格24: 葡萄酒莊園
     24: {
         id: "D11",
-        name: "`投資拍電影`",
+        name: "投資拍電影",
         description: "投資拍攝一部成功的電影，實現你的電影夢想！",
         image: "../cards/dream/D11.png",
         cost: 500,
@@ -388,7 +388,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
-            state.hasVineyard = true;
+            state.hasShotMovie = true;
             
             return `🍷 投資拍電影成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -424,7 +424,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 4);
-            state.hasPrivateJet = true;
+            state.hasDineWithInvestors = true;
 
             return `✈️ 和股神食飯成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
@@ -460,7 +460,7 @@ const dreamCards = {
             state.cash -= cost;
             state.energy -= energyCost;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
-            state.hasFinancialFreedom = true;
+            state.hasBoughtManor = true;
 
             
             return `🏠 購買私人莊園成功！\n` +

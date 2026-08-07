@@ -161,6 +161,7 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
         usage,
         paidOff:          mortgageAmount === 0,
         hasDiscount:      discount > 0,
+        layer:            state.inFlow ? 'flow' : 'streamline',
         purchasedAt:      Date.now()
     };
 

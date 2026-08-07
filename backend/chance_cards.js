@@ -627,6 +627,7 @@ const financeCards = [
                     totalCost: 0,
                     averagePrice: 0,
                     lastPrice: currentPrice,
+                    flowLayerUnits: 0,
                     transactions: []
                 };
             }
@@ -636,11 +637,15 @@ const financeCards = [
             holding.totalCost += totalCost;
             holding.averagePrice = holding.totalCost / holding.units;
             holding.lastPrice = currentPrice;
+            if (state.inFlow) {
+                holding.flowLayerUnits = (holding.flowLayerUnits || 0) + units;
+            }
             holding.transactions.push({
                 type: 'buy',
                 units: units,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -673,6 +678,11 @@ const financeCards = [
             const totalRevenue = units * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerUnits > 0) {
+                const flowRatio = holding.flowLayerUnits / holding.units;
+                const flowUnitsToSell = Math.round(units * flowRatio);
+                holding.flowLayerUnits = Math.max(0, holding.flowLayerUnits - flowUnitsToSell);
+            }
             holding.units -= units;
 
             const costToRemove = (holding.totalCost / (holding.units + units)) * units;
@@ -686,6 +696,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -845,6 +856,7 @@ const financeCards = [
                     totalCost: 0,
                     averagePrice: 0,
                     lastPrice: currentPrice,
+                    flowLayerUnits: 0,
                     transactions: []
                 };
             }
@@ -854,11 +866,15 @@ const financeCards = [
             holding.totalCost += totalCost;
             holding.averagePrice = holding.totalCost / holding.units;
             holding.lastPrice = currentPrice;
+            if (state.inFlow) {
+                holding.flowLayerUnits = (holding.flowLayerUnits || 0) + units;
+            }
             holding.transactions.push({
                 type: 'buy',
                 units: units,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -890,6 +906,12 @@ const financeCards = [
             const totalRevenue = units * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerUnits > 0) {
+                const flowRatio = holding.flowLayerUnits / holding.units;
+                const flowUnitsToSell = Math.round(units * flowRatio);
+                holding.flowLayerUnits = Math.max(0, holding.flowLayerUnits - flowUnitsToSell);
+            }
+
             holding.units -= units;
 
             const costToRemove = (holding.totalCost / (holding.units + units)) * units;
@@ -903,6 +925,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1057,6 +1080,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1065,11 +1089,17 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
+
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1094,6 +1124,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1106,6 +1141,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1227,6 +1263,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1235,11 +1272,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1264,6 +1305,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1276,6 +1322,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1396,6 +1443,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1404,11 +1452,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1433,6 +1485,12 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
+
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1445,6 +1503,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1565,6 +1624,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1573,11 +1633,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1602,6 +1666,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1614,6 +1683,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1734,6 +1804,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1742,11 +1813,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1771,6 +1846,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1783,6 +1863,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1903,6 +1984,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -1911,11 +1993,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -1940,6 +2026,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -1952,6 +2043,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2072,6 +2164,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2080,11 +2173,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2109,6 +2206,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2121,6 +2223,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2241,6 +2344,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2249,11 +2353,16 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
+
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2278,6 +2387,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2290,6 +2404,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2410,6 +2525,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2418,11 +2534,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2447,6 +2567,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2459,6 +2584,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2579,6 +2705,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                        flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2587,11 +2714,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2616,6 +2747,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2628,6 +2764,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2748,6 +2885,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2756,11 +2894,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2785,6 +2927,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2797,6 +2944,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2917,6 +3065,7 @@ const financeCards = [
                     shares: 0,
                     totalCost: 0,
                     purchasePrice: currentPrice,
+                    flowLayerShares: 0,
                     transactions: []
                 };
             }
@@ -2925,11 +3074,15 @@ const financeCards = [
             holding.shares += shares;
             holding.totalCost += totalCost;
             holding.purchasePrice = holding.totalCost / holding.shares;
+            if (state.inFlow) {
+                holding.flowLayerShares = (holding.flowLayerShares || 0) + shares;
+            }
             holding.transactions.push({
                 type: 'buy',
                 shares: shares,
                 price: currentPrice,
                 total: totalCost,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 
@@ -2954,6 +3107,11 @@ const financeCards = [
             const totalRevenue = shares * currentPrice;
 
             state.cash += totalRevenue;
+            if (holding.flowLayerShares > 0) {
+                const flowRatio = holding.flowLayerShares / holding.shares;
+                const flowSharesToSell = Math.round(shares * flowRatio);
+                holding.flowLayerShares = Math.max(0, holding.flowLayerShares - flowSharesToSell);
+            }
             holding.shares -= shares;
 
             const costToRemove = (holding.totalCost / (holding.shares + shares)) * shares;
@@ -2966,6 +3124,7 @@ const financeCards = [
                 price: currentPrice,
                 total: totalRevenue,
                 profit: profit,
+                layer: state.inFlow ? 'flow' : 'streamline',
                 timestamp: new Date().toLocaleString()
             });
 

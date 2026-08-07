@@ -1,36 +1,22 @@
 [
   {
-    "id": "1786073832269_vq2fgf",
-    "timestamp": "7/8/2026 上午11:37:12",
-    "playerName": "Player_1786073774423",
-    "cardType": "finance",
-    "cardName": "破產陷阱",
-    "action": "破產陷阱",
-    "amountChange": 0,
-    "passiveIncomeChange": -990000,
-    "sideIncomeChange": 0,
-    "salaryChange": 0,
-    "energyChange": 0,
-    "details": "踩中破產陷阱！所有被動收入和投資消失，回到平流層。現金保留 $1,305,000"
-  },
-  {
-    "id": "1786073826859_pj4sv9",
-    "timestamp": "7/8/2026 上午11:37:06",
-    "playerName": "Player_1786073774423",
-    "cardType": "investment",
-    "cardName": "網上醫療平台",
-    "action": "執行",
-    "amountChange": -1000000,
+    "id": "1786089035329_cp6xwf",
+    "timestamp": "7/8/2026 下午3:50:35",
+    "playerName": "Player_1786088962516",
+    "cardType": "social_service",
+    "cardName": "社會服務中心 (社會服務中心)",
+    "action": "社會服務",
+    "amountChange": -10000,
     "passiveIncomeChange": 0,
     "sideIncomeChange": 0,
     "salaryChange": 0,
     "energyChange": 0,
-    "details": "🎲 擲出 3 點！失敗！\n   💰 損失: 1,000,000 元\n   🍀 幸運值 -1\n   😰 網上醫療平台投資失敗，本金全數虧損！"
+    "details": "支付 10,000 元，抽取 項目投資卡 x2"
   },
   {
-    "id": "1786073796827_p40i9s",
-    "timestamp": "7/8/2026 上午11:36:36",
-    "playerName": "Player_1786073774423",
+    "id": "1786088994726_dzbqmn",
+    "timestamp": "7/8/2026 下午3:49:54",
+    "playerName": "Player_1786088962516",
     "cardType": "finance",
     "cardName": "進入順流層",
     "action": "進入順流層",
@@ -42,9 +28,9 @@
     "details": "被動收入從 10,000 放大到 1,000,000 元/月"
   },
   {
-    "id": "1786073791974_g6qmm6",
-    "timestamp": "7/8/2026 上午11:36:31",
-    "playerName": "Player_1786073774423",
+    "id": "1786088977084_188asf",
+    "timestamp": "7/8/2026 下午3:49:37",
+    "playerName": "Player_1786088962516",
     "cardType": "property",
     "cardName": "陳年唐樓",
     "action": "出租房產",
@@ -56,9 +42,9 @@
     "details": "✅ 出租「陳年唐樓」！\n   💰 支付: $700,000\n   🏠 租金: +$10,000/月"
   },
   {
-    "id": "1786073790595_zzd50h",
-    "timestamp": "7/8/2026 上午11:36:30",
-    "playerName": "Player_1786073774423",
+    "id": "1786088975380_xpdarx",
+    "timestamp": "7/8/2026 下午3:49:35",
+    "playerName": "Player_1786088962516",
     "cardType": "property",
     "cardName": "陳年唐樓",
     "action": "執行",

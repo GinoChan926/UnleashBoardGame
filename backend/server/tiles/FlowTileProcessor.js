@@ -305,6 +305,8 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
     const lostPassiveIncome = state.flowPassiveIncome || state.passiveIncome || 0;
     const lostSideIncome    = (state.sideIncome || 0) - (state.originalSideIncome || 0);
 
+    state.flowInvestments = [];
+
     // ✅ Return to streamline layer at start
     state.inFlow        = false;
     state.streamlinePos = 0;
