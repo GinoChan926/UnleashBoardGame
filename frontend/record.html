@@ -317,18 +317,18 @@
     
     <div class="filter-bar">
         <button class="filter-btn active" data-filter="all">全部</button>
-        <button class="filter-btn" data-filter="part_time">💼 兼职</button>
-        <button class="filter-btn" data-filter="finance">📈 财务</button>
-        <button class="filter-btn" data-filter="business">🚀 创业</button>
-        <button class="filter-btn" data-filter="property">🏠 地产</button>
-        <button class="filter-btn" data-filter="lier">🎭 骗子卡</button>
+        <button class="filter-btn" data-filter="part_time">💼 兼職</button>
+        <button class="filter-btn" data-filter="finance">📈 財務</button>
+        <button class="filter-btn" data-filter="business">🚀 創業</button>
+        <button class="filter-btn" data-filter="property">🏠 地產</button>
+        <button class="filter-btn" data-filter="lier">🎭 騙子卡</button>
         <button class="filter-btn" data-filter="police">👮 警察卡</button>
-        <button class="filter-btn" data-filter="volunteer">🤝 义工卡</button>
-        <button class="filter-btn" data-filter="market_news">📊 市场消息</button>
-        <button class="filter-btn" data-filter="hardship">🎭 逆境自强</button>
-        <button class="filter-btn" data-filter="tip">🎁 锦囊卡</button>
-        <button class="filter-btn" data-filter="trust">🏦 资产信托</button>
-        <button class="filter-btn" data-filter="investment">🏗️ 投资</button>
+        <button class="filter-btn" data-filter="volunteer">🤝 義工卡</button>
+        <button class="filter-btn" data-filter="market_news">📊 市場消息</button>
+        <button class="filter-btn" data-filter="hardship">🎭 逆境自強</button>
+        <button class="filter-btn" data-filter="tip">🎁 錦囊卡</button>
+        <button class="filter-btn" data-filter="trust">🏦 資產信託</button>
+        <button class="filter-btn" data-filter="investment">🏗️ 投資</button>
         <button class="filter-btn" data-filter="social">🤝 社會卡</button>
         <input type="text" class="search-input" id="searchInput" placeholder="搜尋玩家或卡片...">
         <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
@@ -375,7 +375,7 @@
 </div>
 
 <script>
-    // 获取交易记录
+    // 獲取交易記錄
     async function fetchTransactions() {
         try {
             const response = await fetch('http://localhost:8080/api/transactions');
@@ -384,10 +384,10 @@
                 return data;
             }
         } catch (e) {
-            console.log('无法获取交易记录，使用本地存储');
+            console.log('無法獲取交易記錄，使用本地存儲');
         }
         
-        // 从 localStorage 获取
+        // 從 localStorage 獲取
         const saved = localStorage.getItem('wealthFlow_transactions');
         return saved ? JSON.parse(saved) : [];
     }
@@ -423,40 +423,40 @@
         let typeName = '';
         if (t.cardType === 'part_time') {
             badgeClass = 'badge-part_time';
-            typeName = '💼 兼职';
+            typeName = '💼 兼職';
         } else if (t.cardType === 'finance') {
             badgeClass = 'badge-finance';
-            typeName = '📈 财务';
+            typeName = '📈 財務';
         } else if (t.cardType === 'business') {
             badgeClass = 'badge-business';
-            typeName = '🚀 创业';
+            typeName = '🚀 創業';
         } else if (t.cardType === 'property') {
             badgeClass = 'badge-property';
-            typeName = '🏠 地产';
+            typeName = '🏠 地產';
         } else if (t.cardType === 'lier') {
             badgeClass = 'badge-lier';
-            typeName = '🎭 骗子卡';
+            typeName = '🎭 騙子卡';
         } else if (t.cardType === 'police') {
             badgeClass = 'badge-police';
             typeName = '👮 警察卡';
         } else if (t.cardType === 'volunteer') {  
             badgeClass = 'badge-volunteer';
-            typeName = '🤝 义工卡';
+            typeName = '🤝 義工卡';
         } else if (t.cardType === 'market_news') {
             badgeClass = 'badge-finance';
-            typeName = '📊 市场消息';
+            typeName = '📊 市場消息';
         } else if (t.cardType === 'tip') {
             badgeClass = 'badge-business';
-            typeName = '🎁 锦囊卡';
+            typeName = '🎁 錦囊卡';
         } else if (t.cardType === 'hardship') {
             badgeClass = 'badge-lier';
-            typeName = '🎭 逆境自强';
+            typeName = '🎭 逆境自強';
         } else if (t.cardType === 'trust') {
             badgeClass = 'badge-general';
-            typeName = '🏦 资产信托';
+            typeName = '🏦 資產信託';
         } else if (t.cardType === 'investment') {
             badgeClass = 'badge-business';
-            typeName = '🏗️ 投资';
+            typeName = '🏗️ 投資';
         }  else if (t.cardType === 'social') {
             badgeClass = 'badge-volunteer';
             typeName = '🤝 社會卡';
@@ -502,7 +502,7 @@
         market_news: { name: '📊 市場消息', color: '#00bcd4' },
         hardship:    { name: '🎭 逆境', color: '#e91e63' },
         tip:         { name: '🎁 錦囊', color: '#7e57c2' },
-        trust:       { name: '🏦 信托', color: '#795548' },
+        trust:       { name: '🏦 信託', color: '#795548' },
         investment:  { name: '🏗️ 投資', color: '#8bc34a' },
         social:      { name: '🤝 社會', color: '#26a69a' },
         general:     { name: '🎁 察覺', color: '#888' }
@@ -690,7 +690,7 @@
     
     loadData();
     
-    // 每隔5秒自动刷新
+    // 每隔5秒自動刷新
     setInterval(loadData, 5000);
 </script>
 </body>
