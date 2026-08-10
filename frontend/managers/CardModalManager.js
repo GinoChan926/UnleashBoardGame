@@ -30,8 +30,8 @@ export class CardModalManager {
         this.opportunity.showPurchaseConfirm(card, canAfford);
     }
 
-    showEffectConfirm(card, effectPreview, activationOnly = false) {
-        this.opportunity.showEffectConfirm(card, effectPreview, activationOnly);
+    showEffectConfirm(card, effectPreview, activationOnly = false, options = {}) {
+        this.opportunity.showEffectConfirm(card, effectPreview, activationOnly, options);
     }
 
     showRevelationTypeSelection(cardTypes, canAfford) {

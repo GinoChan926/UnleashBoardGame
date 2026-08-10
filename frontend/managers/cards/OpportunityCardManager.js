@@ -21,14 +21,12 @@ export class OpportunityCardManager extends BaseCardManager {
             container,
             cardTypes,
             canAfford,
-            // On type selected
             (typeId) => {
                 if (this.ws && this.ws.isReady()) {
                     this.ws.send({ type: 'card_type_choice', cardType: typeId });
                 }
                 this.modalManager.closeModal('cardTypeModal');
             },
-            // On cancel
             () => {
                 this.modalManager.closeModal('cardTypeModal');
                 this.ui.addLog('已取消選擇機會卡', 'warning');
@@ -36,45 +34,42 @@ export class OpportunityCardManager extends BaseCardManager {
         );
     }
 
-    // ==================== Purchase Confirm ====================
+    // ==================== Purchase Confirm (streamline layer 2-modal flow) ====================
 
     showPurchaseConfirm(card, canAfford, blockedReasons = []) {
         this._ensureModals();
         this.modalManager.openModal('purchaseConfirmModal');
 
-        // Set title
         const titleEl = document.querySelector('#purchaseConfirmModal .modal-title');
         if (titleEl) titleEl.textContent = OpportunityCardTemplate.buildPurchaseTitle(card.cardType);
 
-        // Set type badge
         OpportunityCardTemplate.applyTypeBadge(
             document.getElementById('purchaseCardTypeSpan'), card
         );
 
-        // Set body
         const body = document.getElementById('purchaseModalBody');
         if (body) body.innerHTML = OpportunityCardTemplate.buildPurchaseBody(
             card, this.ui.escapeHtml.bind(this.ui)
         );
 
-        // Set image
         OpportunityCardTemplate.applyPurchaseCardImage(
             document.getElementById('purchaseCardImg'), card
         );
 
-        // Set purchase cost
         const multiplier = this.gameState?.cardCostMultiplier || 1;
         OpportunityCardTemplate.updatePurchaseCost(multiplier, canAfford);
 
-        // ✅ Show blocked reasons if any
-        this._showBlockedReasons(blockedReasons, canAfford);
+        this._showBlockedReasons(
+            'purchaseBlockedReasons',
+            'purchaseModalBody',
+            blockedReasons,
+            canAfford
+        );
 
-        // ✅ Bind buttons — different behavior for blocked
         if (!canAfford && blockedReasons.length > 0) {
-            // Dream tile (or similar) — player can view but not buy
             OpportunityCardTemplate.bindPurchaseButtons(
-                false,   // disable purchase button
-                null,    // no purchase callback
+                false,
+                null,
                 () => {
                     this.modalManager.closeModal('purchaseConfirmModal');
                     this.ui.addLog(`👀 觀看了「${card.name}」，但條件不足`, 'info');
@@ -97,47 +92,10 @@ export class OpportunityCardManager extends BaseCardManager {
         }
     }
 
-    _showBlockedReasons(reasons, canAfford) {
-        // Find or create the reasons container
-        let reasonsEl = document.getElementById('purchaseBlockedReasons');
+    // ==================== Effect Confirm (flow layer single-modal flow) ====================
 
-        if (!canAfford && reasons.length > 0) {
-            if (!reasonsEl) {
-                reasonsEl = document.createElement('div');
-                reasonsEl.id = 'purchaseBlockedReasons';
-                reasonsEl.style.cssText = `
-                background: rgba(244,67,54,0.15);
-                border: 1px solid rgba(244,67,54,0.4);
-                border-radius: 10px;
-                padding: 12px;
-                margin: 12px 0;
-                text-align: left;
-                color: #ff8a80;
-                font-size: 13px;
-            `;
-
-                const body = document.getElementById('purchaseModalBody');
-                if (body) body.parentNode.insertBefore(reasonsEl, body.nextSibling);
-            }
-
-            reasonsEl.innerHTML = `
-            <div style="font-weight: bold; margin-bottom: 6px; color: #ffcdd2;">
-                ⚠️ 你目前無法購買此卡：
-            </div>
-            ${reasons.map(r => `<div style="margin: 4px 0; padding-left: 12px;">${r}</div>`).join('')}
-            <div style="margin-top: 8px; font-size: 11px; color: #ffab91;">
-                💡 但你可以先觀看，等條件足夠再觸發
-            </div>
-        `;
-            reasonsEl.style.display = 'block';
-        } else if (reasonsEl) {
-            reasonsEl.style.display = 'none';
-        }
-    }
-
-    // ==================== Effect Confirm ====================
-
-    showEffectConfirm(card, effectPreview, activationOnly = false) {
+    // ✅ Now accepts an options object with { canAfford, blockedReasons, tileName }
+    showEffectConfirm(card, effectPreview, activationOnly = false, options = {}) {
         // Finance cards with units use prompt() flow
         if (card.type === 'finance' && card.pricePerUnit && card.monthlyReturn > 0 && card.id !== 'F06') {
             this._handleFinanceCardUnits(card);
@@ -147,30 +105,40 @@ export class OpportunityCardManager extends BaseCardManager {
             this._handleP2PCardUnits(card);
             return;
         }
-        this._showStandardEffectConfirm(card, effectPreview, activationOnly);
+        this._showStandardEffectConfirm(card, effectPreview, activationOnly, options);
     }
 
     // ==================== Private ====================
 
-    _showStandardEffectConfirm(card, effectPreview, activationOnly = false) {
+    _showStandardEffectConfirm(card, effectPreview, activationOnly = false, options = {}) {
         this._ensureModals(activationOnly);
         this.modalManager.openModal('effectConfirmModal');
 
-        // Set type badge
+        const canAfford      = options.canAfford !== false;
+        const blockedReasons = options.blockedReasons || [];
+        const tileName       = options.tileName || '';
+
+        // ✅ Update title if landing from a flow tile
+        if (tileName && activationOnly) {
+            const titleEl = document.querySelector('#effectConfirmModal .modal-title');
+            if (titleEl) {
+                titleEl.textContent = card.cardType === 'dream'
+                    ? `🌟 夢想機會「${tileName}」`
+                    : `🏗️ 投資機會「${tileName}」`;
+            }
+        }
+
         OpportunityCardTemplate.applyTypeBadge(
             document.getElementById('effectCardTypeSpan'), card
         );
 
-        // Set body
         const body = document.getElementById('effectModalBody');
         if (body) body.innerHTML = OpportunityCardTemplate.buildEffectBody(
             card, this.ui.escapeHtml.bind(this.ui)
         );
 
-        // Set image
         this._setupCardImage(document.getElementById('effectCardImg'), card);
 
-        // Set changes list
         const changesList = document.getElementById('effectChangesList');
         if (changesList) {
             changesList.innerHTML = OpportunityCardTemplate.buildChangesList(
@@ -178,29 +146,99 @@ export class OpportunityCardManager extends BaseCardManager {
             );
         }
 
-        // ✅ Bind buttons with activationOnly-aware labels
-        OpportunityCardTemplate.bindEffectButtons(
-            () => {
-                this._sendExecuteCard(true);
-                this.modalManager.closeModal('effectConfirmModal');
-                this.ui.addLog(
-                    activationOnly
-                        ? `🚀 啟動投資「${card.name}」`
-                        : `✅ 執行「${card.name}」`,
-                    'success'
-                );
-            },
-            () => {
-                this._sendExecuteCard(false);
-                this.modalManager.closeModal('effectConfirmModal');
-                this.ui.addLog(
-                    activationOnly
-                        ? `❌ 放棄啟動「${card.name}」`
-                        : `❌ 不執行「${card.name}」`,
-                    'warning'
-                );
-            }
+        // ✅ Show blocked reasons if any
+        this._showBlockedReasons(
+            'effectBlockedReasons',
+            'effectModalBody',
+            blockedReasons,
+            canAfford
         );
+
+        // ✅ Bind buttons based on affordability
+        if (!canAfford && blockedReasons.length > 0) {
+            // Bind decline only — execute button will be disabled
+            OpportunityCardTemplate.bindEffectButtons(
+                () => {
+                    // no-op — button is disabled
+                },
+                () => {
+                    this._sendExecuteCard(false);
+                    this.modalManager.closeModal('effectConfirmModal');
+                    this.ui.addLog(`👀 觀看了「${card.name}」，但條件不足`, 'info');
+                }
+            );
+
+            // ✅ Force disable the execute button (correct ID)
+            const executeBtn = document.getElementById('confirmExecuteBtn');
+            if (executeBtn) {
+                executeBtn.disabled       = true;
+                executeBtn.style.opacity  = '0.4';
+                executeBtn.style.cursor   = 'not-allowed';
+                executeBtn.style.boxShadow = 'none';
+                executeBtn.textContent    = '❌ 條件不足';
+            }
+        } else {
+            OpportunityCardTemplate.bindEffectButtons(
+                () => {
+                    this._sendExecuteCard(true);
+                    this.modalManager.closeModal('effectConfirmModal');
+                    this.ui.addLog(
+                        activationOnly
+                            ? `🚀 啟動投資「${card.name}」`
+                            : `✅ 執行「${card.name}」`,
+                        'success'
+                    );
+                },
+                () => {
+                    this._sendExecuteCard(false);
+                    this.modalManager.closeModal('effectConfirmModal');
+                    this.ui.addLog(
+                        activationOnly
+                            ? `❌ 放棄啟動「${card.name}」`
+                            : `❌ 不執行「${card.name}」`,
+                        'warning'
+                    );
+                }
+            );
+        }
+    }
+
+    // ✅ Generalized helper — works for both purchase and effect modals
+    _showBlockedReasons(reasonsElId, bodyElId, reasons, canAfford) {
+        let reasonsEl = document.getElementById(reasonsElId);
+
+        if (!canAfford && reasons.length > 0) {
+            if (!reasonsEl) {
+                reasonsEl = document.createElement('div');
+                reasonsEl.id = reasonsElId;
+                reasonsEl.style.cssText = `
+                    background: rgba(244,67,54,0.15);
+                    border: 1px solid rgba(244,67,54,0.4);
+                    border-radius: 10px;
+                    padding: 12px;
+                    margin: 12px 0;
+                    text-align: left;
+                    color: #ff8a80;
+                    font-size: 13px;
+                `;
+
+                const body = document.getElementById(bodyElId);
+                if (body) body.parentNode.insertBefore(reasonsEl, body.nextSibling);
+            }
+
+            reasonsEl.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 6px; color: #ffcdd2;">
+                    ⚠️ 你目前無法啟動此卡：
+                </div>
+                ${reasons.map(r => `<div style="margin: 4px 0; padding-left: 12px;">${r}</div>`).join('')}
+                <div style="margin-top: 8px; font-size: 11px; color: #ffab91;">
+                    💡 但你可以先觀看，等條件足夠再嘗試
+                </div>
+            `;
+            reasonsEl.style.display = 'block';
+        } else if (reasonsEl) {
+            reasonsEl.style.display = 'none';
+        }
     }
 
     _handleFinanceCardUnits(card) {
@@ -294,7 +332,7 @@ export class OpportunityCardManager extends BaseCardManager {
                 OpportunityCardTemplate.buildPurchaseModal());
         }
 
-        // ✅ Always rebuild effectConfirmModal so buttons/text reflect activationOnly
+        // Always rebuild effectConfirmModal so buttons/text reflect activationOnly
         const existing = document.getElementById('effectConfirmModal');
         if (existing) existing.remove();
 

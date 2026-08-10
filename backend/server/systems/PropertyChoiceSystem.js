@@ -140,6 +140,10 @@ function _purchaseProperty(player, card, discount, finalDownPayment, usage) {
 
     if (usage === 'rent_out' && monthlyRent > 0) {
         state.passiveIncome = (state.passiveIncome || 0) + monthlyRent;
+        if (state.inFlow) {
+            const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
+            refreshFlowPassiveIncome(state);
+        }
     }
 
     // ── Property record ──────────────────────────────────────────────────────

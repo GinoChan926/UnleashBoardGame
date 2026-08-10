@@ -16,14 +16,16 @@ export class OpportunityHandler {
         const { client } = this;
         if (!message.card) return;
 
-        // ✅ Auto-confirm flow investment ONLY if canAfford
-        if ((message.activationOnly || message.freeReveal || message.card?.activationOnly)
-            && message.canAfford !== false) {
+        // ✅ Flow-layer investment/dream: skip purchase modal entirely
+        // Auto-confirm to get the effect preview, then show single combined modal
+        if (message.activationOnly || message.freeReveal || message.card?.activationOnly) {
+            // Even if not affordable, still auto-purchase to get effect preview
+            // The showEffectConfirm can display "can't afford" state
             client.connection.send({ type: 'purchase_card' });
             return;
         }
 
-        // Show modal (may be blocked or purchasable)
+        // Regular chance/opportunity card flow (streamline layer) — keep 2-modal flow
         client.cardModal.showPurchaseConfirm(
             message.card,
             message.canAfford,
@@ -44,7 +46,12 @@ export class OpportunityHandler {
             client.cardModal.showEffectConfirm(
                 message.card,
                 message.effectPreview,
-                message.activationOnly || false
+                message.activationOnly || false,
+                {
+                    canAfford:      message.canAfford !== false,    // ✅ NEW
+                    blockedReasons: message.blockedReasons || [],   // ✅ NEW
+                    tileName:       message.tileName || ''          // ✅ NEW
+                }
             );
         }
     }

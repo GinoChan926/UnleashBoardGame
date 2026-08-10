@@ -473,12 +473,17 @@ export class OpportunityCardTemplate {
         const declineBtn = document.getElementById('declineExecuteBtn');
 
         if (confirmBtn) {
-            confirmBtn.onclick = () => onConfirm();
+            confirmBtn.onclick = () => {
+                if (confirmBtn.disabled) return;   // ✅ guard against disabled
+                onConfirm();
+            };
             confirmBtn.onmouseenter = () => {
+                if (confirmBtn.disabled) return;   // ✅ no hover when disabled
                 confirmBtn.style.transform = 'scale(1.02)';
                 confirmBtn.style.boxShadow = '0 6px 20px rgba(76,175,80,0.4)';
             };
             confirmBtn.onmouseleave = () => {
+                if (confirmBtn.disabled) return;
                 confirmBtn.style.transform = 'scale(1)';
                 confirmBtn.style.boxShadow = '0 4px 12px rgba(76,175,80,0.3)';
             };

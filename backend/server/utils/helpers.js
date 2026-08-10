@@ -74,6 +74,14 @@ function getEffectivePassiveIncome(state) {
     }
     return state.passiveIncome || 0;
 }
+
+function refreshFlowPassiveIncome(state) {
+    if (!state.inFlow) return;
+    const multiplier = state.passiveIncomeFlowMultiplier || 100;
+    state.flowPassiveIncome       = (state.passiveIncome || 0) * multiplier;
+    state.passiveIncomeBeforeFlow = state.passiveIncome || 0;
+}
+
 module.exports = {
     calculateMonthlyCashFlow,
     calculateReducedExpense,
@@ -81,4 +89,5 @@ module.exports = {
     getWsByPlayerId,
     getOrCreateRoom,
     getEffectivePassiveIncome,
+    refreshFlowPassiveIncome
 };

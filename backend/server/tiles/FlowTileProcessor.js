@@ -35,14 +35,55 @@ function processFlowTile(state, tile, ws, roomId, player, room,
             return _processBankruptcy(state, ws, roomId, player, broadcastToRoom);
 
         case 'audit': {
-            const taxAmt = Math.floor(state.totalAssets * 0.5);
-            state.totalAssets = Math.max(0, state.totalAssets - taxAmt);
-            state.luck        = Math.max(0, state.luck - 2);
-            addTransactionRecord(player.playerName,
+            const cashBefore = state.cash || 0;
+            const taxAmt     = Math.floor(cashBefore * 0.5);
+
+            // ✅ Use wallet system for the deduction (non-investment)
+            const { canAffordNonInvestment, spendForNonInvestment } =
+                require('../systems/WalletSystem.js');
+            const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+
+            let actualPaid = 0;
+            let debtMsg   = '';
+
+            if (canAffordNonInvestment(state, taxAmt)) {
+                spendForNonInvestment(state, taxAmt);
+                actualPaid = taxAmt;
+            } else {
+                // Take all cash, create debt for the rest
+                const result = chargePlayer(player, taxAmt, {
+                    source:       '查稅審計',
+                    creditor:     'bank',
+                    creditorName: '稅務局',
+                    room, roomId, broadcastToRoom, ws
+                });
+                actualPaid = result.paid;
+                if (result.debtCreated) {
+                    debtMsg = `\n💸 欠款 $${result.debtAmount.toLocaleString()} 待未來償還`;
+                }
+            }
+
+            // ✅ Recalculate totalAssets (optional — keeps display accurate)
+            // state.totalAssets = state.cash + ...   // depends on how you compute it
+
+            addTransactionRecord(
+                player.playerName,
                 { name: "查稅審計", type: "flow", id: "FLOW_AUDIT" },
-                "查稅審計", -taxAmt,
-                `損失 ${taxAmt.toLocaleString()} 元資產，幸運值 -2`, null, state);
-            return `🔍 查稅審計！損失 ${taxAmt.toLocaleString()} 元資產，幸運值 -2`;
+                "查稅審計",
+                -actualPaid,
+                `查稅損失 $${taxAmt.toLocaleString()}${debtMsg}`,
+                null,
+                state
+            );
+
+            // Broadcast state update
+            broadcastToRoom(roomId, {
+                type:      'state_updated',
+                playerId:  player.playerId,
+                gameState: state
+            });
+
+            return `🔍 查稅審計！損失 $${taxAmt.toLocaleString()} 元${debtMsg}`;
         }
 
         case 'income': {
@@ -218,7 +259,7 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         return null;
     }
 
-    // ✅ Store pending event
+    // ✅ Always store pending event — even if unaffordable
     if (!room.pendingEvents) room.pendingEvents = new Map();
 
     const originalEffect = card.effect;
@@ -236,21 +277,22 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         };
     }
 
-    if (canAfford) {
-        room.pendingEvents.set(ws, {
-            type:             'opportunity_card',
-            card:             fullCard,
-            cardType:         { id: 'dream', name: '夢想', icon: '🌟', color: '#8e24aa' },
-            playerId:         player.playerId,
-            purchased:        false,
-            timestamp:        Date.now(),
-            isInvestmentCard: true,
-            isDreamCard:      true,
-            tileName:         tile.name,
-            skipPurchaseCost: true,
-            activationOnly:   true
-        });
-    }
+// ✅ Set pending event always
+    room.pendingEvents.set(ws, {
+        type:             'opportunity_card',
+        card:             fullCard,
+        cardType:         { id: 'dream', name: '夢想', icon: '🌟', color: '#8e24aa' },
+        playerId:         player.playerId,
+        purchased:        false,
+        timestamp:        Date.now(),
+        isInvestmentCard: true,
+        isDreamCard:      true,
+        tileName:         tile.name,
+        skipPurchaseCost: true,
+        activationOnly:   true,
+        canAfford:        canAfford,      // ✅ NEW
+        blockedReasons:   lacks           // ✅ NEW
+    });
 
     _sendDreamModal(ws, tile, card, canAfford, lacks);
 

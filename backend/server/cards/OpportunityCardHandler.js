@@ -166,6 +166,9 @@ function handlePurchaseCard(ws, data, roomId, rooms, broadcastToRoom) {
             card:           serializableCard,
             effectPreview,
             activationOnly: true,
+            canAfford:      pendingEvent.canAfford !== false,
+            blockedReasons: pendingEvent.blockedReasons || [],
+            tileName:       pendingEvent.tileName || '',
             message:        `免費查看「${card.name}」，是否啟動？`,
             gameState:      player.gameState
         }));
@@ -263,6 +266,15 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
     let   resultMessage = '';
 
     if (execute) {
+        if (pendingEvent.canAfford === false) {
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `❌ 資金/精力不足，無法啟動「${card.name}」`
+            }));
+            room.pendingEvents.delete(ws);
+            return;
+        }
+
         const isInvestment = _isInvestmentEffect(card, pendingEvent);
         const { spendForInvestment, canAffordInvestment } = require('../systems/WalletSystem.js');
 
@@ -304,6 +316,11 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             }
         }
 
+        if (player.gameState.inFlow) {
+            const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
+            refreshFlowPassiveIncome(player.gameState);
+        }
+
         resultMessage = `✨ 執行「${card.name}」成功！${effectResult}`;
 
         addTransactionRecord(player.playerName, card, '執行',
@@ -311,7 +328,7 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             - (stateBefore.cash + (stateBefore.loanCash || 0)),
             effectResult, stateBefore, player.gameState);
 
-        if (pendingEvent.skipPurchaseCost && pendingEvent.isInvestmentCard) {
+        if (pendingEvent.skipPurchaseCost && pendingEvent.isInvestmentCard && !pendingEvent.isDreamCard) {
             player.gameState.flowInvestments = player.gameState.flowInvestments || [];
             player.gameState.flowInvestments.push({
                 id:            card.id,
@@ -602,6 +619,24 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
 
     room.pendingEvents.delete(ws);
     broadcastToRoom(roomId, { type: 'state_updated', playerId: player.playerId, gameState: player.gameState });
+    if (pendingEvent.isFromSocialService && room.pendingSocialServiceQueue?.has(ws)) {
+        const queue = room.pendingSocialServiceQueue.get(ws);
+        queue.currentIndex++;
+
+        if (queue.currentIndex < queue.totalCards) {
+            // Show next card after brief delay
+            setTimeout(() => {
+                const {_presentNextSocialServiceCard} = require('./SocialServiceHandler.js');
+                _presentNextSocialServiceCard(ws, roomId, room, player, broadcastToRoom);
+            }, 500);
+        } else {
+            room.pendingSocialServiceQueue.delete(ws);
+            ws.send(JSON.stringify({
+                type: 'notification',
+                message: `✅ 社會服務中心結束，共查看 ${queue.totalCards} 張卡`
+            }));
+        }
+    }
 }
 
 // ── Private ───────────────────────────────────────────────────────────────────
@@ -753,6 +788,11 @@ function _handleFoodDelivery(card, data, player, room, ws, roomId) {
             state.passiveIncome += (card.monthlyReturn || 8000);
             state.totalAssets   += investCost;
 
+            if (state.inFlow) {
+                const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
+                refreshFlowPassiveIncome(state);
+            }
+
             state.businessInvestments = state.businessInvestments || [];
             state.businessInvestments.push({
                 id:            card.id,
@@ -878,6 +918,11 @@ function _handleUnitBusiness(card, data, player, room, ws, roomId) {
     state.energy        -= totalEnergy;
     state.passiveIncome += totalReturn;
     state.totalAssets   += totalCost;
+
+    if (state.inFlow) {
+        const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
+        refreshFlowPassiveIncome(state);
+    }
 
     // Record investment
     state.businessInvestments = state.businessInvestments || [];

@@ -57,7 +57,7 @@ const { showRevelationCardTypeSelection, handleRevelationCardTypeChoice,
     handleMarketNewsResponse }           = require('./server/cards/RevelationCardHandler.js');
 const { showCardTypeSelection, handleCardTypeChoice,
     handlePurchaseCard, handleExecuteCard } = require('./server/cards/OpportunityCardHandler.js');
-const { processSocialServiceTile, handleSocialServiceChoice } = require('./server/cards/SocialServiceHandler.js');
+const { processSocialServiceTile, handleSocialServiceChoice, handleSocialServiceCancel  } = require('./server/cards/SocialServiceHandler.js');
 const { triggerDreamCard }    = require('./server/cards/DreamCardHandler.js');
 const { handleAuxiliaryPoliceCard, handleAuxiliaryPoliceChoice } = require('./server/cards/AuxiliaryPoliceHandler.js');
 const { handleAIStoreDraw, handleAIStorePick } = require('./server/cards/AIStoreHandler.js');
@@ -498,6 +498,10 @@ wss.on('connection', (ws) => {
 
                 case 'get_flow_inventory':
                     handleGetFlowInventory(ws, data, playerRoomId, rooms);
+                    break;
+
+                case 'social_service_cancel':
+                    handleSocialServiceCancel(ws, data, playerRoomId, rooms);
                     break;
                 default:
                     ws.send(JSON.stringify({ type: 'error', message: '未知訊息類型' }));

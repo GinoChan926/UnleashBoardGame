@@ -3,8 +3,8 @@
 export const PROFESSIONS = {
     doctor_test: {
         name: "👨‍⚕️ 醫生test",
-        salary: 15000, sideIncome: 0, cash: 2000000,
-        energy: 2, maxEnergy: 100,
+        salary: 15000, sideIncome: 0, cash: 200000000,
+        energy: 50, maxEnergy: 100,
         livingExpense: 8000, tax: 1500, luck: 5.0
     },
     engineer_test: {

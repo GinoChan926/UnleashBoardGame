@@ -11,29 +11,26 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 5000000,
         monthlyReturn: 300000,
-        energyCost: 3,
-        paybackMonths: 17,
+        paybackMonths: 16,
         effect: (state) => {
             const cost = 5000000;
             const monthlyIncome = 300000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資旅遊集團`;
-            if (state.energy < 3)     return `❌ 精力不足 3 點，無法投資旅遊集團`;
 
             state.cash          -= cost;
-            state.energy        -= 3;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K01", name: "旅遊集團", cost, monthlyReturn: monthlyIncome,
-                energyCost: 3, paybackMonths: 17, purchasedAt: Date.now()
+                energyCost: 3, paybackMonths: 16, purchasedAt: Date.now()
             });
 
-            return `✅ 投資旅遊集團成功！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -3。預計 17 個月回本！`;
+            return `✅ 投資旅遊集團成功！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，預計 16 個月回本！`;
         },
-        getEffectDescription: () => "投資 5,000,000 元，被動收入 +300,000/月，精力 -3"
+        getEffectDescription: () => "投資 5,000,000 元，被動收入 +300,000/月"
     },
     {
         id: "K02",
@@ -47,36 +44,29 @@ const investmentCards = [
         monthlyReturn: 0,
         energyCost: 0,
         energyGain: 30,
-        luckGain: 3,
-        maxEnergyGain: 5,
         paybackMonths: null,
         effect: (state) => {
             const cost         = 700000;
             const energyGain   = 30;
-            const luckGain     = 3;
-            const maxEnergyGain = 5;
 
             if (state.cash < cost) return `❌ 現金不足 ${cost.toLocaleString()} 元，無法參與身心靈健康海外禪修團`;
 
             state.cash      -= cost;
-            state.maxEnergy  = (state.maxEnergy || 100) + maxEnergyGain;
-            state.energy     = Math.min(state.maxEnergy, state.energy + energyGain);
+            state.energy    += energyGain;
             // state.luck       = Math.min(state.maxLuck || 10, state.luck + luckGain);
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K02", name: "身心靈健康海外禪修團", cost,
-                energyGain, maxEnergyGain,
+                energyGain,
                 purchasedAt: Date.now(), type: "wellness"
             });
 
             return `🧘 參與身心靈健康海外禪修團成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
-                `   ⚡ 精力 +${energyGain}\n` +
-                `   📈 最大精力值 +${maxEnergyGain}\n` +
                 `   🌟 與同頻者一起提升靈性修行，身心靈全面升級！`;
         },
-        getEffectDescription: () => "投資 700,000 元，精力 +30，最大精力值 +5，幸運值 +3"
+        getEffectDescription: () => "投資 700,000 元，精力 +30"
     },
     {
         id: "K03",
@@ -112,17 +102,14 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 30000000,
         monthlyReturn: 3000000,
-        energyCost: 5,
         paybackMonths: 10,
         effect: (state) => {
             const cost         = 30000000;
             const monthlyIncome = 3000000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資醫學研究所`;
-            if (state.energy < 5)     return `❌ 精力不足 5 點，無法投資醫學研究所`;
 
             state.cash          -= cost;
-            state.energy        -= 5;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 2);
@@ -130,18 +117,16 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K04", name: "醫學研究所", cost, monthlyReturn: monthlyIncome,
-                energyCost: 5, paybackMonths: 10, purchasedAt: Date.now(), type: "medical"
+                paybackMonths: 10, purchasedAt: Date.now(), type: "medical"
             });
 
             return `🔬 投資醫學研究所成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -5\n` +
-                `   🍀 幸運值: +2\n` +
                 `   ⏱️ 預計 10 個月回本！\n` +
                 `   🏥 頂尖醫學研究，造福人類健康！`;
         },
-        getEffectDescription: () => "投資 30,000,000 元，被動收入 +3,000,000/月，精力 -5，幸運值 +2"
+        getEffectDescription: () => "投資 30,000,000 元，被動收入 +3,000,000/月"
     },
     {
         id: "K05",
@@ -153,17 +138,14 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 5000000,
         monthlyReturn: 500000,
-        energyCost: 3,
-        paybackMonths: 10,
+        paybackMonths: 9,
         effect: (state) => {
             const cost         = 5000000;
             const monthlyIncome = 500000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資教育集團`;
-            if (state.energy < 3)     return `❌ 精力不足 3 點，無法投資教育集團`;
 
             state.cash          -= cost;
-            state.energy        -= 3;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
@@ -171,18 +153,16 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K05", name: "教育集團", cost, monthlyReturn: monthlyIncome,
-                energyCost: 3, paybackMonths: 10, purchasedAt: Date.now(), type: "education"
+                paybackMonths: 9, purchasedAt: Date.now(), type: "education"
             });
 
             return `📚 投資教育集團成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -3\n` +
-                `   🍀 幸運值: +1\n` +
-                `   ⏱️ 預計 10 個月回本！\n` +
+                `   ⏱️ 預計 9 個月回本！\n` +
                 `   🎓 培育未來人才，教育改變命運！`;
         },
-        getEffectDescription: () => "投資 5,000,000 元，被動收入 +500,000/月，精力 -3，幸運值 +1"
+        getEffectDescription: () => "投資 5,000,000 元，被動收入 +500,000/月"
     },
     {
         id: "K06",
@@ -194,17 +174,14 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 5000000,
         monthlyReturn: 400000,
-        energyCost: 2,
         paybackMonths: 13,
         effect: (state) => {
             const cost         = 5000000;
             const monthlyIncome = 400000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資文創生活用品連鎖店`;
-            if (state.energy < 2)     return `❌ 精力不足 2 點，無法投資文創生活用品連鎖店`;
 
             state.cash          -= cost;
-            state.energy        -= 2;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
@@ -212,18 +189,16 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K06", name: "文創生活用品連鎖店", cost, monthlyReturn: monthlyIncome,
-                energyCost: 2, paybackMonths: 13, purchasedAt: Date.now(), type: "lifestyle"
+                paybackMonths: 13, purchasedAt: Date.now(), type: "lifestyle"
             });
 
             return `🎨 投資文創生活用品連鎖店成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -2\n` +
-                `   🍀 幸運值: +1\n` +
                 `   ⏱️ 預計 13 個月回本！\n` +
                 `   ✨ 設計美學與實用功能結合，打造質感生活！`;
         },
-        getEffectDescription: () => "投資 5,000,000 元，被動收入 +400,000/月，精力 -2，幸運值 +1"
+        getEffectDescription: () => "投資 5,000,000 元，被動收入 +400,000/月"
     },
     {
         id: "K07",
@@ -235,19 +210,16 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 1000000,
         monthlyReturn: 60000,
-        energyCost: 2,
         healthGain: 20,
-        paybackMonths: 17,
+        paybackMonths: 16,
         effect: (state) => {
             const cost         = 1000000;
             const monthlyIncome = 60000;
             const healthGain   = 20;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資物流集團`;
-            if (state.energy < 2)     return `❌ 精力不足 2 點，無法投資物流集團`;
 
             state.cash          -= cost;
-            state.energy        -= 2;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.health         = (state.health || 0) + healthGain;
@@ -256,20 +228,18 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K07", name: "物流集團", cost, monthlyReturn: monthlyIncome,
-                energyCost: 2, healthGain, paybackMonths: 17,
+                healthGain, paybackMonths: 16,
                 purchasedAt: Date.now(), type: "logistics"
             });
 
             return `🚚 投資物流集團成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -2\n` +
                 `   💚 健康指數: +${healthGain}\n` +
-                `   🍀 幸運值: +1\n` +
-                `   ⏱️ 預計 17 個月回本！\n` +
+                `   ⏱️ 預計 16 個月回本！\n` +
                 `   📦 一站式物流服務，掌握供應鏈關鍵！`;
         },
-        getEffectDescription: () => "投資 1,000,000 元，被動收入 +60,000/月，精力 -2，健康指數 +20，幸運值 +1"
+        getEffectDescription: () => "投資 1,000,000 元，被動收入 +60,000/月，健康指數 +20"
     },
     {
         id: "K08",
@@ -309,14 +279,12 @@ const investmentCards = [
                     `   💰 投入: ${cost.toLocaleString()} 元\n` +
                     `   🎉 獲得: ${winAmount.toLocaleString()} 元\n` +
                     `   📈 淨賺: ${(winAmount - cost).toLocaleString()} 元\n` +
-                    `   🍀 幸運值 +2\n` +
                     `   🏥 網上醫療平台投資大成功！`;
             }
 
             // state.luck = Math.max(0, state.luck - 1);
             return `🎲 擲出 ${diceRoll} 點！失敗！\n` +
                 `   💰 損失: ${cost.toLocaleString()} 元\n` +
-                `   🍀 幸運值 -1\n` +
                 `   😰 網上醫療平台投資失敗，本金全數虧損！`;
         },
         getEffectDescription: () => "投資 1,000,000 元，擲骰點數=6得10,000,000元，否則損失所有本金"
@@ -331,7 +299,6 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 30000000,
         monthlyReturn: 2000000,
-        energyCost: 4,
         healthGain: 20,
         paybackMonths: 15,
         effect: (state) => {
@@ -340,10 +307,8 @@ const investmentCards = [
             const healthGain   = 20;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資國際品牌服裝公司`;
-            if (state.energy < 4)     return `❌ 精力不足 4 點，無法投資國際品牌服裝公司`;
 
             state.cash          -= cost;
-            state.energy        -= 4;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.health         = (state.health || 100) + healthGain;
@@ -352,20 +317,18 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K09", name: "國際品牌服裝公司", cost, monthlyReturn: monthlyIncome,
-                energyCost: 4, healthGain, paybackMonths: 15,
+                healthGain, paybackMonths: 15,
                 purchasedAt: Date.now(), type: "fashion"
             });
 
             return `👔 投資國際品牌服裝公司成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -4\n` +
                 `   💚 健康指數: +${healthGain}\n` +
-                `   🍀 幸運值: +1\n` +
                 `   ⏱️ 預計 15 個月回本！\n` +
                 `   👗 國際時尚品牌，引領潮流趨勢！`;
         },
-        getEffectDescription: () => "投資 30,000,000 元，被動收入 +2,000,000/月，精力 -4，健康指數 +20，幸運值 +1"
+        getEffectDescription: () => "投資 30,000,000 元，被動收入 +2,000,000/月，健康指數 +20"
     },
     {
         id: "K10",
@@ -379,13 +342,11 @@ const investmentCards = [
         monthlyReturn: 1000000,
         energyCost: 0,
         energyGain: 10,
-        luckGain: 1,
         paybackMonths: 10,
         effect: (state) => {
             const cost         = 10000000;
             const monthlyIncome = 1000000;
             const energyGain   = 10;
-            const luckGain     = 1;
 
             if (state.cash < cost) return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資米芝蓮星級餐廳`;
 
@@ -409,7 +370,7 @@ const investmentCards = [
                 `   ⏱️ 預計 10 個月回本！\n` +
                 `   🌟 頂級廚藝與精緻用餐體驗，品味人生！`;
         },
-        getEffectDescription: () => "投資 10,000,000 元，被動收入 +1,000,000/月，精力 +10，幸運值 +1"
+        getEffectDescription: () => "投資 10,000,000 元，被動收入 +1,000,000/月，精力 +10"
     },
     {
         id: "K11",
@@ -421,7 +382,6 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 40000000,
         monthlyReturn: 0,
-        energyCost: 3,
         isGamble: true,
         gambleDetails: { multiplier: 10000000, diceRange: { min: 1, max: 6 } },
         paybackMonths: null,
@@ -430,10 +390,8 @@ const investmentCards = [
             const multiplier = 10000000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資藥業集團`;
-            if (state.energy < 3)     return `❌ 精力不足 3 點，無法投資藥業集團`;
 
             state.cash   -= cost;
-            state.energy -= 3;
 
             const diceRoll  = Math.floor(Math.random() * 6) + 1;
             const winAmount = diceRoll * multiplier;
@@ -473,7 +431,7 @@ const investmentCards = [
                 `   📈 淨賺: ${netStr} 元\n` +
                 `   💊 藥業集團投資回報低於預期，市場競爭激烈。`;
         },
-        getEffectDescription: () => "投資 40,000,000 元，擲骰點數 × 10,000,000 元回報，精力 -3"
+        getEffectDescription: () => "投資 40,000,000 元，擲骰點數 × 10,000,000 元回報"
     },
     {
         id: "K12",
@@ -485,17 +443,14 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 2000000,
         monthlyReturn: 180000,
-        energyCost: 2,
         paybackMonths: 12,
         effect: (state) => {
             const cost         = 2000000;
             const monthlyIncome = 180000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資太陽能發電公司`;
-            if (state.energy < 2)     return `❌ 精力不足 2 點，無法投資太陽能發電公司`;
 
             state.cash          -= cost;
-            state.energy        -= 2;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
@@ -503,19 +458,17 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K12", name: "太陽能發電公司", cost, monthlyReturn: monthlyIncome,
-                energyCost: 2, paybackMonths: 12,
+                paybackMonths: 12,
                 purchasedAt: Date.now(), type: "renewable_energy"
             });
 
             return `☀️ 投資太陽能發電公司成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -2\n` +
-                `   🍀 幸運值: +1\n` +
                 `   ⏱️ 預計 12 個月回本！\n` +
                 `   🌱 綠色能源投資，為地球永續盡一份力！`;
         },
-        getEffectDescription: () => "投資 2,000,000 元，被動收入 +180,000/月，精力 -2，幸運值 +1"
+        getEffectDescription: () => "投資 2,000,000 元，被動收入 +180,000/月"
     },
     {
         id: "K13",
@@ -527,17 +480,14 @@ const investmentCards = [
         category: "項目投資",
         investmentCost: 10000000,
         monthlyReturn: 700000,
-        energyCost: 4,
         paybackMonths: 15,
         effect: (state) => {
             const cost         = 10000000;
             const monthlyIncome = 700000;
 
             if (state.cash < cost)    return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資研發AI軟件`;
-            if (state.energy < 4)     return `❌ 精力不足 4 點，無法投資研發AI軟件`;
 
             state.cash          -= cost;
-            state.energy        -= 4;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.hasAISkill     = true;
@@ -546,19 +496,17 @@ const investmentCards = [
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K13", name: "研發AI軟件", cost, monthlyReturn: monthlyIncome,
-                energyCost: 4, paybackMonths: 15,
+                paybackMonths: 15,
                 purchasedAt: Date.now(), type: "ai_technology", hasAISkill: true
             });
 
             return `🤖 投資研發AI軟件成功！\n` +
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
-                `   ⚡ 精力: -4\n` +
-                `   🍀 幸運值: +1\n` +
                 `   ⏱️ 預計 15 個月回本！\n` +
                 `   🧠 人工智能技術，引領未來科技潮流！`;
         },
-        getEffectDescription: () => "投資 10,000,000 元，被動收入 +700,000/月，精力 -4，幸運值 +1，獲得AI技能"
+        getEffectDescription: () => "投資 10,000,000 元，被動收入 +700,000/月，獲得AI技能"
     },
     {
         id: "K14",
@@ -572,13 +520,11 @@ const investmentCards = [
         monthlyReturn: 1000000,
         energyCost: 0,
         energyGain: 10,
-        luckGain: 1,
         paybackMonths: 15,
         effect: (state) => {
             const cost         = 15000000;
             const monthlyIncome = 1000000;
             const energyGain   = 10;
-            const luckGain     = 1;
 
             if (state.cash < cost) return `❌ 現金不足 ${cost.toLocaleString()} 元，無法投資國際快餐品牌`;
 
@@ -602,7 +548,7 @@ const investmentCards = [
                 `   ⏱️ 預計 15 個月回本！\n` +
                 `   🌍 全球連鎖快餐品牌，快速成長的餐飲帝國！`;
         },
-        getEffectDescription: () => "投資 15,000,000 元，被動收入 +1,000,000/月，精力 +10，幸運值 +1"
+        getEffectDescription: () => "投資 15,000,000 元，被動收入 +1,000,000/月，精力 +10"
     }
 ];
 

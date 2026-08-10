@@ -403,7 +403,7 @@ const dreamCards = {
         id: "D13",
         name: "和股神食飯",
         description: "與股神一起享用美食，學習投資理財的智慧！",
-        image: "../cards/dream/D12.png",
+        image: "../cards/dream/D13.png",
         cost: 500,
         type: "dream",
         category: "夢想",
