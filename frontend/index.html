@@ -89,6 +89,34 @@
             background: rgba(76, 175, 80, 0.2);
         }
 
+        .timer-display {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffefc0;
+            background: rgba(255,255,255,0.08);
+            padding: 8px 16px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.18);
+            min-width: 120px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .timer-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 260px;
+        }
+
+        .timer-controls label {
+            color: #ffd966;
+            font-size: 14px;
+        }
+
         .game-main-row {
             display: flex;
             gap: 28px;
@@ -673,19 +701,35 @@
 <body>
 <div class="container">
     <div class="top-audio-bar">
-        <div class="audio-label">🎵 背景音樂</div>
-        <audio id="bgAudio" class="audio-player-compact" controls loop preload="auto">
+            <div class="audio-label">⏱️ 遊戲計時器</div>
+            <div class="timer-controls">
+                <label for="timerLength">時長：</label>
+                <select id="timerLength" style="padding: 6px 10px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: #fff;">
+                    <option value="22">22 分鐘</option>
+                    <option value="45">45 分鐘</option>
+                    <option value="67">67 分鐘</option>
+                    <option value="90" selected>90 分鐘</option>
+                </select>
+                <button id="btnTimerToggle" style="width: auto; padding: 6px 20px;">▶️ 開始</button>
+                <button id="btnTimerReset" style="width: auto; padding: 6px 20px; margin-left: 8px;">🔄 重置</button>
+            </div>
+            <div class="timer-display" id="timerDisplay">剩餘 00:00</div>
+            <div class="music-status" id="musicStatus">🎧 尚未啟動</div>
+            <div class="network-status" id="networkStatus">⚪ 未連接</div>
+            <input type="text" id="playerName" placeholder="輸入玩家名稱" maxlength="20" style="padding: 6px 12px; border-radius: 20px; border: none;">
+            <button id="btnConnect" onclick="window.gameClient?.connect()" style="width: auto; padding: 6px 20px;">🔌 連接</button>
+            <button id="btnRename"
+                    style="width: auto; padding: 6px 20px; background: #9c27b0; display: none;">
+                📝 改名
+            </button>
+        </div>
+        <audio id="bgAudio" preload="auto" hidden>
             <source src="../frontend/财富流音樂90分鐘.mp3" type="audio/mpeg">
         </audio>
-        <div class="music-status" id="musicStatus">🎧 播放中</div>
-        <div class="network-status" id="networkStatus">⚪ 未連接</div>
-        <input type="text" id="playerName" placeholder="輸入玩家名稱" maxlength="20" style="padding: 6px 12px; border-radius: 20px; border: none;">
-        <button id="btnConnect" onclick="window.gameClient?.connect()" style="width: auto; padding: 6px 20px;">🔌 連接</button>
-        <button id="btnRename"
-                style="width: auto; padding: 6px 20px; background: #9c27b0; display: none;">
-            📝 改名
-        </button>
-    </div>
+        <!-- <div style="display:flex; align-items:center; gap:10px; margin-top:8px; color:#ffefc0; font-size:13px;">
+            <span>剩餘時間：</span>
+            <span id="timerDisplay">00:00</span>
+        </div> -->
 
     <div class="game-main-row">
         <div class="game-panel">
@@ -805,6 +849,177 @@
     </div>
 </div>
 
+<script>
+    const bgAudio = document.getElementById('bgAudio');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerLength = document.getElementById('timerLength');
+    const btnTimerToggle = document.getElementById('btnTimerToggle');
+    const btnTimerReset = document.getElementById('btnTimerReset');
+    const musicStatus = document.getElementById('musicStatus');
+
+    let timerRemaining = Number(timerLength.value) * 60;
+    let timerInterval = null;
+    let timerRunning = false;
+    let timerPaused = false;
+    let isHost = false;
+
+    btnTimerToggle.disabled = true;
+    btnTimerReset.disabled = true;
+    timerLength.disabled = true;
+
+    function formatTime(seconds) {
+        const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${mins}:${secs}`;
+    }
+
+    function updateTimerDisplay() {
+        timerDisplay.textContent = `剩餘 ${formatTime(timerRemaining)}`;
+    }
+
+    function _clearTimerInterval() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    function handleSharedTimerUpdate(remainingSeconds, durationSeconds = null) {
+        _clearTimerInterval();
+        timerRemaining = Math.max(0, Number(remainingSeconds));
+        timerRunning = timerRemaining > 0;
+        timerPaused = false;
+        btnTimerToggle.textContent = timerRunning ? '⏸️ 暫停' : '▶️ 開始';
+        timerLength.disabled = timerRunning || !isHost;
+        btnTimerReset.disabled = !isHost;
+        musicStatus.textContent = timerRunning ? '🎧 播放中' : '🎧 已停止';
+
+        if (timerRunning) {
+            const duration = durationSeconds !== null ? Number(durationSeconds) : Number(timerLength.value) * 60;
+            const audioPosition = Math.min(Math.max(duration - timerRemaining, 0), duration);
+            if (bgAudio.paused || Math.abs(bgAudio.currentTime - audioPosition) > 1) {
+                bgAudio.currentTime = audioPosition;
+            }
+            bgAudio.play().catch(() => {
+                musicStatus.textContent = '⚠️ 未授權播放';
+            });
+            timerInterval = setInterval(() => {
+                timerRemaining = Math.max(0, timerRemaining - 1);
+                updateTimerDisplay();
+                if (timerRemaining <= 0) {
+                    _clearTimerInterval();
+                    timerRunning = false;
+                    timerLength.disabled = !isHost;
+                    btnTimerToggle.textContent = '▶️ 開始';
+                    musicStatus.textContent = '🎧 已停止';
+                    if (!bgAudio.paused) bgAudio.pause();
+                }
+            }, 1000);
+        } else {
+            if (!bgAudio.paused) bgAudio.pause();
+            updateTimerDisplay();
+        }
+    }
+
+    function handleTimerStart(message) {
+        const remaining = typeof message.remaining === 'number'
+            ? Math.max(0, Number(message.remaining))
+            : Math.max(0, Math.ceil((message.endAt - Date.now()) / 1000));
+        if (remaining <= 0) {
+            handleTimerStop();
+            return;
+        }
+        timerLength.value = String(Math.round(message.duration / 60));
+        handleSharedTimerUpdate(remaining, message.duration);
+    }
+
+    function handleTimerPaused(message) {
+        _clearTimerInterval();
+        timerPaused = true;
+        timerRunning = false;
+        timerRemaining = Number(message.remaining);
+        btnTimerToggle.textContent = '▶️ 繼續';
+        timerLength.disabled = !isHost;
+        btnTimerReset.disabled = !isHost;
+        musicStatus.textContent = '⏸️ 已暫停';
+        updateTimerDisplay();
+        if (!bgAudio.paused) bgAudio.pause();
+    }
+
+    function handleTimerReset(message) {
+        _clearTimerInterval();
+        timerPaused = false;
+        timerRunning = false;
+        timerLength.value = String(message.duration);
+        timerRemaining = Number(message.duration) * 60;
+        timerLength.disabled = !isHost;
+        btnTimerToggle.textContent = '▶️ 開始';
+        btnTimerReset.disabled = !isHost;
+        musicStatus.textContent = '🎧 已停止';
+        updateTimerDisplay();
+        if (!bgAudio.paused) bgAudio.pause();
+    }
+
+    function handleTimerStop() {
+        _clearTimerInterval();
+        timerRunning = false;
+        timerRemaining = Number(timerLength.value) * 60;
+        timerLength.disabled = false;
+        btnTimerToggle.textContent = '▶️ 開始';
+        musicStatus.textContent = '🎧 已停止';
+        updateTimerDisplay();
+        if (!bgAudio.paused) bgAudio.pause();
+    }
+
+    function sendTimerCommand(type, duration) {
+        if (!isHost) {
+            musicStatus.textContent = '⚠️ 只有房主可以控制計時器。';
+            return;
+        }
+        if (window.gameClient?.connection?.isReady()) {
+            window.gameClient.connection.send({ type, duration });
+        } else {
+            musicStatus.textContent = '⚠️ 尚未連接';
+        }
+    }
+
+    function setHostControls(host) {
+        isHost = host;
+        btnTimerToggle.disabled = !host;
+        timerLength.disabled = timerRunning || !host;
+        btnTimerToggle.style.opacity = host ? '1' : '0.5';
+        btnTimerToggle.style.cursor = host ? 'pointer' : 'not-allowed';
+    }
+
+    btnTimerToggle.addEventListener('click', () => {
+        if (timerRunning) {
+            sendTimerCommand('pause_timer');
+        } else {
+            sendTimerCommand('start_timer', Number(timerLength.value));
+        }
+    });
+
+    btnTimerReset.addEventListener('click', () => {
+        sendTimerCommand('reset_timer', Number(timerLength.value));
+    });
+
+    timerLength.addEventListener('change', () => {
+        if (!timerRunning) {
+            timerRemaining = Number(timerLength.value) * 60;
+            updateTimerDisplay();
+        }
+    });
+
+    window.sharedTimer = {
+        handleStart: handleTimerStart,
+        handlePause: handleTimerPaused,
+        handleReset: handleTimerReset,
+        handleStop: handleTimerStop,
+        setHost: setHostControls
+    };
+
+    updateTimerDisplay();
+</script>
 <script type="module" src="./game.js"></script>
 </body>
 </html>

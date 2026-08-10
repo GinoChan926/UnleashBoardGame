@@ -53,7 +53,16 @@ function getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles
             currentTurnPlayer:  null,
             streamlineTiles,
             reverseTiles,
-            flowTiles
+            flowTiles,
+            hostId:             null,
+            timer: {
+                running:    false,
+                paused:     false,
+                duration:   0,
+                remaining:  0,
+                endAt:      0,
+                intervalId: null
+            }
         });
         console.log(`📦 創建房間: ${roomId}`);
     }
