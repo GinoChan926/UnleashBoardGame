@@ -1,5 +1,9 @@
 "use strict";
 
+// ── Config ─────────────────────────────────────────────────────────────────
+
+const MAX_PLAYERS_PER_ROOM = 8;   // ✅ NEW
+
 // ── 現金流助手 ─────────────────────────────────────────────────────────
 
 function calculateMonthlyCashFlow(state) {
@@ -55,6 +59,7 @@ function getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles
             reverseTiles,
             flowTiles,
             hostId:             null,
+            createdAt:          Date.now(),        // ✅ NEW
             timer: {
                 running:    false,
                 paused:     false,
@@ -67,6 +72,52 @@ function getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles
         console.log(`📦 創建房間: ${roomId}`);
     }
     return rooms.get(roomId);
+}
+
+// ✅ NEW: Check if room is full (only counts active, non-disconnected players)
+function isRoomFull(rooms, roomId) {
+    const room = rooms.get(roomId);
+    if (!room) return false;
+
+    let activeCount = 0;
+    room.players.forEach(p => {
+        if (!p.disconnected) activeCount++;
+    });
+
+    return activeCount >= MAX_PLAYERS_PER_ROOM;
+}
+
+// ✅ NEW: Get a list of all rooms for the room selection modal
+function getRoomList(rooms) {
+    const list = [];
+    rooms.forEach((room, id) => {
+        const players = [];
+        room.players.forEach(p => {
+            if (!p.disconnected) {
+                players.push({
+                    playerId:   p.playerId,
+                    playerName: p.playerName
+                });
+            }
+        });
+
+        list.push({
+            roomId:      id,
+            playerCount: players.length,
+            maxPlayers:  MAX_PLAYERS_PER_ROOM,
+            players,
+            createdAt:   room.createdAt || 0,
+            isFull:      players.length >= MAX_PLAYERS_PER_ROOM
+        });
+    });
+
+    // Sort: non-full rooms first, then by creation time (newest first)
+    list.sort((a, b) => {
+        if (a.isFull !== b.isFull) return a.isFull ? 1 : -1;
+        return b.createdAt - a.createdAt;
+    });
+
+    return list;
 }
 
 // ── 私有 ───────────────────────────────────────────────────────────────────
@@ -97,6 +148,9 @@ module.exports = {
     broadcastToRoom,
     getWsByPlayerId,
     getOrCreateRoom,
+    isRoomFull,                    // ✅ NEW
+    getRoomList,                   // ✅ NEW
+    MAX_PLAYERS_PER_ROOM,          // ✅ NEW
     getEffectivePassiveIncome,
     refreshFlowPassiveIncome
 };

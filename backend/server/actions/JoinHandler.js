@@ -1,7 +1,11 @@
 "use strict";
 
 const { PROFESSIONS }                = require('../constants/Professions.js');
-const { getOrCreateRoom, broadcastToRoom } = require('../utils/helpers.js');
+const {
+    getOrCreateRoom,
+    broadcastToRoom,
+    MAX_PLAYERS_PER_ROOM             // ✅ NEW
+} = require('../utils/helpers.js');
 const { streamlineTiles, reverseTiles, flowTiles } = require('../constants/Tiles.js');
 const { handlePlayerReconnect }      = require('./DisconnectHandler.js');
 
@@ -25,7 +29,6 @@ function handleJoin(ws, data, roomId, rooms) {
         // ── Reconnection flow ─────────────────────────────────────────────
         handlePlayerReconnect(ws, roomId, rooms, existingPlayer, _broadcast);
 
-        // Send join_success with saved state
         const otherPlayers = Array.from(room.players.values())
             .filter(p => p.playerId !== playerId)
             .map(p => ({ id: p.playerId, gameState: p.gameState }));
@@ -56,6 +59,25 @@ function handleJoin(ws, data, roomId, rooms) {
         return;
     }
 
+    // ✅ NEW: Check room capacity before adding new player
+    let activeCount = 0;
+    room.players.forEach(p => {
+        if (!p.disconnected) activeCount++;
+    });
+
+    if (activeCount >= MAX_PLAYERS_PER_ROOM) {
+        ws.send(JSON.stringify({
+            type:   'join_failed',
+            reason: `❌ 房間「${roomId}」已滿員 (${activeCount}/${MAX_PLAYERS_PER_ROOM})，請選擇其他房間`
+        }));
+        console.log(`❌ 玩家 ${playerName} 加入房間 ${roomId} 失敗：房間已滿 (${activeCount}/${MAX_PLAYERS_PER_ROOM})`);
+
+        // ✅ Clean up empty room if the check triggered creation of a fresh empty room
+        // (getOrCreateRoom created it above, but if this rejection is for a new "1-of-8" room
+        // that shouldn't happen since 0 < 8. So no cleanup needed for capacity rejection.)
+        return;
+    }
+
     // ── New player join (existing logic) ──────────────────────────────────
     const professionData = data.professionData || PROFESSIONS[data.profession] || PROFESSIONS.teacher;
 
@@ -72,11 +94,11 @@ function handleJoin(ws, data, roomId, rooms) {
         tax:             professionData.tax,
         loanAmount:            0,
         loanInterest:          0,
-        loanCash:            0,          // loan money kept separate
+        loanCash:            0,
         accruedInterest:     0,
         propertyMortgageExpense: 0,
-        loanRateBase:          10,   // 10% base monthly interest — reducible to 0.05 by tip card
-        loanCapMultiplier:     10,     // 10x monthly cashflow — upgradable to 40 by tip card
+        loanRateBase:          10,
+        loanCapMultiplier:     10,
         loanCapBaseType:       'cashflow',
         childExpense:    0, totalAssets: professionData.cash,
         energy:          professionData.energy,
@@ -134,7 +156,7 @@ function handleJoin(ws, data, roomId, rooms) {
 
     _broadcast(roomId, { type: 'player_joined', player: { id: playerId, gameState } }, ws);
 
-    console.log(`👤 玩家加入: ${playerName}, 房間人數: ${room.players.size}`);
+    console.log(`👤 玩家加入: ${playerName}, 房間 ${roomId} 人數: ${room.players.size}/${MAX_PLAYERS_PER_ROOM}`);
 }
 
 module.exports = { handleJoin };

@@ -28,6 +28,7 @@ import { AssetTrustHandler } from './managers/handlers/AssetTrustHandler.js';
 
 import { FlowInventoryHandler } from './managers/handlers/cards/FlowInventoryHandler.js';
 import { GambleHandler } from './managers/handlers/GambleHandler.js';
+import { RoomManager } from './managers/RoomManager.js';
 
 class GameClient {
     constructor() {
@@ -37,6 +38,7 @@ class GameClient {
         this.connection   = new ConnectionManager();
         this.modalManager = new ModalManager();
         this.logManager   = new LogManager(this.modalManager);
+        this.roomManager = new RoomManager(this);
 
         // ── Renderers ─────────────────────────────────────────────────────
         this.boardRenderer      = new BoardRenderer();
@@ -191,7 +193,29 @@ class GameClient {
 
     showProfessionModal() { this.modalManager.showProfessionModal(PROFESSIONS, this); }
     doConnect()           { this.lifecycle.doConnect(); }
-    connect()             { this.lifecycle.doConnect(); }
+    connect() {
+        // ✅ New flow: room selection → profession → connect
+
+        // If room already set (from auto-reconnect), skip room selection
+        if (this.roomId && this.roomId !== 'default_room') {
+            this.showProfessionModal();
+            return;
+        }
+
+        this.roomManager.show(
+            (roomId) => {
+                this.roomId = roomId;
+                this.logManager.addLog(`🏠 選擇房間: ${roomId}`, 'info');
+                this.showProfessionModal();
+            },
+            () => {
+                this.logManager.addLog('已取消連接', 'warning');
+            }
+        );
+    }
+    startConnectFlow() {
+        return this.connect();
+    }
     disconnect()          { this.lifecycle.disconnect(); }
 
     showRenameModal()        { this.renameManager.show(); }
@@ -240,7 +264,7 @@ class GameClient {
             const el = document.getElementById(id);
             if (el) el.onclick = fn;
         };
-        on('btnConnect',      () => this.showProfessionModal());
+        on('btnConnect',      () => this.connect());
         on('btnRoll',         () => this.rollDice());
         on('btnEndTurn',      () => this.endTurn());
         on('btnLoan',         () => this.applyLoan());

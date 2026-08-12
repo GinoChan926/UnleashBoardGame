@@ -40,6 +40,7 @@ const { handleUseEmotionalSupport, handleSkipEmotionalSupport } = require('./ser
 const { handleRenamePlayer } = require('./server/actions/RenameHandler.js');
 const { handleSettlementRoll } = require('./server/actions/SettlementRollHandler.js');
 const { handleLierAck } = require('./server/actions/LierAckHandler.js');
+const { handleListRooms } = require('./server/actions/RoomListHandler.js');
 
 // ── Card handlers ─────────────────────────────────────────────────────────────
 const { startAuction, handleAuctionBid, handleAuctionPass } = require('./server/cards/AuctionHandler.js');
@@ -284,6 +285,9 @@ wss.on('connection', (ws) => {
             console.log('📨 收到消息:', data.type);
 
             switch (data.type) {
+                case 'list_rooms':
+                    handleListRooms(ws, data, rooms);
+                    break;
                 case 'join':
                     playerRoomId = data.roomId || 'default_room';
                     handleJoin(ws, data, playerRoomId, rooms);

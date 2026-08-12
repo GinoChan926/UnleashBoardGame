@@ -22,7 +22,10 @@ export class GameLifecycleManager {
             client.isConnected = true;
             client.playerId    = client.connection.playerId;
             client.updateNetworkStatus(true);
-            client.logManager.addLog('✅ 已連接到遊戲服務器', 'success');
+            client.logManager.addLog(
+                `✅ 已連接到房間「${client.roomId}」`,
+                'success'
+            );
             client.logManager.addLog(
                 `👤 玩家: ${client.playerName} (${client.selectedProfession.data.name})`,
                 'event'
@@ -57,6 +60,7 @@ export class GameLifecycleManager {
 
     disconnect() {
         this.client.connection.disconnect();
+        this.client.roomId = null;   // ✅ reset so next connect prompts for room again
     }
 
     // ── Auto-reconnect on page load ───────────────────────────────────────
@@ -70,13 +74,13 @@ export class GameLifecycleManager {
             return false;
         }
 
-        console.log(`🔌 嘗試自動重連: ${session.playerName}`);
+        console.log(`🔌 嘗試自動重連: ${session.playerName} to room ${session.roomId}`);
 
         this._isReconnecting = true;
 
         client.playerId   = session.playerId;
         client.playerName = session.playerName;
-        client.roomId     = session.roomId;
+        client.roomId     = session.roomId;   // ✅ use saved room
 
         client.selectedProfession = {
             id:   session.profession,
@@ -87,15 +91,13 @@ export class GameLifecycleManager {
         if (nameInput) nameInput.value = session.playerName;
 
         client.logManager.addLog(
-            `🔌 檢測到之前的 session，正在重新連接 ${session.playerName}...`,
+            `🔌 檢測到之前的 session，正在重新連接到房間「${session.roomId}」...`,
             'info'
         );
 
         this.doConnect();
         return true;
     }
-
-    // ── Music / game-over monitor ─────────────────────────────────────────
 
     setupMusicMonitor() {
         const audio = document.getElementById('bgAudio');

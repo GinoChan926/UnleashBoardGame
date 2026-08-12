@@ -43,6 +43,8 @@ export class MessageRouter {
             'rename_success':        m => c.renameManager.handleRenameSuccess(m),
             'player_renamed':        m => c.renameManager.handlePlayerRenamed(m),
 
+            'room_list':    m => c.roomManager.handleRoomList(m),
+            'join_failed':  m => c.joinHandler.handleJoinFailed(m),
             // ── Turn flow
             'dice_result':           m => th().handleDiceResult(m),
             'turn_ended':            m => th().handleTurnEnded(m),

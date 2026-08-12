@@ -70,6 +70,39 @@ export class JoinHandler {
         }
     }
 
+    handleJoinFailed(message) {
+        const { client } = this;
+
+        client.logManager.addLog(
+            message.reason || '❌ 加入房間失敗',
+            'error'
+        );
+        client.logManager.showNotification(
+            message.reason || '加入房間失敗',
+            'error'
+        );
+
+        // Reset room and disconnect so player can pick another room
+        client.roomId = null;
+        client.connection.disconnect();
+
+        // Reset UI state
+        const nameInput  = client.getInput('playerName');
+        const connectBtn = client.getButton('btnConnect');
+        if (nameInput)  nameInput.disabled  = false;
+        if (connectBtn) {
+            connectBtn.disabled     = false;
+            connectBtn.style.display = 'inline-block';
+        }
+
+        // Re-open room selection modal after a brief delay
+        setTimeout(() => {
+            if (typeof client.connect === 'function') {
+                client.connect();
+            }
+        }, 1500);
+    }
+
     handlePlayerJoined(message) {
         const { client } = this;
         if (!message.player?.id) return;
