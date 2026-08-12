@@ -264,17 +264,30 @@ const investmentCards = [
             state.cash -= cost;
 
             const diceRoll = Math.floor(Math.random() * 6) + 1;
+            const won      = diceRoll === 6;
 
             state.investments = state.investments || [];
             state.investments.push({
                 id: "K08", name: "網上醫療平台", cost,
-                win: diceRoll === 6, diceRoll,
+                win: won, diceRoll,
                 purchasedAt: Date.now(), type: "gamble"
             });
 
-            if (diceRoll === 6) {
+            // ✅ Store gamble result on state for handler to broadcast
+            state._pendingGambleResult = {
+                cardId:      'K08',
+                cardName:    '網上醫療平台',
+                cardImage:   '../cards/investment/K08.png',
+                diceRoll,
+                successNumber: 6,
+                won,
+                cost,
+                winAmount:   won ? winAmount : 0,
+                netProfit:   won ? (winAmount - cost) : -cost
+            };
+
+            if (won) {
                 state.cash += winAmount;
-                // state.luck  = Math.min(state.maxLuck || 10, state.luck + 2);
                 return `🎲 擲出 ${diceRoll} 點！大獎！\n` +
                     `   💰 投入: ${cost.toLocaleString()} 元\n` +
                     `   🎉 獲得: ${winAmount.toLocaleString()} 元\n` +
@@ -282,7 +295,6 @@ const investmentCards = [
                     `   🏥 網上醫療平台投資大成功！`;
             }
 
-            // state.luck = Math.max(0, state.luck - 1);
             return `🎲 擲出 ${diceRoll} 點！失敗！\n` +
                 `   💰 損失: ${cost.toLocaleString()} 元\n` +
                 `   😰 網上醫療平台投資失敗，本金全數虧損！`;
@@ -407,6 +419,25 @@ const investmentCards = [
                 id: "K11", name: "藥業集團", cost, diceRoll, winAmount, netProfit,
                 purchasedAt: Date.now(), type: "pharma"
             });
+
+            state._pendingGambleResult = {
+            cardId:      'K11',
+            cardName:    '藥業集團',
+            cardImage:   '../cards/investment/K11.png',
+            diceRoll,
+            successNumber: null,   // K11 doesn't have a "must be X" — always wins something
+            won:         netProfit >= 0,
+            cost,
+            winAmount,
+            netProfit,
+            // K11-specific display
+            multiplier,
+            resultText:  diceRoll >= 5
+                ? '藥業集團投資大成功！新藥上市帶來巨額回報！'
+                : diceRoll >= 3
+                    ? '藥業集團投資穩定增長。'
+                    : '藥業集團投資回報低於預期。'
+        };
 
             // const luckStr = `${luckChange >= 0 ? '+' : ''}${luckChange}`;
             const netStr  = `${netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}`;

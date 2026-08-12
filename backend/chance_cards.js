@@ -3203,7 +3203,6 @@ const financeCards = [
 
 // ==================== 創業类机会卡 (Business) ====================
 const businessCards = [
-    /*
      {
         id: "C01",
         name: "自助咖啡售賣機",
@@ -3268,8 +3267,6 @@ const businessCards = [
         },
         getEffectDescription: (units = 1) => `購買 ${units} 部，花費 ${(units * 50000).toLocaleString()} 元，被動收入 +${(units * 5000).toLocaleString()}/月，精力 -${units * 2}`
     },
-
-     */
 
      {
         id: "C02",
@@ -4648,7 +4645,7 @@ const propertyCards = [
         },
         getEffectDescription: () => "投資 700,000 元，租金 +10,000/月。可選自用或轉讓"
     },
-/*
+
     {
         id: "H02",
         name: "香港中西區住宅",
@@ -4732,8 +4729,6 @@ const propertyCards = [
         },
         getEffectDescription: () => "總價 500,000 元，租金 10,000/月。可選自用或轉讓"
     }
-
- */
 ];
 
 // 导出所有卡片

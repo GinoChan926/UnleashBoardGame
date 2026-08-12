@@ -8,16 +8,27 @@ const activeAuctions = new Map(); // auctionId → auctionState
 function startAuction(roomId, card, player, ws, broadcastToRoom) {
     const auctionId = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
+    // ✅ Read from auctionDetails first, fall back to top-level, then defaults
+    const details = card.auctionDetails || {};
+
     const auctionState = {
         auctionId,
         card,
         roomId,
         initiatorId:      player.playerId,
         initiatorName:    player.playerName,
-        currentPrice:     card.startingPrice    || card.investmentCost || 10000,
+        currentPrice:     details.basePrice
+            || card.startingPrice
+            || card.investmentCost
+            || 10000,
         currentBidder:    null,
-        minBidIncrement:  card.minBidIncrement  || 5000,
-        energyReward:     card.energyReward     || 2,
+        minBidIncrement:  details.minBidIncrement
+            || card.minBidIncrement
+            || 5000,
+        energyReward:     details.energyReward
+            || card.energyReward
+            || 2,
+        maxBidders:       details.maxBidders || null,
         passes:           new Set()
     };
 
@@ -35,7 +46,7 @@ function startAuction(roomId, card, player, ws, broadcastToRoom) {
         initiator:       player.playerName
     });
 
-    console.log(`🔨 競拍開始: ${card.name} (ID: ${auctionId})`);
+    console.log(`🔨 競拍開始: ${card.name} (ID: ${auctionId}) - 底價 $${auctionState.currentPrice.toLocaleString()}，加價 $${auctionState.minBidIncrement.toLocaleString()}，獎勵 +${auctionState.energyReward} 精力`);
     return auctionId;
 }
 
@@ -52,17 +63,21 @@ function handleAuctionBid(ws, data, roomId, rooms, broadcastToRoom) {
 
     const newPrice = auction.currentPrice + auction.minBidIncrement;
 
-    if (player.gameState.cash < newPrice) {
+    // ✅ Use wallet system — investment can use cash + loanCash
+    const { canAffordInvestment } = require('../systems/WalletSystem.js');
+
+    if (!canAffordInvestment(player.gameState, newPrice)) {
+        const total = (player.gameState.cash || 0) + (player.gameState.loanCash || 0);
         ws.send(JSON.stringify({
             type:    'error',
-            message: `❌ 现金不足！出價需要 ${newPrice.toLocaleString()} 元`
+            message: `❌ 資金不足！出價需要 $${newPrice.toLocaleString()}，你只有 $${total.toLocaleString()} (現金+貸款金)`
         }));
         return;
     }
 
     auction.currentPrice  = newPrice;
     auction.currentBidder = player.playerName;
-    auction.passes.clear(); // reset passes after new bid
+    auction.passes.clear();
 
     broadcastToRoom(roomId, {
         type:           'auction_update',
@@ -112,22 +127,71 @@ function _endAuction(auction, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    // Find winner and apply effect
     let winnerPlayer = null;
     for (const [, p] of room.players) {
         if (p.playerName === auction.currentBidder) { winnerPlayer = p; break; }
     }
 
     if (winnerPlayer) {
-        winnerPlayer.gameState.cash   -= auction.currentPrice;
-        winnerPlayer.gameState.energy  = Math.min(
+        const { canAffordInvestment, spendForInvestment } =
+            require('../systems/WalletSystem.js');
+
+        if (canAffordInvestment(winnerPlayer.gameState, auction.currentPrice)) {
+            spendForInvestment(winnerPlayer.gameState, auction.currentPrice);
+        } else {
+            winnerPlayer.gameState.cash = Math.max(0,
+                (winnerPlayer.gameState.cash || 0) - auction.currentPrice);
+        }
+
+        winnerPlayer.gameState.energy = Math.min(
             winnerPlayer.gameState.maxEnergy,
             winnerPlayer.gameState.energy + auction.energyReward
         );
 
+        const passiveIncomeSnapshot = winnerPlayer.gameState.passiveIncome || 0;
+
         if (auction.card.effect) {
             try { auction.card.effect(winnerPlayer.gameState); } catch (e) { /* ignore */ }
         }
+
+        // ✅ Intercept passiveIncome changes for flow layer
+        if (winnerPlayer.gameState.inFlow) {
+            const passiveIncomeAfter = winnerPlayer.gameState.passiveIncome || 0;
+            const passiveIncomeGained = passiveIncomeAfter - passiveIncomeSnapshot;
+            if (passiveIncomeGained !== 0) {
+                winnerPlayer.gameState.passiveIncome = passiveIncomeSnapshot;
+                winnerPlayer.gameState.flowPassiveIncome = Math.max(0,
+                    (winnerPlayer.gameState.flowPassiveIncome || 0) + passiveIncomeGained
+                );
+            }
+        }
+
+        // ✅ Always add to flowInvestments (regardless of current layer)
+        winnerPlayer.gameState.flowInvestments = winnerPlayer.gameState.flowInvestments || [];
+        winnerPlayer.gameState.flowInvestments.push({
+            id:            auction.card.id,
+            name:          auction.card.name,
+            image:         auction.card.image || '',
+            tileName:      '項目投資 (競拍)',
+            cost:          auction.currentPrice,
+            monthlyReturn: auction.card.monthlyReturn || 0,
+            purchasedAt:   Date.now(),
+            energyReward:  auction.energyReward,
+            wonViaAuction: true
+        });
+
+        // Record transaction
+        const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+        addTransactionRecord(
+            winnerPlayer.playerName,
+            auction.card,
+            '競拍勝出',
+            -auction.currentPrice,
+            `以 $${auction.currentPrice.toLocaleString()} 贏得「${auction.card.name}」，精力 +${auction.energyReward}`,
+            null,
+            winnerPlayer.gameState
+        );
+
     }
 
     broadcastToRoom(roomId, {
@@ -144,7 +208,7 @@ function _endAuction(auction, roomId, rooms, broadcastToRoom) {
         });
     }
 
-    console.log(`🏆 競拍結束: ${auction.currentBidder} 赢得 ${auction.card.name}`);
+    console.log(`🏆 競拍結束: ${auction.currentBidder} 赢得 ${auction.card.name} - $${auction.currentPrice.toLocaleString()}, +${auction.energyReward} 精力`);
 }
 
 module.exports = { startAuction, handleAuctionBid, handleAuctionPass };

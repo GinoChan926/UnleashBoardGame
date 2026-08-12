@@ -81,6 +81,8 @@ function handleJoin(ws, data, roomId, rooms) {
         childExpense:    0, totalAssets: professionData.cash,
         energy:          professionData.energy,
         maxEnergy:       professionData.maxEnergy,
+        health:          0,
+        originalHealth:  0,
         luck:            professionData.luck, maxLuck: 10,
         isMyTurn:        room.players.size === 0,
         currentTurnPlayer: playerName,

@@ -185,6 +185,9 @@ export class MessageRouter {
             'group_finance_result': m => ch().handleGroupFinanceResult(m),
 
             'flow_inventory_snapshot': m => c.flowInventoryHandler.handleFlowInventorySnapshot(m),
+
+            'gamble_result':           m => c.gambleHandler.handleGambleResult(m),
+            'gamble_result_broadcast': m => c.gambleHandler.handleGambleResultBroadcast(m),
             // ── Disconnect / reconnect
             'player_temp_disconnected': m => c.joinHandler.handleTempDisconnected(m),
             'player_reconnected':       m => c.joinHandler.handleReconnected(m),

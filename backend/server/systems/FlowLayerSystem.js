@@ -49,12 +49,22 @@ function applyFlowLayerIncomeBoost(state) {
 }
 
 function revertFlowLayerIncomeBoost(state) {
-    if (state.passiveIncomeBeforeFlow !== undefined) {
-        state.passiveIncome               = state.passiveIncomeBeforeFlow;
-        state.passiveIncomeBeforeFlow     = undefined;
-        state.flowPassiveIncome           = undefined;
-        state.passiveIncomeFlowMultiplier = undefined;
-    }
+    if (state.passiveIncomeBeforeFlow === undefined) return;
+
+    const multiplier   = state.passiveIncomeFlowMultiplier || 100;
+    const originalBase = state.passiveIncomeBeforeFlow     || 0;
+    const flowCurrent  = state.flowPassiveIncome           || 0;
+
+    // Calculate additions made during flow (at 1× rate)
+    // flowCurrent = (originalBase × multiplier) + additions
+    const additions = Math.max(0, flowCurrent - (originalBase * multiplier));
+
+    // Restore passiveIncome = original base + additions (all at 1× rate)
+    state.passiveIncome = originalBase + additions;
+
+    state.passiveIncomeBeforeFlow     = undefined;
+    state.flowPassiveIncome           = undefined;
+    state.passiveIncomeFlowMultiplier = undefined;
 }
 
 // ── Monthly cash flow (flow layer) ────────────────────────────────────────────

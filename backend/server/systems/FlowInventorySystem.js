@@ -14,7 +14,7 @@ const DREAM_FLAG_MAP = {
     hasAfricaExploration:               { id: 'D09', name: '非洲探險',       image: '../cards/dream/D09.png' },
     hasDreamMansion:       { id: 'D10', name: '購買豪宅',       image: '../cards/dream/D10.png' },
     hasShotMovie:            { id: 'D11', name: '投資拍電影',     image: '../cards/dream/D11.png' },
-    hasDineWithInvestors:          { id: 'D13', name: '和股神食飯',     image: '../cards/dream/D12.png' },
+    hasDineWithInvestors:          { id: 'D13', name: '和股神食飯',     image: '../cards/dream/D13.png' },
     hasBoughtManor:    { id: 'D14', name: '購買私人莊園',   image: '../cards/dream/D13.png' }
     // Note: hasUltimateAchievement is shared by D06 AND D15 (both set the same flag)
 };

@@ -1,6 +1,7 @@
 "use strict";
 
 const { addTransactionRecord } = require('../records/TransactionRecorder.js');
+const { broadcastCardReveal } = require('../utils/CardBroadcastHelper.js');
 
 function processSocialServiceTile(state, ws, roomId, player, tile, room) {
     const cost = 10000;
@@ -155,6 +156,17 @@ function _presentNextSocialServiceCard(ws, roomId, room, player, broadcastToRoom
         freeReveal: true,
         message: `📋 第 ${queue.currentIndex + 1}/${queue.totalCards} 張 ${cardTypeName}：${card.name}`
     }));
+
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card:          fullCard,
+        action:        `在社會服務中心抽到${cardTypeName}`,
+        effectMessage: card.description || '',
+        broadcastToRoom
+    });
 
     console.log(`🏛️ ${player.playerName} 收到社會服務卡 ${queue.currentIndex + 1}/${queue.totalCards}: ${card.name}`);
 }

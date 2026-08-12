@@ -27,6 +27,7 @@ import { MarketHandler }         from './managers/handlers/MarketHandler.js';
 import { AssetTrustHandler } from './managers/handlers/AssetTrustHandler.js';
 
 import { FlowInventoryHandler } from './managers/handlers/cards/FlowInventoryHandler.js';
+import { GambleHandler } from './managers/handlers/GambleHandler.js';
 
 class GameClient {
     constructor() {
@@ -58,6 +59,7 @@ class GameClient {
         this.settlementRollManager = new SettlementRollManager(this);
         this.cardBroadcast  = new CardBroadcastManager(this);
         this.flowInventoryHandler = new FlowInventoryHandler(this);
+        this.gambleHandler = new GambleHandler(this);
 
         // ── Actions & lifecycle ───────────────────────────────────────────
         this.actions   = new PlayerActionSender(this);

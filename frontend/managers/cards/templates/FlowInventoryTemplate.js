@@ -209,38 +209,51 @@ export class FlowInventoryTemplate {
                 })
                 : '';
 
+            // ✅ NEW: badge for auction wins
+            const auctionBadge = inv.wonViaAuction
+                ? `<span style="background:#ff9800; color:white; padding:2px 8px;
+                             border-radius:10px; font-size:10px; margin-left:6px;">
+                 🔨 競拍勝出
+               </span>`
+                : '';
+
             return `
-                <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
-                            padding: 12px; margin-bottom: 10px;
-                            border-left: 4px solid #ff9800;
-                            display: flex; gap: 12px;">
-                    ${imgUrl ? `
-                        <img src="${imgUrl}" alt=""
-                             style="width: 80px; height: 80px; object-fit: cover;
-                                    border-radius: 8px; flex-shrink: 0;"
-                             onerror="this.style.display='none';">
-                    ` : ''}
-                    <div style="flex: 1;">
-                        <div style="color: #ffb74d; font-weight: bold;
-                                    font-size: 15px; margin-bottom: 6px;">
-                            🏗️ ${escapeHtml(inv.name)}
+            <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
+                        padding: 12px; margin-bottom: 10px;
+                        border-left: 4px solid #ff9800;
+                        display: flex; gap: 12px;">
+                ${imgUrl ? `
+                    <img src="${imgUrl}" alt=""
+                         style="width: 80px; height: 80px; object-fit: cover;
+                                border-radius: 8px; flex-shrink: 0;"
+                         onerror="this.style.display='none';">
+                ` : ''}
+                <div style="flex: 1;">
+                    <div style="color: #ffb74d; font-weight: bold;
+                                font-size: 15px; margin-bottom: 6px;">
+                        🏗️ ${escapeHtml(inv.name)}${auctionBadge}
+                    </div>
+                    ${inv.tileName ? `
+                        <div style="color: #90a4ae; font-size: 11px; margin-bottom: 4px;">
+                            📍 ${escapeHtml(inv.tileName)}
                         </div>
-                        ${inv.tileName ? `
-                            <div style="color: #90a4ae; font-size: 11px; margin-bottom: 4px;">
-                                📍 ${escapeHtml(inv.tileName)}
+                    ` : ''}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr;
+                                gap: 4px; font-size: 12px; color: #b0bec5;">
+                        <div>投資: <span style="color: #ffd966;">$${inv.cost.toLocaleString()}</span></div>
+                        <div>月收入: <span style="color: #81c784;">+$${inv.monthlyReturn.toLocaleString()}</span></div>
+                        ${inv.energyReward ? `
+                            <div style="grid-column: 1/-1;">
+                                ⚡ 精力獎勵: +${inv.energyReward}
                             </div>
                         ` : ''}
-                        <div style="display: grid; grid-template-columns: 1fr 1fr;
-                                    gap: 4px; font-size: 12px; color: #b0bec5;">
-                            <div>投資: <span style="color: #ffd966;">$${inv.cost.toLocaleString()}</span></div>
-                            <div>月收入: <span style="color: #81c784;">+$${inv.monthlyReturn.toLocaleString()}</span></div>
-                            ${dateStr ? `<div style="grid-column: 1/-1; color: #90a4ae; font-size: 10px;">
-                                🕒 ${dateStr}
-                            </div>` : ''}
-                        </div>
+                        ${dateStr ? `<div style="grid-column: 1/-1; color: #90a4ae; font-size: 10px;">
+                            🕒 ${dateStr}
+                        </div>` : ''}
                     </div>
                 </div>
-            `;
+            </div>
+        `;
         }).join('');
     }
 

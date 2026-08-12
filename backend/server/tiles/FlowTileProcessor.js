@@ -4,6 +4,7 @@ const { addTransactionRecord }           = require('../records/TransactionRecord
 const { revertFlowLayerIncomeBoost }     = require('../systems/FlowLayerSystem.js');
 const { promptAssetTrustSetup, applyAssetTrustProtection } = require('../systems/AssetTrustSystem.js');
 const { getEffectivePassiveIncome } = require('../utils/helpers.js');
+const { broadcastCardReveal }       = require('../utils/CardBroadcastHelper.js');   // ✅ NEW
 
 function processFlowTile(state, tile, ws, roomId, player, room,
                          { broadcastToRoom, startAuction, processSocialServiceTile, investmentCards, dreamCards }) {
@@ -20,13 +21,11 @@ function processFlowTile(state, tile, ws, roomId, player, room,
         case 'social_service':
             return processSocialServiceTile(state, ws, roomId, player, tile, room);
 
-        // ✅ All investment tile types use the same flow
         case 'investment_tile':
         case 'investment':
             return _handleInvestmentTile(state, tile, ws, roomId, player, room,
                 { broadcastToRoom, startAuction, investmentCards });
 
-        // ✅ Dream tile also draws an investment card with energy requirement
         case 'dream':
             return _handleDreamTile(state, tile, ws, roomId, player, room,
                 { broadcastToRoom, startAuction, investmentCards, dreamCards });
@@ -38,7 +37,6 @@ function processFlowTile(state, tile, ws, roomId, player, room,
             const cashBefore = state.cash || 0;
             const taxAmt     = Math.floor(cashBefore * 0.5);
 
-            // ✅ Use wallet system for the deduction (non-investment)
             const { canAffordNonInvestment, spendForNonInvestment } =
                 require('../systems/WalletSystem.js');
             const { chargePlayer } = require('../systems/AutoDebtSystem.js');
@@ -50,7 +48,6 @@ function processFlowTile(state, tile, ws, roomId, player, room,
                 spendForNonInvestment(state, taxAmt);
                 actualPaid = taxAmt;
             } else {
-                // Take all cash, create debt for the rest
                 const result = chargePlayer(player, taxAmt, {
                     source:       '查稅審計',
                     creditor:     'bank',
@@ -63,9 +60,6 @@ function processFlowTile(state, tile, ws, roomId, player, room,
                 }
             }
 
-            // ✅ Recalculate totalAssets (optional — keeps display accurate)
-            // state.totalAssets = state.cash + ...   // depends on how you compute it
-
             addTransactionRecord(
                 player.playerName,
                 { name: "查稅審計", type: "flow", id: "FLOW_AUDIT" },
@@ -76,7 +70,25 @@ function processFlowTile(state, tile, ws, roomId, player, room,
                 state
             );
 
-            // Broadcast state update
+            // ✅ NEW: Broadcast audit event to other players
+            broadcastCardReveal({
+                roomId,
+                drawerWs:      ws,
+                drawerName:    player.playerName,
+                drawerId:      player.playerId,
+                card: {
+                    id:           `audit_${Date.now()}`,
+                    name:         '查稅審計',
+                    description:  `損失 $${taxAmt.toLocaleString()} 現金${debtMsg}`,
+                    image:        '/cards/tiles/flow/audit.png',
+                    cardType:     'audit',
+                    cardTypeName: '順流層事件'
+                },
+                action:        '踩中查稅審計',
+                effectMessage: `損失 $${taxAmt.toLocaleString()}`,
+                broadcastToRoom
+            });
+
             broadcastToRoom(roomId, {
                 type:      'state_updated',
                 playerId:  player.playerId,
@@ -92,11 +104,110 @@ function processFlowTile(state, tile, ws, roomId, player, room,
             addTransactionRecord(player.playerName,
                 { name: "分紅收入", type: "flow", id: "FLOW_BONUS" },
                 "分紅收入", bonus, `獲得 ${bonus.toLocaleString()} 元`, null, state);
+
+            // ✅ NEW: Broadcast income event
+            broadcastCardReveal({
+                roomId,
+                drawerWs:      ws,
+                drawerName:    player.playerName,
+                drawerId:      player.playerId,
+                card: {
+                    id:           `income_${Date.now()}`,
+                    name:         '投資分紅',
+                    description:  `獲得 $${bonus.toLocaleString()} 元分紅收入`,
+                    image:        '/cards/tiles/flow/income.png',
+                    cardType:     'income',
+                    cardTypeName: '順流層事件'
+                },
+                action:        '踩中投資分紅',
+                effectMessage: `+$${bonus.toLocaleString()}`,
+                broadcastToRoom
+            });
+
             return `💰 分紅收入！獲得 ${bonus.toLocaleString()} 元`;
         }
 
         case 'settlement':
-            return _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, true);   // true = landing
+            return _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, true);
+
+        case 'business_failure': {
+            const cashBefore = state.cash || 0;
+            const intendedLoss = Math.floor(cashBefore / 2);
+
+            // ✅ Apply asset trust protection (if active)
+            const protection = applyAssetTrustProtection(state, intendedLoss);
+            const actualLoss = protection.actualLoss;
+
+            // ✅ Non-investment: use regular cash only
+            const { canAffordNonInvestment, spendForNonInvestment } =
+                require('../systems/WalletSystem.js');
+            const { chargePlayer } = require('../systems/AutoDebtSystem.js');
+
+            let paidNow = 0;
+            let debtMsg = '';
+
+            if (actualLoss > 0) {
+                if (canAffordNonInvestment(state, actualLoss)) {
+                    spendForNonInvestment(state, actualLoss);
+                    paidNow = actualLoss;
+                } else {
+                    const result = chargePlayer(player, actualLoss, {
+                        source:       '生意失敗',
+                        creditor:     'bank',
+                        creditorName: '銀行',
+                        room, roomId, broadcastToRoom, ws
+                    });
+                    paidNow = result.paid;
+                    if (result.debtCreated) {
+                        debtMsg = `\n💸 欠款 $${result.debtAmount.toLocaleString()} 待未來償還`;
+                    }
+                }
+            }
+
+            addTransactionRecord(
+                player.playerName,
+                { name: "生意失敗", type: "flow", id: "FLOW_BUSINESS_FAILURE" },
+                "生意失敗",
+                -paidNow,
+                `損失 $${actualLoss.toLocaleString()}${debtMsg}` +
+                (protection.protected
+                    ? ` (🛡️ 資產信託吸收 $${protection.absorbedLoss.toLocaleString()})`
+                    : ''),
+                null,
+                state
+            );
+
+            // ✅ Broadcast card reveal to other players
+            broadcastCardReveal({
+                roomId,
+                drawerWs:      ws,
+                drawerName:    player.playerName,
+                drawerId:      player.playerId,
+                card: {
+                    id:           `bfail_${Date.now()}`,
+                    name:         '生意失敗',
+                    description:  `損失 $${actualLoss.toLocaleString()} 元`,
+                    image:        '/cards/tiles/flow/business_failure.png',
+                    cardType:     'business_failure',
+                    cardTypeName: '順流層災難'
+                },
+                action:        '踩中生意失敗',
+                effectMessage: `損失 $${actualLoss.toLocaleString()}`,
+                broadcastToRoom
+            });
+
+            broadcastToRoom(roomId, {
+                type:      'state_updated',
+                playerId:  player.playerId,
+                gameState: state
+            });
+
+            const trustMsg = protection.protected
+                ? `\n🛡️ 資產信託保護生效！吸收 $${protection.absorbedLoss.toLocaleString()}`
+                : '';
+
+            return `💼 生意失敗！損失 $${actualLoss.toLocaleString()} 元 (現金的一半)${trustMsg}${debtMsg}`;
+        }
 
         default:
             return `📌 順流層格子：${tile.name}`;
@@ -206,6 +317,18 @@ function _handleInvestmentTile(state, tile, ws, roomId, player, room,
         }, ws);
     }
 
+    // ✅ NEW: Broadcast the investment card to other players
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card:          fullCard,
+        action:        `在順流層「${tile.name}」抽到投資卡`,
+        effectMessage: card.description || '',
+        broadcastToRoom
+    });
+
     return null;
 }
 
@@ -217,7 +340,6 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         return '📭 暫無夢想卡數據';
     }
 
-    // ✅ Find dream card whose name matches this tile
     const dreamPool = Object.values(dreamCards);
     const card = dreamPool.find(c => c.name === tile.name);
 
@@ -230,7 +352,6 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         return `⚠️ 夢想「${tile.name}」尚未實裝`;
     }
 
-    // ✅ Check requirements — prefer tile.needEnergy if set, else card.energyCost
     const needEnergy = tile.needEnergy || card.energyCost || 0;
     const investCost = card.investmentCost || 0;
     const totalCash  = (state.cash || 0) + (state.loanCash || 0);
@@ -245,7 +366,6 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
 
     const canAfford = lacks.length === 0;
 
-    // Auction card handling (rarely applies to dreams, keep for safety)
     if (card.isAuction) {
         if (!canAfford) {
             _sendDreamModal(ws, tile, card, canAfford, lacks);
@@ -259,7 +379,6 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         return null;
     }
 
-    // ✅ Always store pending event — even if unaffordable
     if (!room.pendingEvents) room.pendingEvents = new Map();
 
     const originalEffect = card.effect;
@@ -277,7 +396,6 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         };
     }
 
-// ✅ Set pending event always
     room.pendingEvents.set(ws, {
         type:             'opportunity_card',
         card:             fullCard,
@@ -290,8 +408,8 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
         tileName:         tile.name,
         skipPurchaseCost: true,
         activationOnly:   true,
-        canAfford:        canAfford,      // ✅ NEW
-        blockedReasons:   lacks           // ✅ NEW
+        canAfford:        canAfford,
+        blockedReasons:   lacks
     });
 
     _sendDreamModal(ws, tile, card, canAfford, lacks);
@@ -303,16 +421,29 @@ function _handleDreamTile(state, tile, ws, roomId, player, room,
             : `⭐ ${player.playerName} 接近夢想「${card.name}」，但條件不足`
     }, ws);
 
+    // ✅ NEW: Broadcast the dream card to other players
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card:          fullCard,
+        action:        canAfford
+            ? `踩中夢想「${tile.name}」`
+            : `接近夢想「${tile.name}」（條件不足）`,
+        effectMessage: card.description || '',
+        broadcastToRoom
+    });
+
     return null;
 }
 
-// ✅ Send dream modal using the actual dream card's data
 function _sendDreamModal(ws, tile, card, canAfford, lacks) {
     const serializableCard = {
         id:             card.id,
-        name:           card.name,                              // ✅ e.g. "訂制夢想跑車"
-        description:    card.description || '',                 // ✅ actual dream description
-        image:          card.image || '',                       // ✅ actual dream image (D01.png etc)
+        name:           card.name,
+        description:    card.description || '',
+        image:          card.image || '',
         cost:           0,
         investmentCost: card.investmentCost || 0,
         energyCost:     tile.needEnergy || card.energyCost || 0,
@@ -349,20 +480,18 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
 
     state.flowInvestments = [];
 
-    // ✅ Return to streamline layer at start
     state.inFlow        = false;
     state.streamlinePos = 0;
     state.inReverse     = false;
     state.flowPos       = 0;
+    state.health        = 0;
 
-    // ✅ Clear all investments
     state.stockHoldings        = {};
     state.cryptoHoldings       = {};
     state.financeInvestments   = [];
     state.businessInvestments  = [];
     state.propertyInvestments  = [];
 
-    // ✅ Remove property mortgage from livingExpense
     if (state.propertyMortgageExpense) {
         state.livingExpense = Math.max(0,
             (state.livingExpense || 0) - state.propertyMortgageExpense
@@ -370,20 +499,15 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
         state.propertyMortgageExpense = 0;
     }
 
-    // ✅ Revert flow income boost FIRST (this restores passiveIncomeBeforeFlow)
     revertFlowLayerIncomeBoost(state);
-
-    // ✅ THEN force passive income to 0 (overrides whatever was restored)
     state.passiveIncome = 0;
 
-    // ✅ Also clear the boost fields explicitly in case they weren't cleared
     state.flowPassiveIncome           = 0;
     state.passiveIncomeBeforeFlow     = 0;
     state.passiveIncomeFlowMultiplier = 1;
 
     state.sideIncome = state.originalSideIncome || 0;
 
-    // ✅ Recalculate totalAssets to match new state (just cash now)
     state.totalAssets = state.cash;
 
     addTransactionRecord(
@@ -396,6 +520,25 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
         state
     );
 
+    // ✅ NEW: Broadcast bankruptcy event
+    broadcastCardReveal({
+        roomId,
+        drawerWs:      ws,
+        drawerName:    player.playerName,
+        drawerId:      player.playerId,
+        card: {
+            id:           `bankruptcy_${Date.now()}`,
+            name:         '破產陷阱',
+            description:  `失去所有投資與被動收入！跌回平流層。現金保留 $${state.cash.toLocaleString()}`,
+            image:        '/cards/tiles/flow/bankruptcy.png',
+            cardType:     'flowbankruptcy',
+            cardTypeName: '順流層災難'
+        },
+        action:        '踩中破產陷阱',
+        effectMessage: `失去 $${lostPassiveIncome.toLocaleString()}/月 被動收入`,
+        broadcastToRoom
+    });
+
     return `💥 破產陷阱！\n` +
         `💰 現金保留: $${state.cash.toLocaleString()}\n` +
         `📉 失去所有被動收入 (原 $${lostPassiveIncome.toLocaleString()}/月)\n` +
@@ -403,10 +546,6 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
         `🌊 跌回平流層起點`;
 }
 
-/**
- * Flow-layer settlement handling.
- * @param {boolean} isLanding - true if player landed exactly, false for passthrough
- */
 function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom, isLanding) {
     const { calculateReducedExpense } = require('../utils/helpers.js');
     const { processSettlementRepayment } = require('../systems/LoanSystem.js');
@@ -415,7 +554,6 @@ function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom
         require('../systems/WalletSystem.js');
     const { chargePlayer } = require('../systems/AutoDebtSystem.js');
 
-    // ✅ Salary + side income → cash (same as streamline)
     let reducibleIncome = state.salary + state.sideIncome;
     const passiveIncome = getEffectivePassiveIncome(state);
 
@@ -428,11 +566,9 @@ function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom
     state.cash        += totalIncome;
     state.totalAssets += Math.floor(totalIncome * 0.2);
 
-    // Auto-collect pending debts
     const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
     processDebtCollection(player, room, roomId, broadcastToRoom);
 
-    // ✅ Expense deduction — split mortgage (investment) from other (non-investment)
     const { totalExpense, savedAmount, reductionPercent } = calculateReducedExpense(state);
 
     const mortgageExpense  = state.propertyMortgageExpense || 0;
@@ -464,23 +600,19 @@ function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom
         ? ` (支出減少 ${reductionPercent}%，節省 ${savedAmount.toLocaleString()} 元)`
         : '';
 
-    // Bakery energy bonus
     if (state.bakeryCount > 0) {
         state.energy = Math.min(state.maxEnergy, state.energy + state.bakeryCount);
     }
 
-    // Property mortgages processing (deduction of principal from remaining balance)
     const { processPropertyMortgages } = require('../systems/PropertyChoiceSystem.js');
     processPropertyMortgages(player, ws, broadcastToRoom, roomId);
 
-    // Loan repayment tracking
     const repaymentResult = processSettlementRepayment(player, ws, roomId, broadcastToRoom);
     if (repaymentResult) {
         ws.send(JSON.stringify(repaymentResult));
         broadcastToRoom(roomId, repaymentResult, ws);
     }
 
-    // ✅ Landing = pending 2-dice roll; passthrough = no roll
     if (isLanding) {
         state.pendingSettlementRoll = true;
         state.settlementRollDiceCount = 2;
@@ -498,7 +630,7 @@ function _processFlowSettlement(state, ws, roomId, player, room, broadcastToRoom
         teaRestaurantMessage:   '',
         isExactLanding:         isLanding,
         pendingSettlementRoll:  isLanding,
-        diceCount:              2,           // for frontend awareness
+        diceCount:              2,
         gameState:              state
     };
     ws.send(JSON.stringify(settlementMsg));

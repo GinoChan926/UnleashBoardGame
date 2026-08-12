@@ -292,6 +292,7 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
 
         // ✅ Snapshot cash to detect what the card spent
         const cashSnapshot = player.gameState.cash || 0;
+        const passiveIncomeSnapshot = player.gameState.passiveIncome || 0;
 
         effectResult = _executeCardLogic(card, data, player, room, ws, roomId);
         if (effectResult === null) return;
@@ -317,8 +318,19 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
         }
 
         if (player.gameState.inFlow) {
-            const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
-            refreshFlowPassiveIncome(player.gameState);
+            const passiveIncomeAfter = player.gameState.passiveIncome || 0;
+            const passiveIncomeGained = passiveIncomeAfter - passiveIncomeSnapshot;
+
+            if (passiveIncomeGained > 0) {
+                // Undo the raw addition
+                player.gameState.passiveIncome = passiveIncomeSnapshot;
+                // Add directly to flowPassiveIncome (1× rate, no boost)
+                player.gameState.flowPassiveIncome = (player.gameState.flowPassiveIncome || 0) + passiveIncomeGained;
+            } else if (passiveIncomeGained < 0) {
+                // Card reduced passive income — apply the reduction to flowPassiveIncome
+                player.gameState.passiveIncome = passiveIncomeSnapshot;
+                player.gameState.flowPassiveIncome = Math.max(0, (player.gameState.flowPassiveIncome || 0) + passiveIncomeGained);
+            }
         }
 
         resultMessage = `✨ 執行「${card.name}」成功！${effectResult}`;
@@ -357,6 +369,32 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             cardName: card.name, cardType: pendingEvent.cardType?.name || '機會卡',
             effectMessage: effectResult, gameState: player.gameState
         });
+
+        // ✅ Check if card produced a gamble result
+        if (player.gameState._pendingGambleResult) {
+            const gamble = player.gameState._pendingGambleResult;
+            delete player.gameState._pendingGambleResult;
+
+            // Send to player (dice animation + result modal)
+            ws.send(JSON.stringify({
+                type: 'gamble_result',
+                ...gamble,
+                gameState: player.gameState
+            }));
+
+            // Broadcast to other players
+            broadcastToRoom(roomId, {
+                type: 'gamble_result_broadcast',
+                playerId:   player.playerId,
+                playerName: player.playerName,
+                cardName:   gamble.cardName,
+                diceRoll:   gamble.diceRoll,
+                won:        gamble.won,
+                cost:       gamble.cost,
+                winAmount:  gamble.winAmount,
+                netProfit:  gamble.netProfit
+            }, ws);
+        }
 
         // ✅ Property choice feature (H01 - H05)
         if (card.hasPropertyChoiceFeature) {
@@ -785,12 +823,13 @@ function _handleFoodDelivery(card, data, player, room, ws, roomId) {
             // But since we do the deduction ourselves inline here, we route directly.
             const spendResult = spendForInvestment(state, investCost);
             state.energy        -= energyCost;
-            state.passiveIncome += (card.monthlyReturn || 8000);
             state.totalAssets   += investCost;
 
+            const monthlyGain = card.monthlyReturn || 8000;
             if (state.inFlow) {
-                const { refreshFlowPassiveIncome } = require('../utils/helpers.js');
-                refreshFlowPassiveIncome(state);
+                state.flowPassiveIncome = (state.flowPassiveIncome || 0) + monthlyGain;
+            } else {
+                state.passiveIncome += monthlyGain;
             }
 
             state.businessInvestments = state.businessInvestments || [];
@@ -916,8 +955,13 @@ function _handleUnitBusiness(card, data, player, room, ws, roomId) {
 
     const spendResult = spendForInvestment(state, totalCost);
     state.energy        -= totalEnergy;
-    state.passiveIncome += totalReturn;
     state.totalAssets   += totalCost;
+
+    if (state.inFlow) {
+        state.flowPassiveIncome = (state.flowPassiveIncome || 0) + totalReturn;
+    } else {
+        state.passiveIncome += totalReturn;
+    }
 
     if (state.inFlow) {
         const { refreshFlowPassiveIncome } = require('../utils/helpers.js');

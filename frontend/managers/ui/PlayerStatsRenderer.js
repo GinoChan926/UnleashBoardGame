@@ -30,7 +30,7 @@ export class PlayerStatsRenderer {
         const monthlyCF     = (gameState.salary + gameState.sideIncome + effectivePassive) - totalExp;
         const totalLoanRepay = gameState.loanAmount + (gameState.accruedInterest || 0);
 
-        const layerText      = gameState.inFlow    ? '顺流層'
+        const layerText      = gameState.inFlow    ? '順流層'
             : gameState.inReverse ? '逆流層'
                 : '平流層';
 
@@ -73,6 +73,7 @@ export class PlayerStatsRenderer {
             ((gameState.cash || 0) + (gameState.loanCash || 0)).toLocaleString()
         );
         this._set('statAccruedInterest', (gameState.accruedInterest || 0).toLocaleString());
+        this._set('statHealth', (gameState.health || 0).toString());
 
         // ── Coloured elements ─────────────────────────────────────────────
         this._setHtml('statMonthlyCF', el => {
