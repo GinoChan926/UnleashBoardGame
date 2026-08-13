@@ -397,8 +397,12 @@
     const tbody = document.getElementById('recordsBody');
     const filtered = transactions.filter(t => {
         if (filter !== 'all' && t.cardType !== filter) return false;
-        if (search && !t.playerName.toLowerCase().includes(search.toLowerCase()) && 
-            !t.cardName.toLowerCase().includes(search.toLowerCase())) return false;
+        if (search) {
+            const q = search.toLowerCase();
+            const inPlayer = (t.playerName || '').toLowerCase().includes(q);
+            const inCard   = (t.cardName   || '').toLowerCase().includes(q);
+            if (!inPlayer && !inCard) return false;
+        }
         return true;
     });
     
