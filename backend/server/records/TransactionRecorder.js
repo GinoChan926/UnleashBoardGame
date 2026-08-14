@@ -5,6 +5,13 @@ const path = require('path');
 
 let transactions = [];
 
+// 玩家 → 房間 對照表（於加入房間時登記），作為交易記錄房間標籤的後備來源，
+// 讓即使沒有帶入玩家狀態的記錄也能歸入正確房間。
+const playerRoomMap = {};
+function setPlayerRoom(playerName, roomId) {
+    if (playerName && roomId) playerRoomMap[playerName] = roomId;
+}
+
 // ── Card type resolver ────────────────────────────────────────────────────────
 
 function getCardTypeFromCard(card) {
@@ -65,9 +72,11 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
 
     const cardType = getCardTypeFromCard(card);
 
-    // 玩家所屬房間（gameState.roomId 於加入時寫入），供分房間分析使用
+    // 玩家所屬房間（gameState.roomId 於加入時寫入），供分房間分析使用。
+    // 後備：若記錄沒有帶入狀態，改用 玩家→房間 對照表。
     const roomId = (stateAfter && stateAfter.roomId)
                 || (stateBefore && stateBefore.roomId)
+                || playerRoomMap[playerName]
                 || '未分配';
 
     const record = {
@@ -143,4 +152,4 @@ function _passiveDiff(before, after) {
     return a - b;
 }
 
-module.exports = { addTransactionRecord, getTransactions, clearTransactions, loadFromFile, getCardTypeFromCard };
+module.exports = { addTransactionRecord, getTransactions, clearTransactions, loadFromFile, getCardTypeFromCard, setPlayerRoom };

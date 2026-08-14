@@ -420,6 +420,10 @@
     </div><!-- /playerView -->
 
     <div id="roomView" style="display:none;">
+        <div class="chart-card" id="roomCompareCard" style="margin-bottom:20px;">
+            <h3>🏆 房間比較 · 淨現金總和</h3>
+            <div id="roomCompareChart"></div>
+        </div>
         <div id="roomSections">
             <div class="no-data">暫無資料</div>
         </div>
@@ -752,18 +756,57 @@
         return svg;
     }
 
+    // 房間比較長條圖：各房間淨現金總和（由高至低）
+    function buildRoomCompareChart(summaries) {
+        const el = document.getElementById('roomCompareChart');
+        const card = document.getElementById('roomCompareCard');
+        if (!summaries.length) { el.innerHTML = ''; card.style.display = 'none'; return; }
+        card.style.display = '';
+        const rows = summaries.slice().sort((a, b) => b.totalCash - a.totalCash);
+        const W = 520, rowH = 52, padL = 12, padR = 66, padT = 10;
+        const H = padT * 2 + rows.length * rowH;
+        const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.totalCash)));
+        const zeroX = padL + (W - padL - padR) / 2;
+        const halfW = (W - padL - padR) / 2;
+
+        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
+        svg += `<line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${H - padT}" stroke="rgba(255,255,255,0.3)"/>`;
+        rows.forEach((r, i) => {
+            const rowTop = padT + i * rowH;
+            const barY   = rowTop + 26;
+            const val    = r.totalCash;
+            const w      = (Math.abs(val) / maxAbs) * halfW;
+            const bx     = val >= 0 ? zeroX : zeroX - w;
+            const barColor = val >= 0 ? '#4caf50' : '#ff6b6b';
+            const medal  = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
+            svg += `<text x="${padL}" y="${rowTop + 16}" fill="#ffd966" font-size="13" font-weight="bold">${medal}🏠 ${escapeHtml(r.roomId)} <tspan fill="#bbb" font-weight="normal">(${r.playerCount}人)</tspan></text>`;
+            svg += `<rect x="${bx.toFixed(1)}" y="${barY}" width="${Math.max(1, w).toFixed(1)}" height="18" rx="4" fill="${barColor}"/>`;
+            const tx = val >= 0 ? bx + w + 6 : bx - 6;
+            const anchor = val >= 0 ? 'start' : 'end';
+            svg += `<text x="${tx.toFixed(1)}" y="${barY + 14}" fill="#ffefc0" font-size="12" text-anchor="${anchor}">${fmt(val)}</text>`;
+        });
+        svg += `</svg>`;
+        el.innerHTML = svg;
+    }
+
     function renderRoomView(txs) {
         const container = document.getElementById('roomSections');
         const rooms = groupByRoom(txs);
         const roomIds = Object.keys(rooms).sort((a, b) => rooms[b].length - rooms[a].length);
-        if (!roomIds.length) { container.innerHTML = '<div class="no-data">暫無資料</div>'; return; }
+        if (!roomIds.length) {
+            container.innerHTML = '<div class="no-data">暫無資料</div>';
+            buildRoomCompareChart([]);
+            return;
+        }
 
+        const summaries = [];
         container.innerHTML = roomIds.map(rid => {
             const rtx     = rooms[rid];
             const players = aggregateByPlayer(rtx);
             const names   = Object.keys(players);
             const colors  = playerColorMap(names);
             const totalCash = names.reduce((s, n) => s + players[n].cash, 0);
+            summaries.push({ roomId: rid, totalCash, playerCount: names.length, recordCount: rtx.length });
             const legend  = names.map(n => `<span><span class="dot" style="background:${colors[n]}"></span>${escapeHtml(n)}</span>`).join('');
             const rows = names.map(n => {
                 const p = players[n];
@@ -790,6 +833,8 @@
                 </div>
             </div>`;
         }).join('');
+
+        buildRoomCompareChart(summaries);
     }
 
     // 初始化

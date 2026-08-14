@@ -8,11 +8,15 @@ const {
 } = require('../utils/helpers.js');
 const { streamlineTiles, reverseTiles, flowTiles } = require('../constants/Tiles.js');
 const { handlePlayerReconnect }      = require('./DisconnectHandler.js');
+const { setPlayerRoom }              = require('../records/TransactionRecorder.js');
 
 function handleJoin(ws, data, roomId, rooms) {
     const room       = getOrCreateRoom(rooms, roomId, streamlineTiles, reverseTiles, flowTiles);
     const playerId   = data.playerId;
     const playerName = data.playerName;
+
+    // 登記 玩家→房間，供交易記錄房間標籤後備使用（涵蓋新加入與重新連線）
+    setPlayerRoom(playerName, roomId);
 
     const _broadcast = (roomId, msg, excl) => broadcastToRoom(rooms, roomId, msg, excl);
 
