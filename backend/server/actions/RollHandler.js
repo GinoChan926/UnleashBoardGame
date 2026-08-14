@@ -379,27 +379,26 @@ function _processStreamlinePassthrough(state, player, ws, roomId, steps, room, b
 }
 
 function _processPassthroughSettlement(state, player, ws, roomId, room, broadcastToRoom, isExactLanding, deps) {
-    if (state.skipSettlementIncome) {
-        state.skipSettlementIncome = false;
-        const { totalExpense } = calculateReducedExpense(state);
-        // Apply the same split as above
-        const mortgageExpense  = state.propertyMortgageExpense || 0;
-        const nonInvestExpense = Math.max(0, totalExpense - mortgageExpense);
-        // (same block as above)
-        return;
-    }
-
-    let reducibleIncome = state.salary + state.sideIncome;
+    // Income — precedence matches the landing path (StreamlineTileProcessor):
+    // inflation (skip) > half income > normal. Expenses below still apply in ALL cases.
     const passiveIncome = getEffectivePassiveIncome(state);
+    let totalIncome = 0;
 
-    if (state.nextSettlementHalfIncome) {
-        reducibleIncome = Math.floor(reducibleIncome / 2);
+    if (state.skipSettlementIncome) {
+        // ⚠️ 通貨膨脹：本次結算日沒有收入（但支出仍要照付）
+        state.skipSettlementIncome = false;
+    } else if (state.nextSettlementHalfIncome) {
+        const reducibleIncome = Math.floor((state.salary + state.sideIncome) / 2);
+        totalIncome        = reducibleIncome + passiveIncome;
+        state.cash        += totalIncome;
+        state.totalAssets += Math.floor(totalIncome * 0.2);
         state.nextSettlementHalfIncome = false;
+    } else {
+        const reducibleIncome = state.salary + state.sideIncome;
+        totalIncome        = reducibleIncome + passiveIncome;
+        state.cash        += totalIncome;
+        state.totalAssets += Math.floor(totalIncome * 0.2);
     }
-
-    const totalIncome = reducibleIncome + passiveIncome;
-    state.cash        += totalIncome;
-    state.totalAssets += Math.floor(totalIncome * 0.2);
 
     const { processDebtCollection } = require('../systems/AutoDebtSystem.js');
     processDebtCollection(player, room, roomId, broadcastToRoom);
