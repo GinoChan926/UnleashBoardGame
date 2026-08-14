@@ -74,6 +74,7 @@ export class PlayerStatsRenderer {
         );
         this._set('statAccruedInterest', (gameState.accruedInterest || 0).toLocaleString());
         this._set('statHealth', (gameState.health || 0).toString());
+        this._set('statAbility', (gameState.ability || 0).toString());
 
         // ── Coloured elements ─────────────────────────────────────────────
         this._setHtml('statMonthlyCF', el => {

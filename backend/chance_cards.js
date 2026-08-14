@@ -17,9 +17,10 @@ const partTimeCards = [
             state.businessCostDiscount = 10;
             state.hasEditSkill = true;
             state.hasBusinessDiscount = true;
-            return "網店開張！副業收入增加 6000 元，精力消耗 3 點,獲得「短片製作」專業知識！未來任何生意營運成本將永久減少 10%";
+            state.ability = (state.ability || 0) + 1;
+            return "網店開張！副業收入增加 6000 元，精力消耗 3 點,獲得「短片製作」專業知識！能力+1，未來任何生意營運成本將永久減少 10%";
         },
-        getEffectDescription: () => "副業收入 +6000/月，精力 -3,生意成本 -10%"
+        getEffectDescription: () => "副業收入 +6000/月，精力 -3,能力+1, 生意成本 -10%"
     },
     {
         id: "Z02",
@@ -87,9 +88,10 @@ const partTimeCards = [
         effect: (state) => {
             state.sideIncome += 6000;
             state.energy = Math.max(0, state.energy - 6);
-            return "副業收入增加 6000 元，精力消耗 6 點";
+            state.ability = (state.ability || 0) + 1;
+            return "副業收入增加 6000 元，精力消耗 6 點，能力+1";
         },
-        getEffectDescription: () => "副業收入 +6000/月，精力 -6"
+        getEffectDescription: () => "副業收入 +6000/月，精力 -6，能力+1"
     },
     {
         id: "Z06",
@@ -146,9 +148,10 @@ const partTimeCards = [
             state.businessCostDiscount = 20;
             state.hasSkill = true;
             state.hasBusinessDiscount = true;
-            return "副業收入增加 3000 元，精力消耗 3 點。獲得「平面设计」專業知識！未来任何生意营运成本将永久减少 20%";
+            state.ability = (state.ability || 0) + 1;
+            return "副業收入增加 3000 元，精力消耗 3 點。獲得「平面设计」專業知識！能力 +1，未来任何生意營運成本將永久减少 20%";
         },
-        getEffectDescription: () => "副業收入 +3000/月，精力 -3，生意成本 -20%"
+        getEffectDescription: () => "副業收入 +3000/月，精力 -3，生意成本 -20%，能力 +1"
     },
     {
         id: "Z09",
@@ -162,9 +165,10 @@ const partTimeCards = [
         effect: (state) => {
             state.sideIncome += 4000;
             state.energy = Math.max(0, state.energy - 4);
-            return "副業收入增加 4000 元，精力消耗 4 點";
+            state.ability = (state.ability || 0) + 1;
+            return "副業收入增加 4000 元，精力消耗 4 點，能力 +1";
         },
-        getEffectDescription: () => "副業收入 +4000/月，精力 -4"
+        getEffectDescription: () => "副業收入 +4000/月，精力 -4，能力 +1"
     },
     {
         id: "Z10",
@@ -195,9 +199,10 @@ const partTimeCards = [
         effect: (state) => {
             state.sideIncome += 3000;
             state.energy = Math.max(0, state.energy - 3);
-            return "家教服務开始！副業收入增加 3000 元";
+            state.ability = (state.ability || 0) + 1;
+            return "家教服務开始！副業收入增加 3000 元，能力 +1";
         },
-        getEffectDescription: () => "副業收入 +3000/月，精力 -3"
+        getEffectDescription: () => "副業收入 +3000/月，精力 -3，能力 +1"
     },
     {
         id: "Z12",
@@ -3536,6 +3541,7 @@ const businessCards = [
             state.energy -= 4;
             state.passiveIncome += 30000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -3551,9 +3557,9 @@ const businessCards = [
             // 獲得教育技能（可选：未来可能有额外加成）
             state.hasEducationSkill = true;
 
-            return `✅ 開設補習社成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，精力消耗 4 點。教育事業惠及莘莘學子！`;
+            return `✅ 開設補習社成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，能力 +1，精力消耗 4 點。教育事業惠及莘莘學子！`;
         },
-        getEffectDescription: () => "投資 300,000 元，被動收入 +30,000/月，精力 -4"
+        getEffectDescription: () => "投資 300,000 元，被動收入 +30,000/月，能力 +1，精力 -4"
     },
 
     {
@@ -3670,6 +3676,7 @@ const businessCards = [
             state.energy -= 3;
             state.passiveIncome += 20000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -3685,9 +3692,9 @@ const businessCards = [
             // 獲得旅游/房产科技技能
             state.hasTravelTech = true;
 
-            return `✅ 投資 Airbnb 成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 3 點。共享經濟帶來穩定現金流！`;
+            return `✅ 投資 Airbnb 成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，能力 +1，精力消耗 3 點。共享經濟帶來穩定現金流！`;
         },
-        getEffectDescription: () => "投資 300,000 元，被動收入 +20,000/月，精力 -3"
+        getEffectDescription: () => "投資 300,000 元，被動收入 +20,000/月，能力 +1，精力 -3"
     },
 
     {
@@ -3804,6 +3811,7 @@ const businessCards = [
             state.energy -= 6;
             state.passiveIncome += 20000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -3825,9 +3833,9 @@ const businessCards = [
             }
             state.automationDiscount += 5; // 自動化技术使未来生意精力消耗减少5%
 
-            return `✅ 投資自動化企業成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 6 點。自動化技術提升企業效率，未來所有生意精力消耗 -5%！`;
+            return `✅ 投資自動化企業成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，能力 +1，精力消耗 6 點。自動化技術提升企業效率，未來所有生意精力消耗 -5%！`;
         },
-        getEffectDescription: () => "投資 280,000 元，被動收入 +20,000/月，精力 -6。獲得自動化技能,未來生意精力消耗 -5%"
+        getEffectDescription: () => "投資 280,000 元，被動收入 +20,000/月，能力 +1，精力 -6。獲得自動化技能,未來生意精力消耗 -5%"
     },
 
         {
@@ -3871,6 +3879,7 @@ const businessCards = [
             state.energy -= 5;
             state.passiveIncome += 20000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             state.businessInvestments = state.businessInvestments || [];
             state.businessInvestments.push({
@@ -3887,9 +3896,10 @@ const businessCards = [
             // const luckBonus = 1;
             // state.luck = Math.min(state.maxLuck, state.luck + luckBonus);
 
-            return `✅ 開設連鎖健康產品店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，精力消耗 5 點！`;
+            state.ability = (state.ability || 0) + 1;
+            return `✅ 開設連鎖健康產品店成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +20,000 元/月，能力 +1，精力消耗 5 點！`;
         },
-        getEffectDescription: () => "投資 280,000 元，被動收入 +20,000/月，精力 -5。幸運值 +1"
+        getEffectDescription: () => "投資 280,000 元，被動收入 +20,000/月，能力 +1，精力 -5。幸運值 +1"
     },
 
     {
@@ -4206,6 +4216,7 @@ const businessCards = [
             state.energy -= 4;
             state.passiveIncome += 30000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -4224,14 +4235,14 @@ const businessCards = [
             // 记录抵御逆境卡的次数（预留）
             state.hardshipShield = (state.hardshipShield || 0) + 1;
 
-            let resultMessage = `✅ 開設家族辦公室成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，精力消耗 4 點。專業財富管理團隊為您服務！`;
+            let resultMessage = `✅ 開設家族辦公室成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +30,000 元/月，能力 +1，精力消耗 4 點。專業財富管理團隊為您服務！`;
 
             // 抵御逆境卡功能（预留，待未来实现）
             resultMessage += `\n🛡️ 獲得 1 次抵擋逆境卡的機會！`;
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 400,000 元，被動收入 +30,000/月，精力 -4。可抵擋一次逆境卡"
+        getEffectDescription: () => "投資 400,000 元，被動收入 +30,000/月，能力 +1，精力 -4。可抵擋一次逆境卡"
     },
 
     {
@@ -4421,6 +4432,7 @@ const businessCards = [
             state.energy -= 5;
             state.passiveIncome += 10000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -4447,9 +4459,9 @@ const businessCards = [
             // }
             // state.energyCostReduction += 2;  // 所有行動精力消耗减少2%
 
-            return `✅ 開發AI智能手機程式成功投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，精力消耗 5 點。`;
+            return `✅ 開發AI智能手機程式成功投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +10,000 元/月，能力 +1，精力消耗 5 點。`;
         },
-        getEffectDescription: () => "投資 150,000 元，被動收入 +10,000/月，精力 -5"
+        getEffectDescription: () => "投資 150,000 元，被動收入 +10,000/月，能力 +1，精力 -5"
     },
 
     {
@@ -4498,6 +4510,7 @@ const businessCards = [
             state.energy -= 6;
             state.passiveIncome += 12000;
             state.totalAssets += finalCost;
+            state.ability = (state.ability || 0) + 1;
 
             // 记录投資
             state.businessInvestments = state.businessInvestments || [];
@@ -4524,7 +4537,7 @@ const businessCards = [
             // }
             // state.passiveIncomeBonus += 3;  // 所有被動收入 +3%
 
-            let resultMessage = `✅ 開設可持續發展碳中和釀酒廠成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +12,000 元/月，精力消耗 6 點。`;
+            let resultMessage = `✅ 開設可持續發展碳中和釀酒廠成功！投資 ${finalCost.toLocaleString()} 元${discountMessage}，被動收入 +12,000 元/月，能力 +1，精力消耗 6 點。`;
 
             // 环保和精力交易功能（预留，待未来实现）
             resultMessage += `\n🌱 環境保護：減少廢物產生，促進循環經濟！`;
@@ -4532,7 +4545,7 @@ const businessCards = [
 
             return resultMessage;
         },
-        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，精力 -6。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能"
+        getEffectDescription: () => "投資 190,000 元，被動收入 +12,000/月，能力 +1，精力 -6。環境保護: 企業減少廢物產生,並促進循環經濟的實踐,精力交易功能"
     },
 
     {

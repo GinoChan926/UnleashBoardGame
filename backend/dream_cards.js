@@ -27,15 +27,17 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasDreamCar = true;
             
             return `🏎️ 訂制夢想跑車成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
+                   `   🎯 能力: +1\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🏎️ 夢想跑車，馳騁人生！`;
         },
-        getEffectDescription: () => "花費 20,000,000 元，50精力"
+        getEffectDescription: () => "花費 20,000,000 元，50精力，能力 +1"
     },
 
     // 格4: 私人岛屿
@@ -95,16 +97,18 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + luckGain);
             // state.health = (state.health || 100) + healthGain;
             state.hasClimbedFuji = true;
             
             return `🗻 登頂富士山成功！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
+                   `   🎯 能力: +1\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🌅 與摯友在富士山頂看日出，人生無憾！`;
         },
-        getEffectDescription: () => "花費 200,000 元，30精力"
+        getEffectDescription: () => "花費 200,000 元，30精力，能力 +1"
     },
 
 
@@ -171,15 +175,17 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 5);
             state.hasHoldConcert = true;
             
             return `🚀 成功舉辦大型演唱會！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
+                   `   🎯 能力: +1\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🌌 探索宇宙，實現人類千年夢想！`;
         },
-        getEffectDescription: () => "花費 10,000,000 元，40精力"
+        getEffectDescription: () => "花費 10,000,000 元，40精力，能力 +1"
     },
 
     // 格12: 終極成就
@@ -315,15 +321,17 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
+            state.ability = (state.ability || 0) + 1;
             //state.luck = Math.min(state.maxLuck || 10, state.luck + 3);
             state.hasAfricaExploration = true;
             
             return `⛵ 成功進行非洲探險！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
+                   `   🎯 能力: +1\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🌍 探索世界，體驗不同文化！`;
         },
-        getEffectDescription: () => "花費 2,000,000 元，10精力"
+        getEffectDescription: () => "花費 2,000,000 元，10精力，能力 +1"
     },
 
     // 格22: 終極夢想
@@ -496,6 +504,7 @@ const dreamCards = {
             
             state.cash -= cost;
             state.energy -= energyCost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 10);
             state.hasUltimateAchievement = true;
             state.gameCompleted = true;
@@ -503,10 +512,11 @@ const dreamCards = {
             
             return `🏆 環遊世界！\n` +
                    `   💰 花費: ${cost.toLocaleString()} 元\n` +
+                    `   🎯 能力: +1\n` +
                    `   ⚡ 精力: -${energyCost}\n` +
                    `   🌟 永恆傳奇，人生巔峰！`;
         },
-        getEffectDescription: () => "花費 2,000,000 元，30精力"
+        getEffectDescription: () => "花費 2,000,000 元，30精力，能力 +1"
     }
 };
 

@@ -507,6 +507,7 @@ function _processBankruptcy(state, ws, roomId, player, broadcastToRoom) {
     state.passiveIncomeFlowMultiplier = 1;
 
     state.sideIncome = state.originalSideIncome || 0;
+    state.ability = state.originalAbility || 0;
 
     state.totalAssets = state.cash;
 

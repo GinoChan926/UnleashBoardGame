@@ -25,7 +25,7 @@ const socialCards = [
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，無法設立殘疾人士就業基金`;
+                return `❌ 精力不足 2 點，無法設立殘疾人士就業基金`;
             }
             
             // 扣除费用
@@ -96,11 +96,12 @@ const socialCards = [
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，無法建立社區圖書館`;
+                return `❌ 精力不足 2 點，無法建立社區圖書館`;
             }
             
             state.cash -= cost;
             state.energy -= 2;
+            state.ability = (state.ability || 0) + 1;
             state.passiveIncome += monthlyIncome;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             
@@ -119,7 +120,7 @@ const socialCards = [
                 { name: "社區圖書館", type: "social", id: "CH02" },
                 "建立社區圖書館",
                 -cost,
-                `建立社區圖書館！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -2，幸運值 +2！`,
+                `建立社區圖書館！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -2，能力 +1！`,
                 null,
                 state
             );
@@ -128,10 +129,10 @@ const socialCards = [
                    `   💰 投入: ${cost.toLocaleString()} 元\n` +
                    `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                    `   ⚡ 精力: -2\n` +
-                   `   🍀 幸運值: +2\n` +
+                   `   🎯 能力: +1\n` +
                    `   📖 推廣閱讀，造福社區！`;
         },
-        getEffectDescription: () => "建立社區圖書館，被動收入 +15,000/月，精力 -2，幸運值 +2"
+        getEffectDescription: () => "建立社區圖書館，被動收入 +15,000/月，精力 -2，能力 +1"
     },
 
     // ==================== CH04: 長者關懷計劃 ====================
@@ -157,7 +158,7 @@ const socialCards = [
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，無法建立長者關懷計劃`;
+                return `❌ 精力不足 4 點，無法建立長者關懷計劃`;
             }
             
             state.cash -= cost;
@@ -218,11 +219,12 @@ const socialCards = [
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，無法成為青年創業導師`;
+                return `❌ 精力不足 2 點，無法成為青年創業導師`;
             }
             
             state.cash -= cost;
             state.energy -= 2;
+            state.ability = (state.ability || 0) + 1;
             state.passiveIncome += monthlyIncome;
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 2);
             
@@ -241,7 +243,7 @@ const socialCards = [
                 { name: "青年創業導師", type: "social", id: "CH05" },
                 "成為青年創業導師",
                 -cost,
-                `成為青年創業導師！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -2，幸運值 +2！`,
+                `成為青年創業導師！投入 ${cost.toLocaleString()} 元，被動收入 +${monthlyIncome.toLocaleString()} 元/月，精力 -2，能力 +1！`,
                 null,
                 state
             );
@@ -250,10 +252,10 @@ const socialCards = [
                    `   💰 投入: ${cost.toLocaleString()} 元\n` +
                    `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                    `   ⚡ 精力: -2\n` +
-                   `   🍀 幸運值: +2\n` +
+                   `   🎯 能力: +1\n` +
                    `   🌟 培育青年，點亮未來！`;
         },
-        getEffectDescription: () => "成為青年創業導師，被動收入 +25,000/月，精力 -2，幸運值 +2"
+        getEffectDescription: () => "成為青年創業導師，被動收入 +25,000/月，精力 -2，能力 +1"
     },
 
     // ==================== CH07: 社區健康中心 ====================
@@ -279,7 +281,7 @@ const socialCards = [
             }
             
             if (state.energy < 4) {
-                return `❌ 精力不足 4 点，無法建立社區健康中心`;
+                return `❌ 精力不足 4 點，無法建立社區健康中心`;
             }
             
             state.cash -= cost;
@@ -340,7 +342,7 @@ const socialCards = [
             }
             
             if (state.energy < 2) {
-                return `❌ 精力不足 2 点，無法設立文化藝術基金`;
+                return `❌ 精力不足 2 點，無法設立文化藝術基金`;
             }
             
             state.cash -= cost;

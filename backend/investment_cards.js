@@ -112,6 +112,7 @@ const investmentCards = [
             state.cash          -= cost;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 2);
 
             state.investments = state.investments || [];
@@ -124,9 +125,10 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⏱️ 預計 10 個月回本！\n` +
+                `   🎯 能力: +1\n` +
                 `   🏥 頂尖醫學研究，造福人類健康！`;
         },
-        getEffectDescription: () => "投資 30,000,000 元，被動收入 +3,000,000/月"
+        getEffectDescription: () => "投資 30,000,000 元，被動收入 +3,000,000/月，能力 +1"
     },
     {
         id: "K05",
@@ -366,6 +368,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.energy         = Math.min(state.maxEnergy, state.energy + energyGain);
+            state.ability = (state.ability || 0) + 1;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + luckGain);
 
             state.investments = state.investments || [];
@@ -380,9 +383,10 @@ const investmentCards = [
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⚡ 精力: +${energyGain}\n` +
                 `   ⏱️ 預計 10 個月回本！\n` +
+                `   🎯 能力: +1\n` +
                 `   🌟 頂級廚藝與精緻用餐體驗，品味人生！`;
         },
-        getEffectDescription: () => "投資 10,000,000 元，被動收入 +1,000,000/月，精力 +10"
+        getEffectDescription: () => "投資 10,000,000 元，被動收入 +1,000,000/月，精力 +10，能力 +1"
     },
     {
         id: "K11",
@@ -484,6 +488,7 @@ const investmentCards = [
             state.cash          -= cost;
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
+            state.ability = (state.ability || 0) + 1;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
@@ -497,9 +502,10 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⏱️ 預計 12 個月回本！\n` +
+                `   🎯 能力: +1\n` +
                 `   🌱 綠色能源投資，為地球永續盡一份力！`;
         },
-        getEffectDescription: () => "投資 2,000,000 元，被動收入 +180,000/月"
+        getEffectDescription: () => "投資 2,000,000 元，被動收入 +180,000/月，能力 +1"
     },
     {
         id: "K13",
@@ -522,6 +528,7 @@ const investmentCards = [
             state.passiveIncome += monthlyIncome;
             state.totalAssets   += cost;
             state.hasAISkill     = true;
+            state.ability = (state.ability || 0) + 1;
             // state.luck           = Math.min(state.maxLuck || 10, state.luck + 1);
 
             state.investments = state.investments || [];
@@ -535,9 +542,10 @@ const investmentCards = [
                 `   💰 投入: ${cost.toLocaleString()} 元\n` +
                 `   📈 被動收入: +${monthlyIncome.toLocaleString()} 元/月\n` +
                 `   ⏱️ 預計 15 個月回本！\n` +
+                `   🎯 能力: +1\n` +
                 `   🧠 人工智能技術，引領未來科技潮流！`;
         },
-        getEffectDescription: () => "投資 10,000,000 元，被動收入 +700,000/月，獲得AI技能"
+        getEffectDescription: () => "投資 10,000,000 元，被動收入 +700,000/月，能力 +1，獲得AI技能"
     },
     {
         id: "K14",

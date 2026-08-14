@@ -1307,13 +1307,14 @@ const tipCards = [
             }
 
             state.cash -= investmentCost;
+            state.ability = (state.ability || 0) + 1;
             state.luckyStarCount = (state.luckyStarCount || 0) + luckyStarReward;
             // state.energy = Math.min(state.maxEnergy, state.energy + 2);
             // state.luck = Math.min(state.maxLuck || 10, state.luck + 1);
 
-            return `🧘 學習釋放情緒成功！\n💰 花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n📝 目前幸運星：${state.luckyStarCount}`;
+            return `🧘 學習釋放情緒成功！\n💰 能力 +1\n花費：$${investmentCost.toLocaleString()}\n⭐ 獲得：${luckyStarReward} 個幸運星\n📝 目前幸運星：${state.luckyStarCount}`;
         },
-        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星"
+        getEffectDescription: () => "個人錦囊：投資 $5,000，獲得 2 個幸運星，能力 +1"
     },
 
     // ==================== IN06 - Personal: Social Network ====================
