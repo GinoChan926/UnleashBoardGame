@@ -30,17 +30,17 @@ export class TurnIndicator {
         }
 
         if (isMyTurn) {
-            this.nameEl.textContent = `👑 ${myName} (你)`;
+            this.nameEl.textContent = `${myName} (你)`;
             this.el.classList.add('my-turn');
 
             const hasRolled = gameState?.hasRolledThisTurn;
 
             if (hasRolled) {
-                this.statusEl.textContent = '⏭️ 請結束回合';
+                this.statusEl.textContent = '請結束回合';
                 this._hideRollBtn();
                 this._showEndTurnBtn(gameState);   // ✅ NEW — show end turn after rolling
             } else {
-                this.statusEl.textContent = '🎲 請擲骰子';
+                this.statusEl.textContent = '請擲骰子';
                 this._showRollBtn(gameState);
                 this._hideEndTurnBtn();   // ✅ NEW — hide end turn while ready to roll
             }

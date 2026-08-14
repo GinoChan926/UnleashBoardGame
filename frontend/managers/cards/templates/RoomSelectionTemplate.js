@@ -20,6 +20,17 @@ export class RoomSelectionTemplate {
                         加入已有房間或創建新房間 (最多 ${MAX_PLAYERS} 人/房間)
                     </div>
                 </div>
+                <div style="text-align: center; margin-bottom: 10px; font-weight: bold;  color: #b3e5fc; font-size: 14px;">
+                    玩家名稱
+                </div>
+                <input type="text" id="playerName"
+                    placeholder="輸入玩家名稱 (將用於顯示)"
+                    maxlength="20"
+                    style="width: 100%; padding: 10px; margin-bottom: 10px;
+                        border-radius: 8px; border: 2px solid #4caf50;
+                        background: rgba(0,0,0,0.5); color: #fff;
+                        font-size: 14px; text-align: center;
+                        box-sizing: border-box;">                
 
                 <!-- Available Rooms Section -->
                 <div style="background: rgba(66,165,245,0.1); padding: 14px;
@@ -59,15 +70,14 @@ export class RoomSelectionTemplate {
                         ✨ 創建/加入房間 (輸入房間號)
                     </div>
 
-                    <input type="text" id="roomIdInput"
-                           placeholder="例如: room1, myroom, ..."
-                           maxlength="20"
-                           style="width: 100%; padding: 10px;
-                                  border-radius: 8px; border: 2px solid #4caf50;
-                                  background: rgba(0,0,0,0.5); color: #fff;
-                                  font-size: 14px; text-align: center;
-                                  box-sizing: border-box; margin-bottom: 10px;">
-
+                      <input type="text" id="roomIdInput"
+                          placeholder="例如: room1, myroom, ..."
+                          maxlength="20"
+                          style="width: 100%; padding: 10px;
+                              border-radius: 8px; border: 2px solid #4caf50;
+                              background: rgba(0,0,0,0.5); color: #fff;
+                              font-size: 14px; text-align: center;
+                              box-sizing: border-box; margin-bottom: 10px;">
                     <button id="joinCustomRoomBtn"
                             style="width: 100%; background: linear-gradient(135deg, #4caf50, #2e7d32);
                                    color: white; padding: 10px; border: none;
@@ -111,7 +121,9 @@ export class RoomSelectionTemplate {
                 const roomId = btn.dataset.roomId;
                 const isFull = btn.dataset.isFull === 'true';
                 if (isFull) return;
-                onJoinRoom(roomId);
+                const nameInput = document.getElementById('playerName');
+                const playerName = nameInput ? nameInput.value.trim() : '';
+                onJoinRoom(roomId, playerName);
             };
         });
     }
@@ -137,7 +149,9 @@ export class RoomSelectionTemplate {
                     alert('房間號只能包含英文字母、數字、中文、_ 和 -');
                     return;
                 }
-                callbacks.onJoinRoom(roomId);
+                const nameInput = document.getElementById('playerName');
+                const playerName = nameInput ? nameInput.value.trim() : '';
+                callbacks.onJoinRoom(roomId, playerName);
             };
 
             joinBtn.onclick = submitCustom;

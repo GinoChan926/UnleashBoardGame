@@ -22,7 +22,15 @@ export class RoomManager {
 
         RoomSelectionTemplate.bindEvents({
             onRefresh: () => this._fetchRoomList(),
-            onJoinRoom: (roomId) => {
+            onJoinRoom: (roomId, playerName) => {
+                // Store chosen player name on the client before closing modal
+                try {
+                    if (playerName && playerName.trim()) {
+                        client.playerName = playerName.trim();
+                        const nameInput = document.getElementById('playerName');
+                        if (nameInput) nameInput.value = playerName.trim();
+                    }
+                } catch (e) {}
                 this._closeModal();
                 onRoomChosen(roomId);
             },
@@ -36,7 +44,9 @@ export class RoomManager {
     }
 
     handleRoomList(message) {
-        RoomSelectionTemplate.renderRoomList(message.rooms || [], (roomId) => {
+        RoomSelectionTemplate.renderRoomList(message.rooms || [], (roomId, playerName) => {
+            // When a user clicks an existing room entry, capture the name
+            try { if (playerName && playerName.trim()) this.client.playerName = playerName.trim(); } catch (e) {}
             this._closeModal();
             if (this._onJoinRoom) this._onJoinRoom(roomId);
         });

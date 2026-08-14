@@ -16,6 +16,7 @@
             --color-success: #4caf50;
             --color-warning: #ff9800;
             --color-danger: #ff6b6b;
+            --board-max: 700px; /* max width of the square game board */
         }
 
         body {
@@ -34,7 +35,7 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 0px;
             align-items: center;
         }
 
@@ -42,7 +43,7 @@
             width: 100%;
             background: rgba(10, 42, 56, 0.95);
             border-radius: 50px;
-            padding: 8px 20px;
+            padding: 5px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -97,7 +98,7 @@
             font-weight: bold;
             color: #ffefc0;
             background: rgba(255,255,255,0.08);
-            padding: 8px 16px;
+            padding: 5px 16px;
             border-radius: 24px;
             border: 1px solid rgba(255,255,255,0.18);
             min-width: 120px;
@@ -127,14 +128,16 @@
         }
 
         .game-panel {
-            flex: 2;
-            min-width: 900px;
-            min-height: 900px;
-            background: #0a2a38;
-            border-radius: 60px;
-            padding: 30px;
-            box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,200,0.2);
-            border: 1px solid #ffb347;
+            flex: 0 0 auto;
+            /* match the board width exactly, no extra padding/box */
+            width: var(--board-max);
+            max-width: 100%;
+            min-height: var(--board-max);
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -144,7 +147,7 @@
         .board-wrapper {
             position: relative;
             width: 100%;
-            max-width: 700px;
+            max-width: var(--board-max);
             margin: 0 auto;
             aspect-ratio: 1 / 1;
         }
@@ -154,10 +157,11 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(135deg, #fef5e0 0%, #ffefc8 100%);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.4), inset 0 1px 3px rgba(255,245,180,0.9);
+            /* apply panel styling here so the box matches the board size */
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,200,0.2);
             overflow: visible;
-            border-radius: 0;
-            border: 4px solid #2e7d32;
+            border-radius: 28px;
+            border: 4px solid #ffb347;
         }
 
         .flow-square-border {
@@ -537,7 +541,7 @@
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #1a472a, #2e7d32);
-            padding: 10px 24px;
+            padding: 5px 24px;
             border-radius: 30px;
             border: 2px solid #ffd966;
             box-shadow: 0 6px 18px rgba(0,0,0,0.4);
@@ -545,7 +549,7 @@
             align-items: center;
             gap: 14px;
             z-index: 150;
-            min-width: 300px;
+            max-width: 500px;
             justify-content: center;
             transition: all 0.3s ease;
         }
@@ -562,8 +566,28 @@
             50%      { transform: translateX(-50%) scale(1.02); }
         }
 
+        /* Top-bar placement adjustments */
+        .top-audio-bar .turn-indicator {
+            position: relative;
+            top: auto;
+            left: auto;
+            transform: none;
+            margin-left: 12px;
+            max-width: 500px;
+            z-index: 2;
+        }
+
+        @keyframes turnPulseTop {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.02); }
+        }
+
+        .top-audio-bar .turn-indicator.my-turn {
+            animation: turnPulseTop 1.5s ease infinite;
+        }
+
         .turn-indicator-label {
-            font-size: 13px;
+            font-size: 12px;
             color: #ffd966;
             font-weight: bold;
         }
@@ -573,14 +597,14 @@
         }
 
         .turn-indicator-name {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: bold;
             color: white;
             text-shadow: 0 2px 6px rgba(0,0,0,0.5);
         }
 
         .turn-indicator-status {
-            font-size: 11px;
+            font-size: 12px;
             color: #b3e5fc;
             background: rgba(0,0,0,0.3);
             padding: 3px 10px;
@@ -696,15 +720,73 @@
                 0 0 0 4px rgba(206, 147, 216, 0.3);
             }
         }
+        /* Layout: left panel, centered board, right panel */
+        .game-main-row {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 24px 12px;
+        }
+
+        .left-column, .right-column {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .game-panel {
+            flex: 0 0 auto;
+            width: var(--board-max);
+            max-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Control toggle button placed above the right column */
+        .control-toggle {
+            background: linear-gradient(135deg, #1a472a, #1b5e3f);
+            color: #ffd966;
+            border: 2px solid #ffd966;
+            padding: 10px 14px;
+            border-radius: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+
+        /* Collapsible control panel */
+        .control-panel {
+            transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.2s ease;
+            overflow: hidden;
+            max-height: 1200px;
+        }
+
+        .control-panel.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border: none;
+        }
+
+        @media (max-width: 1000px) {
+            .game-main-row { flex-direction: column-reverse; align-items: center; }
+            .left-column, .right-column { width: 100%; max-width: 420px; }
+            .game-panel { min-width: 420px; }
+        }
+
     </style>
 </head>
 <body>
 <div class="container">
     <div class="top-audio-bar">
-            <div class="audio-label">⏱️ 遊戲計時器</div>
             <div class="timer-controls">
                 <label for="timerLength">時長：</label>
-                <select id="timerLength" style="padding: 6px 10px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: #fff;">
+                <select id="timerLength" style="padding: 6px 20px; border-radius: 20px; border: none; background: rgba(255,255,255,0.1); color: #fff;">
                     <option value="22">22 分鐘</option>
                     <option value="45">45 分鐘</option>
                     <option value="67">67 分鐘</option>
@@ -714,9 +796,12 @@
                 <button id="btnTimerReset" style="width: auto; padding: 6px 20px; margin-left: 8px;">🔄 重置</button>
             </div>
             <div class="timer-display" id="timerDisplay">剩餘 00:00</div>
-            <div class="music-status" id="musicStatus">🎧 尚未啟動</div>
+            <div class="turn-indicator" id="turnIndicator">
+                <div class="turn-indicator-label">當前回合</div>
+                <div class="turn-indicator-name" id="turnIndicatorName">等待玩家加入...</div>
+                <div class="turn-indicator-status" id="turnIndicatorStatus"></div>
+            </div>
             <div class="network-status" id="networkStatus">⚪ 未連接</div>
-            <input type="text" id="playerName" placeholder="輸入玩家名稱" maxlength="20" style="padding: 6px 12px; border-radius: 20px; border: none;">
             <button id="btnConnect" onclick="window.gameClient?.connect()" style="width: auto; padding: 6px 20px;">🔌 連接</button>
             <button id="btnRename"
                     style="width: auto; padding: 6px 20px; background: #9c27b0; display: none;">
@@ -732,12 +817,45 @@
         </div> -->
 
     <div class="game-main-row">
-        <div class="game-panel">
-            <div class="turn-indicator" id="turnIndicator">
-                <div class="turn-indicator-label">🎯 當前回合</div>
-                <div class="turn-indicator-name" id="turnIndicatorName">等待玩家加入...</div>
-                <div class="turn-indicator-status" id="turnIndicatorStatus"></div>
+        <div class="left-column">
+            <div class="panel">
+                <div class="panel-title">💰 財務報表</div>
+                <div class="panel-row"><span>現金</span><strong id="statCash">10000</strong></div>
+                <div class="panel-row"><span>🏦 貸款金</span><strong id="statLoanCash" style="color:#4fc3f7;">0</strong></div>
+                <div class="panel-row"><span>💰 總可用</span><strong id="statTotalCash" style="color:#ffd966;">10000</strong></div>
+                <div class="panel-row"><span>月薪</span><strong id="statSalary">5000</strong></div>
+                <div class="panel-row"><span>副業</span><strong id="statSideIncome">0</strong></div>
+                <div class="panel-row"><span>被動收入</span><strong id="statPassiveIncome">0</strong></div>
+                <div class="panel-row"><span>📊 月現金流</span><strong id="statMonthlyCF">+5000</strong></div>
+                <div class="panel-row"><span>生活支出</span><strong id="statLiving">4000</strong></div>
+                <div class="panel-row"><span>稅金</span><strong id="statTax">500</strong></div>
+                <div class="panel-row"><span>貸款利息 (月)</span><strong id="statLoanInterest">0</strong></div>
+                <div class="panel-row"><span>💸 累積利息</span><strong id="statAccruedInterest" style="color:#ff9800;">0</strong></div>
+                <div class="panel-row"><span>💰 本利和 (本金+累積利息)</span><strong id="statTotalLoanRepay" style="color:#4caf50;">0</strong></div>
+                <div class="panel-row"><span>💸 待償還債務</span><strong id="statPendingDebt" style="color:#ff9800;">0</strong></div>
+                <div class="panel-row"><span>總支出</span><strong id="statTotalExpense">4500</strong></div>
             </div>
+        </div>
+
+        <div class="game-panel">
+            <div class="board-wrapper">
+                <div class="three-tier-board" id="threeTierBoard">
+                    <div class="flow-square-border"></div>
+                    <div class="streamline-circle-border"></div>
+                    <div class="reverse-ring"></div>
+                    <div class="center-hub" id="centerHub">
+                        <div>💰</div>
+                        <div class="center-hub-text" id="layerText">財富流</div>
+                    </div>
+                    <div class="cells-layer" id="reverseCellsLayer"></div>
+                    <div class="cells-layer" id="streamlineCellsLayer"></div>
+                    <div class="cells-layer" id="flowCellsLayer"></div>
+                    <div class="cells-layer" id="tokenOverlay"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-column">
             <button id="btnRollTop"
                     class="turn-indicator-roll-btn"
                     onclick="window.gameClient?.rollDice()"
@@ -760,55 +878,7 @@
                     title="你已達成順流層資格！點擊進入">
                 🌊 進入順流層
             </button>
-            <div class="board-wrapper">
-                <div class="three-tier-board" id="threeTierBoard">
-                    <div class="flow-square-border"></div>
-                    <div class="streamline-circle-border"></div>
-                    <div class="reverse-ring"></div>
-                    <div class="center-hub" id="centerHub">
-                        <div>💰</div>
-                        <div class="center-hub-text" id="layerText">財富流</div>
-                    </div>
-                    <div class="cells-layer" id="reverseCellsLayer"></div>
-                    <div class="cells-layer" id="streamlineCellsLayer"></div>
-                    <div class="cells-layer" id="flowCellsLayer"></div>
-                    <div class="cells-layer" id="tokenOverlay"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="sidebar">
-            <div class="panel">
-                <div class="panel-title">💰 財務報表</div>
-                <div class="panel-row"><span>現金</span><strong id="statCash">10000</strong></div>
-                <div class="panel-row"><span>🏦 貸款金</span><strong id="statLoanCash" style="color:#4fc3f7;">0</strong></div>
-                <div class="panel-row"><span>💰 總可用</span><strong id="statTotalCash" style="color:#ffd966;">10000</strong></div>
-                <div class="panel-row"><span>月薪</span><strong id="statSalary">5000</strong></div>
-                <div class="panel-row"><span>副業</span><strong id="statSideIncome">0</strong></div>
-                <div class="panel-row"><span>被動收入</span><strong id="statPassiveIncome">0</strong></div>
-                <div class="panel-row"><span>📊 月現金流</span><strong id="statMonthlyCF">+5000</strong></div>
-                <div class="panel-row"><span>生活支出</span><strong id="statLiving">4000</strong></div>
-                <div class="panel-row"><span>稅金</span><strong id="statTax">500</strong></div>
-                <div class="panel-row"><span>貸款利息 (月)</span><strong id="statLoanInterest">0</strong></div>
-                <div class="panel-row"><span>💸 累積利息</span><strong id="statAccruedInterest" style="color:#ff9800;">0</strong></div>
-                <div class="panel-row"><span>💰 本利和 (本金+累積利息)</span><strong id="statTotalLoanRepay" style="color:#4caf50;">0</strong></div>
-                <div class="panel-row"><span>💸 待償還債務</span><strong id="statPendingDebt" style="color:#ff9800;">0</strong></div>
-                <div class="panel-row"><span>總支出</span><strong id="statTotalExpense">4500</strong></div>
-            </div>
-
-            <div class="panel">
-                <div class="panel-title">⚡ 狀態</div>
-                <div class="panel-row"><span>精力</span><strong id="statEnergy">10</strong></div>
-                <div class="panel-row"><span>💚 健康</span><strong id="statHealth" style="color:#4caf50;">0</strong></div>
-                <!--<div class="panel-row"><span>幸運值</span><strong id="statLuck">5.0</strong>/10</div> -->
-                <div class="panel-row"><span>⭐ 幸運星</span><strong id="statLuckyStar">0</strong></div>
-                <div class="panel-row"><span>🍀 四葉草</span><strong id="statFourLeafClover">0</strong></div>
-                <div class="panel-row"><span>🛡️ 逆境卡抵擋</span><strong id="statHardshipShield">0</strong></div>
-                <div class="panel-row"><span>👮 義工服務</span><strong id="statVolunteerProgress" style="font-weight: bold;">0/5</strong></div>
-                <div class="panel-row"><span>🤝 社會貢獻</span><strong id="statContributionProgress" style="font-weight: bold;">0/1</strong></div>
-                <div class="panel-row"><span>層級</span><strong id="statLayer">平流層</strong></div>
-            </div>
-
+            <button id="controlToggle" class="control-toggle">🎮 控制面板</button>
             <div class="panel control-panel" id="controlPanel">
                 <div class="panel-title">🎮 控制面板</div>
                 <button id="btnRoll" onclick="window.gameClient?.rollDice()" disabled>🎲 擲骰子</button>
@@ -833,6 +903,19 @@
                     🌊 順流層清單
                 </button>
                 <button id="btnDisconnect" onclick="window.gameClient?.disconnect()">🔌 斷開連接</button>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">⚡ 狀態</div>
+                <div class="panel-row"><span>精力</span><strong id="statEnergy">10</strong></div>
+                <div class="panel-row"><span>💚 健康</span><strong id="statHealth" style="color:#4caf50;">0</strong></div>
+                <!--<div class="panel-row"><span>幸運值</span><strong id="statLuck">5.0</strong>/10</div> -->
+                <div class="panel-row"><span>⭐ 幸運星</span><strong id="statLuckyStar">0</strong></div>
+                <div class="panel-row"><span>🍀 四葉草</span><strong id="statFourLeafClover">0</strong></div>
+                <div class="panel-row"><span>🛡️ 逆境卡抵擋</span><strong id="statHardshipShield">0</strong></div>
+                <div class="panel-row"><span>👮 義工服務</span><strong id="statVolunteerProgress" style="font-weight: bold;">0/5</strong></div>
+                <div class="panel-row"><span>🤝 社會貢獻</span><strong id="statContributionProgress" style="font-weight: bold;">0/1</strong></div>
+                <div class="panel-row"><span>層級</span><strong id="statLayer">平流層</strong></div>
             </div>
 
             <div class="panel">
@@ -1020,6 +1103,19 @@
     };
 
     updateTimerDisplay();
+</script>
+<script>
+    (function(){
+        const toggle = document.getElementById('controlToggle');
+        const panel = document.getElementById('controlPanel');
+        if (!toggle || !panel) return;
+        panel.classList.add('collapsed');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.addEventListener('click', () => {
+            const collapsed = panel.classList.toggle('collapsed');
+            toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        });
+    })();
 </script>
 <script type="module" src="./game.js"></script>
 </body>
