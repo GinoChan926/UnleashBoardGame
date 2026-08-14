@@ -378,53 +378,78 @@ export class ModalManager {
 
     showProfessionModal(professions, gameClient) {
         const modalHtml = `
-            <div class="modal-content" style="max-width: 800px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px;">
-                <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 26px; margin-bottom: 20px;">🎭 選擇你的職業</div>
-                <div class="modal-body" id="professionBody" style="text-align: center;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; padding: 16px;" id="professionButtons"></div>
-                </div>
-                <div class="modal-buttons" style="justify-content: center; margin: 10px 0 5px 0;">
-                    <button class="btn-secondary" id="cancelProfessionBtn" style="background: #9e9e9e; padding: 10px 32px; border-radius: 30px; cursor: pointer;">取消</button>
-                </div>
+        <div class="modal-content" style="max-width: 800px; background: linear-gradient(135deg, #1a2a3a, #0d1b2a); border-radius: 28px;">
+            <div class="modal-title" style="text-align: center; color: #ffd966; font-size: 26px; margin-bottom: 20px;">🎭 選擇你的職業</div>
+            <div class="modal-body" id="professionBody" style="text-align: center;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; padding: 16px;" id="professionButtons"></div>
             </div>
-        `;
+            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 12px; margin: 10px 0 5px 0;">
+                <!-- ✅ NEW: Random button -->
+                <button id="randomProfessionBtn"
+                        style="background: linear-gradient(135deg, #ff9800, #f57c00);
+                               color: white; padding: 10px 24px; border-radius: 30px;
+                               cursor: pointer; font-size: 14px; font-weight: bold;
+                               border: none; transition: all 0.3s ease;
+                               box-shadow: 0 4px 12px rgba(255,152,0,0.4);
+                               animation: randomBtnPulse 2s ease infinite;">
+                    🎲 隨機分配
+                </button>
+                <button class="btn-secondary" id="cancelProfessionBtn"
+                        style="background: #9e9e9e; padding: 10px 32px;
+                               border-radius: 30px; cursor: pointer;
+                               border: none; color: white; font-size: 14px;">
+                    取消
+                </button>
+            </div>
+        </div>
+
+        <style>
+            @keyframes randomBtnPulse {
+                0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(255,152,0,0.4); }
+                50%      { transform: scale(1.03); box-shadow: 0 6px 20px rgba(255,152,0,0.7); }
+            }
+        </style>
+    `;
 
         this.createModal('professionModal', modalHtml);
 
         const modal = this.getModal('professionModal');
         const buttonsContainer = document.getElementById('professionButtons');
         const cancelBtn = document.getElementById('cancelProfessionBtn');
+        const randomBtn = document.getElementById('randomProfessionBtn');
 
         if (!modal || !buttonsContainer) return;
 
         buttonsContainer.innerHTML = '';
 
-        for (const [id, prof] of Object.entries(professions)) {
+        const professionEntries = Object.entries(professions);
+
+        for (const [id, prof] of professionEntries) {
             const card = document.createElement('div');
             card.style.cssText = `
-                cursor: pointer;
-                transition: all 0.3s ease;
-                background: linear-gradient(135deg, #2a3a2a, #1a2a1a);
-                border-radius: 20px;
-                padding: 16px;
-                text-align: left;
-                border: 2px solid #ffb347;
-                box-shadow: 0 6px 14px rgba(0,0,0,0.3);
-            `;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #2a3a2a, #1a2a1a);
+            border-radius: 20px;
+            padding: 16px;
+            text-align: left;
+            border: 2px solid #ffb347;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+        `;
 
             const monthlyCF = prof.salary + prof.sideIncome - (prof.livingExpense + prof.tax);
             card.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold; color: #ffd966; margin-bottom: 12px;">${prof.name}</div>
-                <div style="color: #ffd966; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
-                    <div>💰 起始現金: ${prof.cash.toLocaleString()}</div>
-                    <div>💼 月薪: ${prof.salary.toLocaleString()}</div>
-                    <div>💪 副業: ${prof.sideIncome.toLocaleString()}</div>
-                    <div>⚡ 精力: ${prof.energy}/${prof.maxEnergy}</div>
-                    <div>🏠 生活支出: ${prof.livingExpense.toLocaleString()}</div>
-                    <div>📑 稅務: ${prof.tax.toLocaleString()}</div>
-                    <div>🔄 月現金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}</div>
-                </div>
-            `;
+            <div style="font-size: 18px; font-weight: bold; color: #ffd966; margin-bottom: 12px;">${prof.name}</div>
+            <div style="color: #ffd966; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+                <div>💰 起始現金: ${prof.cash.toLocaleString()}</div>
+                <div>💼 月薪: ${prof.salary.toLocaleString()}</div>
+                <div>💪 副業: ${prof.sideIncome.toLocaleString()}</div>
+                <div>⚡ 精力: ${prof.energy}/${prof.maxEnergy}</div>
+                <div>🏠 生活支出: ${prof.livingExpense.toLocaleString()}</div>
+                <div>📑 稅務: ${prof.tax.toLocaleString()}</div>
+                <div>🔄 月現金流: ${monthlyCF >= 0 ? '+' : ''}${monthlyCF.toLocaleString()}</div>
+            </div>
+        `;
 
             card.onclick = () => {
                 gameClient.selectedProfession = { id, data: prof };
@@ -435,10 +460,111 @@ export class ModalManager {
             buttonsContainer.appendChild(card);
         }
 
+        // ✅ NEW: Random profession button
+        if (randomBtn) {
+            randomBtn.onclick = () => {
+                // Shuffle animation
+                this._animateRandomProfession(buttonsContainer, professionEntries, () => {
+                    // Pick random
+                    const randomIndex = Math.floor(Math.random() * professionEntries.length);
+                    const [id, prof]  = professionEntries[randomIndex];
+
+                    gameClient.selectedProfession = { id, data: prof };
+
+                    // Flash the selected card
+                    const cards = buttonsContainer.children;
+                    if (cards[randomIndex]) {
+                        cards[randomIndex].style.border = '3px solid #4caf50';
+                        cards[randomIndex].style.boxShadow = '0 0 20px rgba(76,175,80,0.6)';
+                        cards[randomIndex].style.transform = 'scale(1.05)';
+                    }
+
+                    // Brief pause to show selection, then connect
+                    setTimeout(() => {
+                        gameClient.logManager.addLog(
+                            `🎲 隨機分配到職業：${prof.name}`,
+                            'success'
+                        );
+                        gameClient.logManager.showNotification(
+                            `🎲 隨機分配到：${prof.name}！`,
+                            'success'
+                        );
+                        gameClient.doConnect();
+                        this.closeModal('professionModal');
+                    }, 1200);
+                });
+            };
+
+            randomBtn.onmouseenter = () => {
+                randomBtn.style.transform = 'scale(1.05)';
+            };
+            randomBtn.onmouseleave = () => {
+                randomBtn.style.transform = 'scale(1)';
+            };
+        }
+
         if (cancelBtn) {
             cancelBtn.onclick = () => this.closeModal('professionModal');
         }
 
         this.openModal('professionModal');
+    }
+
+    /**
+     * ✅ NEW: Shuffle animation — rapidly highlights random cards before landing on the final one.
+     */
+    _animateRandomProfession(container, entries, onComplete) {
+        const cards     = container.children;
+        const totalCards = cards.length;
+
+        if (totalCards === 0) {
+            onComplete();
+            return;
+        }
+
+        // Reset all cards first
+        for (let i = 0; i < totalCards; i++) {
+            cards[i].style.border    = '2px solid #ffb347';
+            cards[i].style.boxShadow = '0 6px 14px rgba(0,0,0,0.3)';
+            cards[i].style.transform = 'scale(1)';
+        }
+
+        let currentHighlight = 0;
+        let speed            = 80;     // start fast
+        let rounds           = 0;
+        const totalRounds    = 15 + Math.floor(Math.random() * 10);   // 15-25 flashes
+
+        const step = () => {
+            // Un-highlight previous
+            const prevIndex = (currentHighlight - 1 + totalCards) % totalCards;
+            cards[prevIndex].style.border    = '2px solid #ffb347';
+            cards[prevIndex].style.boxShadow = '0 6px 14px rgba(0,0,0,0.3)';
+            cards[prevIndex].style.transform = 'scale(1)';
+
+            // Highlight current
+            cards[currentHighlight].style.border    = '3px solid #ff9800';
+            cards[currentHighlight].style.boxShadow = '0 0 15px rgba(255,152,0,0.6)';
+            cards[currentHighlight].style.transform = 'scale(1.03)';
+
+            currentHighlight = (currentHighlight + 1) % totalCards;
+            rounds++;
+
+            if (rounds >= totalRounds) {
+                // Un-highlight the last one
+                const lastIndex = (currentHighlight - 1 + totalCards) % totalCards;
+                cards[lastIndex].style.border    = '2px solid #ffb347';
+                cards[lastIndex].style.boxShadow = '0 6px 14px rgba(0,0,0,0.3)';
+                cards[lastIndex].style.transform = 'scale(1)';
+
+                onComplete();
+                return;
+            }
+
+            // Slow down gradually
+            speed = Math.min(300, speed + 15);
+            setTimeout(step, speed);
+        };
+
+        step();
     }
 }
