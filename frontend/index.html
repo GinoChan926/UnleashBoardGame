@@ -169,30 +169,31 @@
 
         /* Turn indicator */
         .turn-indicator {
+            display: flex;
+            align-items: center;
             position: absolute;
-            top: -6px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 40%;
+            gap: 8px;
             background: linear-gradient(135deg, #1a472a, #2e7d32);
             padding: 5px 14px;
             border-radius: 20px;
             border: 2px solid var(--gold);
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 150;
             min-width: 220px;
             justify-content: center;
+            transition: all 0.3s ease;
+            margin: 2px 0;
         }
         .turn-indicator.my-turn {
             background: linear-gradient(135deg, #ff9800, #f57c00);
             border-color: #fff59d;
             animation: turnPulse 1.5s ease infinite;
+            box-shadow: 0 6px 24px rgba(255,152,0,0.5);
         }
+
         @keyframes turnPulse {
-            0%, 100% { transform: translateX(-50%) scale(1); }
-            50%      { transform: translateX(-50%) scale(1.02); }
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.02); }
         }
         .turn-indicator-label { font-size: 11px; color: var(--gold); font-weight: bold; }
         .turn-indicator.my-turn .turn-indicator-label { color: #fff59d; }
@@ -200,15 +201,19 @@
         .turn-indicator-status { font-size: 9px; color: #b3e5fc; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 10px; }
         .turn-indicator.my-turn .turn-indicator-status { color: #fff9c4; background: rgba(0,0,0,0.4); }
 
-        /* Board action buttons */
-        .board-actions {
-            position: absolute;
-            bottom: -14px;
-            left: 50%;
-            transform: translateX(-50%);
+        .right-panel-actions {
             display: flex;
+            flex-direction: column;
             gap: 6px;
-            z-index: 150;
+            flex-shrink: 0;
+        }
+
+        .right-panel-actions .turn-indicator-roll-btn,
+        .right-panel-actions .turn-indicator-end-btn,
+        .right-panel-actions .turn-indicator-flow-btn {
+            width: 100%;
+            margin: 0;
+            text-align: center;
         }
 
         .turn-indicator-roll-btn,
@@ -473,7 +478,11 @@
     <span class="music-status" id="musicStatus">🎧</span>
 
     <div class="spacer"></div>
-
+    <div class="turn-indicator" id="turnIndicator">
+        <div class="turn-indicator-label">🎯</div>
+        <div class="turn-indicator-name" id="turnIndicatorName">等待加入...</div>
+        <div class="turn-indicator-status" id="turnIndicatorStatus"></div>
+    </div>
     <div class="network-status" id="networkStatus">⚪ 未連接</div>
     <input type="text" id="playerName" placeholder="玩家名稱" maxlength="20">
     <button id="btnConnect">🔌 連接</button>
@@ -530,11 +539,6 @@
     <!-- ── CENTER PANEL ────────────────────────────────────────── -->
     <div class="center-panel">
         <div class="game-board-container">
-            <div class="turn-indicator" id="turnIndicator">
-                <div class="turn-indicator-label">🎯</div>
-                <div class="turn-indicator-name" id="turnIndicatorName">等待加入...</div>
-                <div class="turn-indicator-status" id="turnIndicatorStatus"></div>
-            </div>
 
             <div class="board-wrapper">
                 <div class="three-tier-board" id="threeTierBoard">
@@ -549,28 +553,27 @@
                     <div class="cells-layer" id="streamlineCellsLayer"></div>
                     <div class="cells-layer" id="flowCellsLayer"></div>
                     <div class="cells-layer" id="tokenOverlay"></div>
+                    </div>
                 </div>
             </div>
-
-            <div class="board-actions">
-                <button id="btnRollTop" class="turn-indicator-roll-btn"
-                        onclick="window.gameClient?.rollDice()" style="display:none;">
-                    🎲 擲骰子
-                </button>
-                <button id="btnEndTurnTop" class="turn-indicator-end-btn"
-                        onclick="window.gameClient?.endTurn()" style="display:none;">
-                    ⏭️ 結束回合
-                </button>
-                <button id="btnEnterFlow" class="turn-indicator-flow-btn"
-                        onclick="window.gameClient?.requestFlowEntry()" style="display:none;">
-                    🌊 順流層
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- ── RIGHT PANEL ─────────────────────────────────────────── -->
     <div class="right-panel">
+        <div class="right-panel-actions">
+            <button id="btnRollTop" class="turn-indicator-roll-btn"
+                    onclick="window.gameClient?.rollDice()" style="display:none;">
+                🎲 擲骰子
+            </button>
+            <button id="btnEndTurnTop" class="turn-indicator-end-btn"
+                    onclick="window.gameClient?.endTurn()" style="display:none;">
+                ⏭️ 結束回合
+            </button>
+            <button id="btnEnterFlow" class="turn-indicator-flow-btn"
+                    onclick="window.gameClient?.requestFlowEntry()" style="display:none;">
+                🌊 進入順流層
+            </button>
+        </div>
         <div class="players-card">
             <div class="stat-card-title">👥 在線玩家</div>
             <div class="players-list" id="playersList">
