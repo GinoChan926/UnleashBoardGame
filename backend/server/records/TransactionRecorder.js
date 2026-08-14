@@ -65,10 +65,16 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
 
     const cardType = getCardTypeFromCard(card);
 
+    // 玩家所屬房間（gameState.roomId 於加入時寫入），供分房間分析使用
+    const roomId = (stateAfter && stateAfter.roomId)
+                || (stateBefore && stateBefore.roomId)
+                || '未分配';
+
     const record = {
         id:                   `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         timestamp:            new Date().toLocaleString('zh-HK'),
         playerName,
+        roomId,
         cardType,
         cardName:             card.name,
         action,

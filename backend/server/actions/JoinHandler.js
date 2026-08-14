@@ -83,6 +83,7 @@ function handleJoin(ws, data, roomId, rooms) {
 
     const gameState = {
         playerId, playerName,
+        roomId,   // 記錄玩家所屬房間，供交易記錄 / 分房間分析使用
         streamlinePos: 0, reversePos: 0, flowPos: 0,
         inReverse: false, inFlow: false,
         cash:            professionData.cash,

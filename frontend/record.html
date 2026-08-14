@@ -293,6 +293,51 @@
         .pc-typebar span { height: 100%; }
         .pc-typelist { font-size: 12px; color: #ddd; line-height: 1.7; }
         .pc-typelist .k { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+
+        /* ── Per-room analytics view ─────────────────────────────── */
+        .room-section {
+            background: rgba(28, 28, 32, 0.95);
+            border-radius: 16px;
+            border: 1px solid #ffb347;
+            border-left: 6px solid #ffd966;
+            padding: 18px 22px;
+            margin-bottom: 20px;
+        }
+        .room-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,179,71,0.3);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+        .room-header h2 { margin: 0; color: #ffd966; font-size: 22px; }
+        .room-meta { color: #ffefc0; font-size: 14px; }
+        .room-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+        @media (max-width: 900px) { .room-body { grid-template-columns: 1fr; } }
+        .room-chart svg { width: 100%; height: auto; display: block; }
+        .rc-title { color: #ffd966; font-size: 14px; margin-bottom: 6px; }
+        .room-players { display: flex; flex-direction: column; gap: 8px; }
+        .room-player-row {
+            background: rgba(0,0,0,0.35);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 16px;
+            font-size: 13px;
+            color: #e8e8e8;
+        }
+        .room-player-row .rp-name { font-weight: bold; min-width: 70px; }
+        .room-player-row .rp-metric b { color: #fff; }
     </style>
 </head>
 <body>
@@ -305,6 +350,7 @@
     <div class="view-toggle">
         <button class="view-btn active" data-view="table">📋 全部記錄</button>
         <button class="view-btn" data-view="player">👥 分玩家分析</button>
+        <button class="view-btn" data-view="room">🏠 分房間分析</button>
     </div>
 
     <div id="tableView">
@@ -369,6 +415,12 @@
             </div>
         </div>
         <div class="player-grid" id="playerGrid">
+            <div class="no-data">暫無資料</div>
+        </div>
+    </div><!-- /playerView -->
+
+    <div id="roomView" style="display:none;">
+        <div id="roomSections">
             <div class="no-data">暫無資料</div>
         </div>
     </div>
@@ -588,9 +640,10 @@
     }
 
     // ── 長條圖：各玩家淨現金變化 ──────────────────────────────────────
+    // 玩家全名放在長條上方（不再截斷），數值放在長條末端。
     function buildBarChart(players, colors) {
         const names = Object.keys(players);
-        const W = 520, rowH = 40, padL = 90, padR = 60, padT = 10;
+        const W = 520, rowH = 52, padL = 12, padR = 66, padT = 10;
         const H = padT * 2 + Math.max(1, names.length) * rowH;
         const maxAbs = Math.max(1, ...names.map(n => Math.abs(players[n].cash)));
         const zeroX = padL + (W - padL - padR) / 2;
@@ -599,16 +652,20 @@
         let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
         svg += `<line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${H - padT}" stroke="rgba(255,255,255,0.3)"/>`;
         names.forEach((n, i) => {
-            const cy = padT + i * rowH + rowH / 2;
-            const val = players[n].cash;
-            const w = (Math.abs(val) / maxAbs) * halfW;
-            const bx = val >= 0 ? zeroX : zeroX - w;
+            const rowTop = padT + i * rowH;
+            const barY   = rowTop + 26;
+            const val    = players[n].cash;
+            const w      = (Math.abs(val) / maxAbs) * halfW;
+            const bx     = val >= 0 ? zeroX : zeroX - w;
             const barColor = val >= 0 ? '#4caf50' : '#ff6b6b';
-            svg += `<rect x="${bx.toFixed(1)}" y="${cy - 11}" width="${Math.max(1, w).toFixed(1)}" height="22" rx="4" fill="${barColor}"/>`;
-            svg += `<text x="8" y="${cy + 4}" fill="${colors[n]}" font-size="13" font-weight="bold">${escapeHtml(n.length > 8 ? n.slice(0,8)+'…' : n)}</text>`;
+            // 全名（上方，完整顯示）
+            svg += `<text x="${padL}" y="${rowTop + 16}" fill="${colors[n]}" font-size="13" font-weight="bold">${escapeHtml(n)}</text>`;
+            // 長條
+            svg += `<rect x="${bx.toFixed(1)}" y="${barY}" width="${Math.max(1, w).toFixed(1)}" height="18" rx="4" fill="${barColor}"/>`;
+            // 數值
             const tx = val >= 0 ? bx + w + 6 : bx - 6;
             const anchor = val >= 0 ? 'start' : 'end';
-            svg += `<text x="${tx.toFixed(1)}" y="${cy + 4}" fill="#ffefc0" font-size="12" text-anchor="${anchor}">${fmt(val)}</text>`;
+            svg += `<text x="${tx.toFixed(1)}" y="${barY + 14}" fill="#ffefc0" font-size="12" text-anchor="${anchor}">${fmt(val)}</text>`;
         });
         svg += `</svg>`;
         document.getElementById('barChart').innerHTML = svg;
@@ -655,6 +712,86 @@
         buildPlayerCards(players, colors);
     }
 
+    // ── 分房間分析 ────────────────────────────────────────────────────
+    function groupByRoom(txs) {
+        const rooms = {};
+        (txs || []).forEach(t => {
+            const r = t.roomId || '未分配';
+            (rooms[r] = rooms[r] || []).push(t);
+        });
+        return rooms;
+    }
+
+    // 每個房間的累計現金折線圖（每位玩家一條線）
+    function roomLineSVG(players, colors) {
+        const names = Object.keys(players);
+        const W = 520, H = 200, padL = 52, padR = 14, padT = 14, padB = 22;
+        const maxLen = Math.max(1, ...names.map(n => players[n].series.length));
+        let lo = 0, hi = 0;
+        names.forEach(n => players[n].series.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
+        if (hi === lo) hi = lo + 1;
+        const x = i => padL + (maxLen <= 1 ? 0 : (i / (maxLen - 1)) * (W - padL - padR));
+        const y = v => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+
+        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
+        for (let g = 0; g <= 3; g++) {
+            const gv = lo + (hi - lo) * g / 3, gy = y(gv);
+            svg += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="rgba(255,255,255,0.1)"/>`;
+            svg += `<text x="${padL - 8}" y="${gy + 4}" fill="#aaa" font-size="10" text-anchor="end">${Math.round(gv).toLocaleString()}</text>`;
+        }
+        if (lo < 0 && hi > 0) svg += `<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="4 3"/>`;
+        names.forEach(n => {
+            const s = players[n].series;
+            if (!s.length) return;
+            const pts = s.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+            svg += `<polyline points="${pts}" fill="none" stroke="${colors[n]}" stroke-width="2.2" stroke-linejoin="round"/>`;
+            const li = s.length - 1;
+            svg += `<circle cx="${x(li).toFixed(1)}" cy="${y(s[li]).toFixed(1)}" r="3" fill="${colors[n]}"/>`;
+        });
+        svg += `</svg>`;
+        return svg;
+    }
+
+    function renderRoomView(txs) {
+        const container = document.getElementById('roomSections');
+        const rooms = groupByRoom(txs);
+        const roomIds = Object.keys(rooms).sort((a, b) => rooms[b].length - rooms[a].length);
+        if (!roomIds.length) { container.innerHTML = '<div class="no-data">暫無資料</div>'; return; }
+
+        container.innerHTML = roomIds.map(rid => {
+            const rtx     = rooms[rid];
+            const players = aggregateByPlayer(rtx);
+            const names   = Object.keys(players);
+            const colors  = playerColorMap(names);
+            const totalCash = names.reduce((s, n) => s + players[n].cash, 0);
+            const legend  = names.map(n => `<span><span class="dot" style="background:${colors[n]}"></span>${escapeHtml(n)}</span>`).join('');
+            const rows = names.map(n => {
+                const p = players[n];
+                return `<div class="room-player-row">
+                    <span class="rp-name" style="color:${colors[n]}">${escapeHtml(n)}</span>
+                    <span class="rp-metric">操作 <b>${p.count}</b></span>
+                    <span class="rp-metric">淨現金 <b class="${signClass(p.cash)}">${fmt(p.cash)}</b></span>
+                    <span class="rp-metric">被動 <b class="${signClass(p.passive)}">${fmt(p.passive)}</b></span>
+                    <span class="rp-metric">精力 <b class="${signClass(p.energy)}">${fmt(p.energy)}</b></span>
+                </div>`;
+            }).join('');
+            return `<div class="room-section">
+                <div class="room-header">
+                    <h2>🏠 ${escapeHtml(rid)}</h2>
+                    <div class="room-meta">👥 ${names.length} 位玩家 · 📋 ${rtx.length} 筆記錄 · 💰 淨現金 <span class="${signClass(totalCash)}">${fmt(totalCash)}</span></div>
+                </div>
+                <div class="room-body">
+                    <div class="room-chart">
+                        <div class="rc-title">📈 累計現金變化</div>
+                        ${roomLineSVG(players, colors)}
+                        <div class="chart-legend">${legend}</div>
+                    </div>
+                    <div class="room-players">${rows}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
     // 初始化
     let currentFilter = 'all';
     let currentSearch = '';
@@ -664,9 +801,10 @@
         transactions = await fetchTransactions();
         renderTable(transactions, currentFilter, currentSearch);
         renderPlayerView(transactions);
+        renderRoomView(transactions);
     }
 
-    // 視圖切換：全部記錄 <-> 分玩家分析
+    // 視圖切換：全部記錄 <-> 分玩家分析 <-> 分房間分析
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
@@ -674,6 +812,7 @@
             const view = btn.dataset.view;
             document.getElementById('tableView').style.display  = view === 'table'  ? '' : 'none';
             document.getElementById('playerView').style.display = view === 'player' ? '' : 'none';
+            document.getElementById('roomView').style.display   = view === 'room'   ? '' : 'none';
         });
     });
 
