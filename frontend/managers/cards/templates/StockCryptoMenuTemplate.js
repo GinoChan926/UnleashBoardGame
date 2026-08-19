@@ -5,8 +5,9 @@ export class StockCryptoMenuTemplate {
     // ==================== Stock menu ====================
 
     static buildStockMenu(message) {
-        const holding = message.holding;
-        const canSell = holding && holding.shares > 0;
+        const holding   = message.holding;
+        const canSell   = holding && holding.shares > 0;
+        const cashTotal = message.currentCash || 0;
 
         return `
             <div class="modal-content" style="max-width: 450px;
@@ -55,10 +56,21 @@ export class StockCryptoMenuTemplate {
                                   font-size: 18px; text-align: center; box-sizing: border-box;">
                 </div>
 
-                <div id="stockTotalCostDisplay"
-                     style="text-align: center; color: #ffd966; font-size: 14px;
-                            margin-bottom: 14px;">
-                    總花費: $${(message.minShares * message.currentPrice).toLocaleString()}
+                <!-- ✅ Live preview with affordability -->
+                <div id="stockPreviewBox"
+                     style="background: rgba(0,0,0,0.3); padding: 10px;
+                            border-radius: 10px; margin-bottom: 14px;
+                            text-align: center; font-size: 13px;">
+                    <div id="stockTotalCostDisplay" style="color: #ffd966; font-weight: bold;">
+                        總花費: $${(message.minShares * message.currentPrice).toLocaleString()}
+                    </div>
+                    <div id="stockCashDisplay" style="color: #b3e5fc; margin-top: 4px;">
+                        💵 可用資金: $${cashTotal.toLocaleString()}
+                    </div>
+                    <div id="stockAffordWarning" style="color: #ff5252; font-weight: bold;
+                                margin-top: 4px; display: none;">
+                        ⚠️ 資金不足
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-direction: column;">
@@ -97,38 +109,109 @@ export class StockCryptoMenuTemplate {
         `;
     }
 
-    static bindStockButtons(cardId, price, minShares, shareMultiple, onBuy, onSell, onCancel) {
-        const input = document.getElementById('stockSharesInput');
-        const totalEl = document.getElementById('stockTotalCostDisplay');
+    static bindStockButtons(cardId, price, minShares, shareMultiple, onBuy, onSell, onCancel, currentCash, currentHolding) {
+        const input      = document.getElementById('stockSharesInput');
+        const totalEl    = document.getElementById('stockTotalCostDisplay');
+        const cashEl     = document.getElementById('stockCashDisplay');
+        const warningEl  = document.getElementById('stockAffordWarning');
+        const buyBtn     = document.getElementById('stockBuyBtn');
+        const sellBtn    = document.getElementById('stockSellBtn');
+        const cancelBtn  = document.getElementById('stockCancelBtn');
+        const cash       = currentCash || 0;
+        const ownedShares = currentHolding?.shares || 0;
 
-        // Update total on input change
-        if (input && totalEl) {
-            input.oninput = () => {
-                const shares = parseInt(input.value) || 0;
-                totalEl.textContent = `總花費: $${(shares * price).toLocaleString()}`;
-            };
+        const updatePreview = () => {
+            const shares    = parseInt(input?.value) || 0;
+            const totalBuy  = shares * price;
+            const canAfford = cash >= totalBuy && totalBuy > 0;
+            const validStep = shares >= minShares && shares % (shareMultiple || 100) === 0;
+            const canSellAmount = shares <= ownedShares && shares > 0 && validStep;
+
+            if (totalEl) {
+                totalEl.textContent = '總花費: $' + totalBuy.toLocaleString();
+                totalEl.style.color = canAfford ? '#ffd966' : '#ff5252';
+            }
+
+            if (warningEl) {
+                if (!validStep && shares > 0) {
+                    warningEl.style.display = 'block';
+                    warningEl.textContent = '⚠️ 股數必須是 ' + (shareMultiple || 100) + ' 的倍數';
+                    warningEl.style.color = '#ff9800';
+                } else if (!canAfford && shares > 0) {
+                    warningEl.style.display = 'block';
+                    warningEl.textContent = '⚠️ 買入資金不足！你只有 $' + cash.toLocaleString();
+                    warningEl.style.color = '#ff5252';
+                } else {
+                    warningEl.style.display = 'none';
+                }
+            }
+
+            // ✅ Buy button
+            if (buyBtn) {
+                const canBuy = canAfford && validStep;
+                buyBtn.disabled      = !canBuy;
+                buyBtn.style.opacity = canBuy ? '1' : '0.4';
+                buyBtn.style.cursor  = canBuy ? 'pointer' : 'not-allowed';
+                buyBtn.textContent   = canBuy
+                    ? '💰 買入 ' + shares + ' 股 ($' + totalBuy.toLocaleString() + ')'
+                    : shares > 0 ? '❌ 無法買入' : '💰 買入';
+            }
+
+            // ✅ Sell button
+            if (sellBtn && ownedShares > 0) {
+                const totalSell = shares * price;
+                sellBtn.disabled      = !canSellAmount;
+                sellBtn.style.opacity = canSellAmount ? '1' : '0.4';
+                sellBtn.style.cursor  = canSellAmount ? 'pointer' : 'not-allowed';
+
+                if (shares > ownedShares) {
+                    sellBtn.textContent = '❌ 持股不足 (只有 ' + ownedShares + ' 股)';
+                } else if (canSellAmount) {
+                    sellBtn.textContent = '💸 賣出 ' + shares + ' 股 ($' + totalSell.toLocaleString() + ')';
+                } else {
+                    sellBtn.textContent = '💸 賣出';
+                }
+            }
+        };
+
+        if (input) {
+            input.addEventListener('input', updatePreview);
+            input.addEventListener('change', () => {
+                let v = parseInt(input.value) || 0;
+                if (v < minShares) v = minShares;
+                v = Math.round(v / (shareMultiple || 100)) * (shareMultiple || 100);
+                input.value = v;
+                updatePreview();
+            });
         }
-
-        const buyBtn    = document.getElementById('stockBuyBtn');
-        const sellBtn   = document.getElementById('stockSellBtn');
-        const cancelBtn = document.getElementById('stockCancelBtn');
 
         if (buyBtn) {
             buyBtn.onclick = () => {
+                if (buyBtn.disabled) return;
                 const shares = parseInt(input?.value);
                 if (!shares || shares < minShares || shares % (shareMultiple || 100) !== 0) {
-                    alert(`股數必須是 ${shareMultiple || 100} 的倍數，最少 ${minShares} 股`);
+                    alert('股數必須是 ' + (shareMultiple || 100) + ' 的倍數，最少 ' + minShares + ' 股');
+                    return;
+                }
+                if (shares * price > cash) {
+                    alert('資金不足！總花費 $' + (shares * price).toLocaleString() + '，你只有 $' + cash.toLocaleString());
                     return;
                 }
                 onBuy(shares);
             };
         }
 
-        if (sellBtn && !sellBtn.disabled) {
+        if (sellBtn) {
             sellBtn.onclick = () => {
+                if (sellBtn.disabled) return;
                 const shares = parseInt(input?.value);
-                if (!shares || shares < minShares) {
-                    alert(`股數必須至少 ${minShares} 股`);
+                if (!shares || shares < minShares || shares % (shareMultiple || 100) !== 0) {
+                    alert('股數必須是 ' + (shareMultiple || 100) + ' 的倍數，最少 ' + minShares + ' 股');
+                    return;
+                }
+                // ✅ Check owned shares
+                if (shares > ownedShares) {
+                    alert('持股不足！你只有 ' + ownedShares + ' 股，無法賣出 ' + shares + ' 股');
                     return;
                 }
                 onSell(shares);
@@ -138,13 +221,16 @@ export class StockCryptoMenuTemplate {
         if (cancelBtn) {
             cancelBtn.onclick = () => onCancel();
         }
+
+        updatePreview();
     }
 
     // ==================== Crypto menu ====================
 
     static buildCryptoMenu(message) {
-        const holding = message.holding;
-        const canSell = holding && holding.units > 0;
+        const holding   = message.holding;
+        const canSell   = holding && holding.units > 0;
+        const cashTotal = message.currentCash || 0;
 
         return `
             <div class="modal-content" style="max-width: 450px;
@@ -195,10 +281,21 @@ export class StockCryptoMenuTemplate {
                                   font-size: 18px; text-align: center; box-sizing: border-box;">
                 </div>
 
-                <div id="cryptoTotalCostDisplay"
-                     style="text-align: center; color: #ffd966; font-size: 14px;
-                            margin-bottom: 14px;">
-                    總花費: $${(message.minUnits * message.currentPrice).toLocaleString()}
+                <!-- ✅ Live preview with affordability -->
+                <div id="cryptoPreviewBox"
+                     style="background: rgba(0,0,0,0.3); padding: 10px;
+                            border-radius: 10px; margin-bottom: 14px;
+                            text-align: center; font-size: 13px;">
+                    <div id="cryptoTotalCostDisplay" style="color: #ffd966; font-weight: bold;">
+                        總花費: $${(message.minUnits * message.currentPrice).toLocaleString()}
+                    </div>
+                    <div id="cryptoCashDisplay" style="color: #e1bee7; margin-top: 4px;">
+                        💵 可用資金: $${cashTotal.toLocaleString()}
+                    </div>
+                    <div id="cryptoAffordWarning" style="color: #ff5252; font-weight: bold;
+                                margin-top: 4px; display: none;">
+                        ⚠️ 資金不足
+                    </div>
                 </div>
 
                 <div style="display: flex; gap: 10px; flex-direction: column;">
@@ -235,37 +332,99 @@ export class StockCryptoMenuTemplate {
         `;
     }
 
-    static bindCryptoButtons(cardId, price, minUnits, onBuy, onSell, onCancel) {
-        const input = document.getElementById('cryptoUnitsInput');
-        const totalEl = document.getElementById('cryptoTotalCostDisplay');
+    static bindCryptoButtons(cardId, price, minUnits, onBuy, onSell, onCancel, currentCash, currentHolding) {
+        const input      = document.getElementById('cryptoUnitsInput');
+        const totalEl    = document.getElementById('cryptoTotalCostDisplay');
+        const warningEl  = document.getElementById('cryptoAffordWarning');
+        const buyBtn     = document.getElementById('cryptoBuyBtn');
+        const sellBtn    = document.getElementById('cryptoSellBtn');
+        const cancelBtn  = document.getElementById('cryptoCancelBtn');
+        const cash       = currentCash || 0;
+        const ownedUnits = currentHolding?.units || 0;
 
-        if (input && totalEl) {
-            input.oninput = () => {
-                const units = parseInt(input.value) || 0;
-                totalEl.textContent = `總花費: $${(units * price).toLocaleString()}`;
-            };
+        const updatePreview = () => {
+            const units     = parseInt(input?.value) || 0;
+            const totalBuy  = units * price;
+            const canAfford = cash >= totalBuy && totalBuy > 0;
+            const validUnits = units >= minUnits;
+            const canSellAmount = units <= ownedUnits && units > 0 && validUnits;
+
+            if (totalEl) {
+                totalEl.textContent = '總花費: $' + totalBuy.toLocaleString();
+                totalEl.style.color = canAfford ? '#ffd966' : '#ff5252';
+            }
+
+            if (warningEl) {
+                if (!validUnits && units > 0) {
+                    warningEl.style.display = 'block';
+                    warningEl.textContent = '⚠️ 數量必須至少 ' + minUnits + ' 顆';
+                    warningEl.style.color = '#ff9800';
+                } else if (!canAfford && units > 0) {
+                    warningEl.style.display = 'block';
+                    warningEl.textContent = '⚠️ 買入資金不足！你只有 $' + cash.toLocaleString();
+                    warningEl.style.color = '#ff5252';
+                } else {
+                    warningEl.style.display = 'none';
+                }
+            }
+
+            if (buyBtn) {
+                const canBuy = canAfford && validUnits;
+                buyBtn.disabled      = !canBuy;
+                buyBtn.style.opacity = canBuy ? '1' : '0.4';
+                buyBtn.style.cursor  = canBuy ? 'pointer' : 'not-allowed';
+                buyBtn.textContent   = canBuy
+                    ? '💰 買入 ' + units + ' 顆 ($' + totalBuy.toLocaleString() + ')'
+                    : units > 0 ? '❌ 無法買入' : '💰 買入';
+            }
+
+            // ✅ Sell button
+            if (sellBtn && ownedUnits > 0) {
+                const totalSell = units * price;
+                sellBtn.disabled      = !canSellAmount;
+                sellBtn.style.opacity = canSellAmount ? '1' : '0.4';
+                sellBtn.style.cursor  = canSellAmount ? 'pointer' : 'not-allowed';
+
+                if (units > ownedUnits) {
+                    sellBtn.textContent = '❌ 持有不足 (只有 ' + ownedUnits + ' 顆)';
+                } else if (canSellAmount) {
+                    sellBtn.textContent = '💸 賣出 ' + units + ' 顆 ($' + totalSell.toLocaleString() + ')';
+                } else {
+                    sellBtn.textContent = '💸 賣出';
+                }
+            }
+        };
+
+        if (input) {
+            input.addEventListener('input', updatePreview);
         }
-
-        const buyBtn    = document.getElementById('cryptoBuyBtn');
-        const sellBtn   = document.getElementById('cryptoSellBtn');
-        const cancelBtn = document.getElementById('cryptoCancelBtn');
 
         if (buyBtn) {
             buyBtn.onclick = () => {
+                if (buyBtn.disabled) return;
                 const units = parseInt(input?.value);
                 if (!units || units < minUnits) {
-                    alert(`數量必須至少 ${minUnits} 顆`);
+                    alert('數量必須至少 ' + minUnits + ' 顆');
+                    return;
+                }
+                if (units * price > cash) {
+                    alert('資金不足！總花費 $' + (units * price).toLocaleString() + '，你只有 $' + cash.toLocaleString());
                     return;
                 }
                 onBuy(units);
             };
         }
 
-        if (sellBtn && !sellBtn.disabled) {
+        if (sellBtn) {
             sellBtn.onclick = () => {
+                if (sellBtn.disabled) return;
                 const units = parseInt(input?.value);
                 if (!units || units < minUnits) {
-                    alert(`數量必須至少 ${minUnits} 顆`);
+                    alert('數量必須至少 ' + minUnits + ' 顆');
+                    return;
+                }
+                if (units > ownedUnits) {
+                    alert('持有不足！你只有 ' + ownedUnits + ' 顆，無法賣出 ' + units + ' 顆');
                     return;
                 }
                 onSell(units);
@@ -275,73 +434,7 @@ export class StockCryptoMenuTemplate {
         if (cancelBtn) {
             cancelBtn.onclick = () => onCancel();
         }
-    }
 
-    // ==================== Food delivery menu (C04) ====================
-
-    static buildFoodDeliveryMenu(message) {
-        return `
-            <div class="modal-content" style="max-width: 450px;
-                 background: linear-gradient(135deg, #4a3a1a, #2a2510);
-                 border-radius: 24px; padding: 24px;
-                 border: 2px solid #ff9800;">
-
-                <div style="text-align: center; margin-bottom: 16px;">
-                    <div style="font-size: 22px; color: #ffb74d; font-weight: bold;">
-                        🍔 ${message.cardName || '外賣店'}
-                    </div>
-                    <div style="color: #fff59d; font-size: 12px; margin-top: 4px;">
-                        請選擇操作
-                    </div>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px;">
-                    <button id="foodInvestBtn"
-                            style="background: linear-gradient(135deg, #4caf50, #388e3c);
-                                   color: white; padding: 14px; border: none;
-                                   border-radius: 12px; cursor: pointer;
-                                   font-size: 14px; font-weight: bold;
-                                   text-align: left;">
-                        <div style="font-size: 16px; margin-bottom: 4px;">🏪 投資開店</div>
-                        <div style="font-size: 11px; opacity: 0.9;">
-                            投資 $${(message.investmentCost || 0).toLocaleString()}，
-                            被動收入 +$${(message.monthlyReturn || 0).toLocaleString()}/月，
-                            精力 -${message.energyCost || 0}
-                        </div>
-                    </button>
-
-                    <button id="foodExchangeBtn"
-                            style="background: linear-gradient(135deg, #ff9800, #f57c00);
-                                   color: white; padding: 14px; border: none;
-                                   border-radius: 12px; cursor: pointer;
-                                   font-size: 14px; font-weight: bold;
-                                   text-align: left;">
-                        <div style="font-size: 16px; margin-bottom: 4px;">⚡ 兌換精力</div>
-                        <div style="font-size: 11px; opacity: 0.9;">
-                            $${(message.exchangeCost || 0).toLocaleString()} 兌換
-                            ${message.exchangeEnergy || 0} 精力
-                        </div>
-                    </button>
-
-                    <button id="foodCancelBtn"
-                            style="background: #9e9e9e; color: white;
-                                   padding: 10px; border: none;
-                                   border-radius: 24px; cursor: pointer;
-                                   font-size: 13px;">
-                        ❌ 取消
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    static bindFoodDeliveryButtons(onInvest, onExchange, onCancel) {
-        const investBtn   = document.getElementById('foodInvestBtn');
-        const exchangeBtn = document.getElementById('foodExchangeBtn');
-        const cancelBtn   = document.getElementById('foodCancelBtn');
-
-        if (investBtn)   investBtn.onclick   = () => onInvest();
-        if (exchangeBtn) exchangeBtn.onclick = () => onExchange();
-        if (cancelBtn)   cancelBtn.onclick   = () => onCancel();
+        updatePreview();
     }
 }

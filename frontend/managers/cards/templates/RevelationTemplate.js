@@ -532,6 +532,26 @@ export class RevelationTemplate {
     `;
     }
 
+    // ==================== IN03 Reward Choice Modal ====================
+
+// ✅ ADD THIS:
+    static bindIN03RewardButtons(onChoice) {
+        document.querySelectorAll('.in03-choice-btn').forEach(btn => {
+            btn.onclick = () => {
+                const choice = btn.dataset.choice;
+                onChoice(choice);
+            };
+            btn.onmouseenter = () => {
+                btn.style.transform = 'scale(1.05)';
+                btn.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
+            };
+            btn.onmouseleave = () => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = 'none';
+            };
+        });
+    }
+
     // ==================== Move Forward Choice Modal (IN14-17 黑馬思維) ====================
 
     /**

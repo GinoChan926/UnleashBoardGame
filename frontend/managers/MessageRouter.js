@@ -190,6 +190,8 @@ export class MessageRouter {
 
             'gamble_result':           m => c.gambleHandler.handleGambleResult(m),
             'gamble_result_broadcast': m => c.gambleHandler.handleGambleResultBroadcast(m),
+
+            'fund_menu': m => ch().handleFundMenu(m),
             // ── Disconnect / reconnect
             'player_temp_disconnected': m => c.joinHandler.handleTempDisconnected(m),
             'player_reconnected':       m => c.joinHandler.handleReconnected(m),

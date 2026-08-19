@@ -10,8 +10,10 @@ export class GameLifecycleManager {
     doConnect() {
         const { client } = this;
 
-        const nameInput  = client.getInput('playerName');
-        client.playerName = nameInput?.value.trim() || `Player_${Date.now()}`;
+        if (!client.playerName) {
+            const nameInput = client.getInput('playerName');
+            client.playerName = nameInput?.value.trim() || `Player_${Date.now()}`;
+        }
 
         if (!client.selectedProfession) {
             client.logManager.showNotification('請先選擇職業', 'error');

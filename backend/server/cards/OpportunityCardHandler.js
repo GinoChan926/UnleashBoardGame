@@ -1018,7 +1018,8 @@ function _handleStock(card, data, player, ws, room) {
         ws.send(JSON.stringify({
             type: 'stock_menu', cardId: card.id, cardName: card.name,
             holding, currentPrice,
-            minShares: card.minShares || 100, shareMultiple: card.shareMultiple || 100
+            minShares: card.minShares || 100, shareMultiple: card.shareMultiple || 100,
+            currentCash: (state.cash || 0) + (state.loanCash || 0)
         }));
         return null;
     }
@@ -1050,7 +1051,8 @@ function _handleCrypto(card, data, player, ws) {
             type: 'crypto_menu', cardId: card.id, cardName: card.name,
             currentPrice: card.getCurrentPrice(state),
             holding: card.getHoldingsInfo?.(state),
-            minUnits: card.minUnits || 1, cryptoCode: card.cryptoCode
+            minUnits: card.minUnits || 1, cryptoCode: card.cryptoCode,
+            currentCash: (state.cash || 0) + (state.loanCash || 0)
         }));
         return null;
     }
@@ -1070,18 +1072,91 @@ function _handleCrypto(card, data, player, ws) {
 }
 
 function _handleFund(card, data, player, ws) {
-    const state     = player.gameState;
-    const fundUnits = data.units || card.minUnits || 1;
+    const state = player.gameState;
+    const units = data.units;
+
+    // ✅ First call — no units specified, show menu
+    if (units === undefined || units === null) {
+        const maxUnitsByCash = Math.floor(
+            ((state.cash || 0) + (state.loanCash || 0)) / card.pricePerUnit
+        );
+        const maxUnits = card.maxUnits === null
+            ? maxUnitsByCash
+            : Math.min(card.maxUnits || maxUnitsByCash, maxUnitsByCash);
+
+        ws.send(JSON.stringify({
+            type:          'fund_menu',
+            cardId:        card.id,
+            cardName:      card.name,
+            pricePerUnit:  card.pricePerUnit,
+            monthlyReturn: card.monthlyReturn,
+            minUnits:      card.minUnits || 1,
+            maxUnits:      maxUnits,
+            currentCash:   (state.cash || 0) + (state.loanCash || 0)
+        }));
+        return null;   // wait for menu response
+    }
+
+    // ✅ Second call — execute with chosen units
+    const fundUnits = parseInt(units) || 1;
     const totalCost = fundUnits * card.pricePerUnit;
-    if (state.cash < totalCost) { ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足` })); return ''; }
+
+    if (totalCost > (state.cash || 0) + (state.loanCash || 0)) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `❌ 資金不足 $${totalCost.toLocaleString()}`
+        }));
+        return '';
+    }
+
     return card.effect(state, fundUnits);
 }
 
 function _handleP2P(card, data, player, ws) {
-    const state     = player.gameState;
-    const p2pUnits  = data.units || 100;
+    const state = player.gameState;
+    const units = data.units;
+
+    if (units === undefined || units === null) {
+        const maxUnits = Math.min(
+            1000,
+            Math.floor(((state.cash || 0) + (state.loanCash || 0)) / card.pricePerUnit)
+        );
+        const maxAllowed = Math.floor(maxUnits / 100) * 100;
+
+        ws.send(JSON.stringify({
+            type:          'fund_menu',
+            cardId:        card.id,
+            cardName:      card.name,
+            pricePerUnit:  card.pricePerUnit,
+            monthlyReturn: card.monthlyReturn || 0,
+            minUnits:      100,
+            maxUnits:      maxAllowed,
+            currentCash:   (state.cash || 0) + (state.loanCash || 0),
+            stepSize:      100
+        }));
+        return null;
+    }
+
+    const p2pUnits = parseInt(units) || 100;
+
+    // ✅ Validate step size
+    if (p2pUnits < 100 || p2pUnits > 1000 || p2pUnits % 100 !== 0) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `❌ 購買數量必須是 100 的倍數 (100-1000)`
+        }));
+        return '';
+    }
+
     const totalCost = p2pUnits * card.pricePerUnit;
-    if (state.cash < totalCost) { ws.send(JSON.stringify({ type: 'notification', message: `❌ 現金不足` })); return ''; }
+    if (totalCost > (state.cash || 0) + (state.loanCash || 0)) {
+        ws.send(JSON.stringify({
+            type: 'notification',
+            message: `❌ 資金不足 $${totalCost.toLocaleString()}`
+        }));
+        return '';
+    }
+
     return card.effect(state, p2pUnits);
 }
 

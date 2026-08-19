@@ -98,7 +98,6 @@ export class OpportunityHandler {
             message.currentPrice,
             message.minShares,
             message.shareMultiple,
-            // On buy
             (shares) => {
                 client.connection.send({
                     type: 'execute_card',
@@ -108,7 +107,6 @@ export class OpportunityHandler {
                 });
                 client.modalManager.closeModal('stockMenuModal');
             },
-            // On sell
             (shares) => {
                 client.connection.send({
                     type: 'execute_card',
@@ -118,7 +116,6 @@ export class OpportunityHandler {
                 });
                 client.modalManager.closeModal('stockMenuModal');
             },
-            // On cancel
             () => {
                 client.connection.send({
                     type: 'execute_card',
@@ -126,7 +123,9 @@ export class OpportunityHandler {
                 });
                 client.modalManager.closeModal('stockMenuModal');
                 client.logManager.addLog('❌ 已取消股票交易', 'warning');
-            }
+            },
+            message.currentCash || 0,       // ✅ cash
+            message.holding || null          // ✅ holding info
         );
     }
 
@@ -169,7 +168,9 @@ export class OpportunityHandler {
                 });
                 client.modalManager.closeModal('cryptoMenuModal');
                 client.logManager.addLog('❌ 已取消加密貨幣交易', 'warning');
-            }
+            },
+            message.currentCash || 0,       // ✅ cash
+            message.holding || null          // ✅ holding info
         );
     }
 
@@ -375,5 +376,77 @@ export class OpportunityHandler {
         const { client } = this;
         client.logManager.addLog(message.message, 'event');
         client.logManager.showNotification(`📊 團購「${message.cardName}」完成`, 'success');
+    }
+
+    async handleFundMenu(message) {
+        const { client } = this;
+        const { BusinessUnitTemplate } = await import(
+            '../../cards/templates/BusinessUnitTemplate.js'
+            );
+
+        const old = document.getElementById('fundMenuModal');
+        if (old) old.remove();
+
+        const stepSize = message.stepSize || 1;
+
+        const modalMessage = {
+            cardId:               message.cardId,
+            cardName:             message.cardName,
+            cardImage:            '',
+            cardDescription:      `每份 $${message.pricePerUnit.toLocaleString()} | 月回報 +$${message.monthlyReturn.toLocaleString()}/份`,
+            pricePerUnit:         message.pricePerUnit,
+            monthlyReturnPerUnit: message.monthlyReturn,
+            energyCostPerUnit:    0,
+            minUnits:             message.minUnits || 1,
+            maxUnits:             message.maxUnits || 1,
+            existingUnits:        0,
+            remainingSlots:       message.maxUnits || 999,
+            currentCash:          message.currentCash,
+            currentEnergy:        999,
+            maxEnergy:            999,
+            stepSize              // ✅ pass through
+        };
+
+        client.modalManager.createModal(
+            'fundMenuModal',
+            BusinessUnitTemplate.buildModal(modalMessage)
+        );
+        client.modalManager.openModal('fundMenuModal');
+
+        // ✅ Override the input step attribute for P2P
+        const input = document.getElementById('buSelectorInput');
+        if (input && stepSize > 1) {
+            input.step = stepSize;
+            input.min  = message.minUnits || stepSize;
+        }
+
+        BusinessUnitTemplate.bind(
+            modalMessage,
+            (units) => {
+                // ✅ Validate step size before sending
+                if (stepSize > 1 && units % stepSize !== 0) {
+                    alert(`購買數量必須是 ${stepSize} 的倍數`);
+                    return;
+                }
+                client.connection.send({
+                    type:    'execute_card',
+                    execute: true,
+                    units
+                });
+                client.modalManager.closeModal('fundMenuModal');
+                client.logManager.addLog(
+                    `📊 購買 ${units} 份「${message.cardName}」`,
+                    'success'
+                );
+            },
+            () => {
+                client.connection.send({
+                    type:    'execute_card',
+                    execute: false
+                });
+                client.modalManager.closeModal('fundMenuModal');
+                client.logManager.addLog(`❌ 已取消購買「${message.cardName}」`, 'warning');
+            }
+        );
     }
 }

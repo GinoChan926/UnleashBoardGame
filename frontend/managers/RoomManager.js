@@ -18,13 +18,22 @@ export class RoomManager {
         client.modalManager.createModal('roomSelectionModal', RoomSelectionTemplate.buildModal());
         client.modalManager.openModal('roomSelectionModal');
 
-        this._onJoinRoom = onRoomChosen;
+        this._onJoinRoom = (roomId, playerName) => {
+            // ✅ Set the player name on the client
+            client.playerName = playerName;
+
+            // ✅ Also sync to the top bar input
+            const topBarInput = document.getElementById('playerName');
+            if (topBarInput) topBarInput.value = playerName;
+
+            onRoomChosen(roomId);
+        };
 
         RoomSelectionTemplate.bindEvents({
             onRefresh: () => this._fetchRoomList(),
-            onJoinRoom: (roomId) => {
+            onJoinRoom: (roomId, playerName) => {
                 this._closeModal();
-                onRoomChosen(roomId);
+                this._onJoinRoom(roomId, playerName);
             },
             onCancel: () => {
                 this._closeModal();
@@ -36,12 +45,11 @@ export class RoomManager {
     }
 
     handleRoomList(message) {
-        RoomSelectionTemplate.renderRoomList(message.rooms || [], (roomId) => {
+        RoomSelectionTemplate.renderRoomList(message.rooms || [], (roomId, playerName) => {
             this._closeModal();
-            if (this._onJoinRoom) this._onJoinRoom(roomId);
+            if (this._onJoinRoom) this._onJoinRoom(roomId, playerName);
         });
     }
-
     // ── Private ───────────────────────────────────────────────────────────
 
     _fetchRoomList() {

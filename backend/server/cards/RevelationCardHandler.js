@@ -77,7 +77,7 @@ function handlePurchaseRevelationCard(ws, data, roomId, rooms, broadcastToRoom) 
         return;
     }
 
-    player.gameState.cash    -= actualCost;
+    // player.gameState.cash    -= actualCost;
     pendingEvent.purchased    = true;
     pendingEvent.purchaseTime = Date.now();
 

@@ -5,7 +5,7 @@ const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingAssetChoices = new Map();  // key: choiceId → { card, room, roomId, responses, expectedPlayerIds }
 
-const ASSET_CHOICE_TIMEOUT = SERVER_CONFIG.assetChoiceTimeoutSec;  // 30 seconds default
+const ASSET_CHOICE_TIMEOUT = SERVER_CONFIG.assetChoiceTimeoutSec * 1000;  // 30 seconds default
 
 /**
  * Entry point - called by RevelationCardHandler when a market_news card executes.
@@ -153,15 +153,21 @@ function handleAssetChoice(ws, data, roomId, rooms, broadcastToRoom) {
         return;
     }
 
-    pending.responses.set(player.playerId, data.participate === true);
+    // ✅ Store full response (with selectedStocks if provided)
+    if (data.participate && data.selectedStocks) {
+        pending.responses.set(player.playerId, {
+            participate: true,
+            selectedStocks: data.selectedStocks
+        });
+    } else {
+        pending.responses.set(player.playerId, data.participate === true);
+    }
 
-    // Notify progress
     broadcastToRoom(roomId, {
         type: 'notification',
         message: `📊 ${player.playerName} 已回應 (${pending.responses.size}/${pending.expectedPlayerIds.length})`
     });
 
-    // If all responded, finalize immediately
     if (pending.responses.size >= pending.expectedPlayerIds.length) {
         _finalizeChoice(data.choiceId, rooms, broadcastToRoom, room, roomId);
     }
@@ -178,7 +184,7 @@ function _finalizeChoice(choiceId, ignoredRoomsFn, broadcastToRoom, room, roomId
     responses.forEach((choice, playerId) => {
         for (const [, p] of room.players) {
             if (p.playerId === playerId) {
-                participants[p.playerName] = choice;
+                participants[p.playerName] = choice;   // can be boolean OR { participate, selectedStocks }
                 break;
             }
         }

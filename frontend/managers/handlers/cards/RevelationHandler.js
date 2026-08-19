@@ -153,13 +153,24 @@ export class RevelationHandler {
             () => {
                 if (timerId) clearInterval(timerId);
                 AssetChoiceTemplate.disableButtons();
+
+                // ✅ Collect selected stocks from checkboxes
+                const selectedStocks = [];
+                document.querySelectorAll('.stock-checkbox').forEach(cb => {
+                    if (cb.checked) selectedStocks.push(cb.dataset.code);
+                });
+
                 client.connection.send({
                     type: 'asset_choice_response',
                     choiceId: message.choiceId,
-                    participate: true
+                    participate: true,
+                    selectedStocks: selectedStocks.length > 0 ? selectedStocks : null
                 });
                 client.modalManager.closeModal('assetChoiceModal');
-                client.logManager.addLog(`📊 你選擇參與「${message.card.name}」`, 'success');
+                client.logManager.addLog(
+                    `📊 你選擇出售 ${selectedStocks.length} 項股票`,
+                    'success'
+                );
             },
             () => {
                 if (timerId) clearInterval(timerId);
@@ -170,7 +181,7 @@ export class RevelationHandler {
                     participate: false
                 });
                 client.modalManager.closeModal('assetChoiceModal');
-                client.logManager.addLog(`📊 你選擇不參與「${message.card.name}」`, 'warning');
+                client.logManager.addLog(`📊 你選擇不出售`, 'warning');
             }
         );
     }

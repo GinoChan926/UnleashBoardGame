@@ -6,89 +6,107 @@ export class RoomSelectionTemplate {
 
     static buildModal() {
         return `
-            <div class="modal-content" style="max-width: 640px;
-                 background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
-                 border-radius: 24px; padding: 24px;
-                 border: 2px solid #4fc3f7;
-                 max-height: 85vh; overflow-y: auto;">
+        <div class="modal-content" style="max-width: 640px;
+             background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
+             border-radius: 24px; padding: 24px;
+             border: 2px solid #4fc3f7;
+             max-height: 85vh; overflow-y: auto;">
 
-                <div style="text-align: center; margin-bottom: 16px;">
-                    <div style="font-size: 24px; color: #4fc3f7; font-weight: bold;">
-                        🏠 選擇房間
-                    </div>
-                    <div style="font-size: 12px; color: #b3e5fc; margin-top: 4px;">
-                        加入已有房間或創建新房間 (最多 ${MAX_PLAYERS} 人/房間)
-                    </div>
+            <div style="text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 24px; color: #4fc3f7; font-weight: bold;">
+                    🏠 加入遊戲
                 </div>
-
-                <!-- Available Rooms Section -->
-                <div style="background: rgba(66,165,245,0.1); padding: 14px;
-                            border-radius: 12px; margin-bottom: 16px;
-                            border: 1px solid rgba(66,165,245,0.3);">
-                    <div style="color: #4fc3f7; font-weight: bold;
-                                margin-bottom: 10px; font-size: 14px;">
-                        📋 現有房間
-                    </div>
-                    <div id="roomListContainer"
-                         style="max-height: 35vh; overflow-y: auto;">
-                        <div style="text-align: center; color: #90a4ae; padding: 20px;">
-                            載入中...
-                        </div>
-                    </div>
-                    <button id="refreshRoomsBtn"
-                            style="width: 100%; margin-top: 10px;
-                                   background: rgba(66,165,245,0.3); color: white;
-                                   padding: 8px; border: 1px solid #4fc3f7;
-                                   border-radius: 20px; cursor: pointer;
-                                   font-size: 12px;">
-                        🔄 重新整理
-                    </button>
-                </div>
-
-                <div style="text-align: center; margin: 16px 0;
-                            color: #b3e5fc; font-size: 12px;">
-                    ─── 或 ───
-                </div>
-
-                <!-- Create/Join Custom Room -->
-                <div style="background: rgba(76,175,80,0.1); padding: 14px;
-                            border-radius: 12px; margin-bottom: 16px;
-                            border: 1px solid rgba(76,175,80,0.3);">
-                    <div style="color: #81c784; font-weight: bold;
-                                margin-bottom: 10px; font-size: 14px;">
-                        ✨ 創建/加入房間 (輸入房間號)
-                    </div>
-
-                    <input type="text" id="roomIdInput"
-                           placeholder="例如: room1, myroom, ..."
-                           maxlength="20"
-                           style="width: 100%; padding: 10px;
-                                  border-radius: 8px; border: 2px solid #4caf50;
-                                  background: rgba(0,0,0,0.5); color: #fff;
-                                  font-size: 14px; text-align: center;
-                                  box-sizing: border-box; margin-bottom: 10px;">
-
-                    <button id="joinCustomRoomBtn"
-                            style="width: 100%; background: linear-gradient(135deg, #4caf50, #2e7d32);
-                                   color: white; padding: 10px; border: none;
-                                   border-radius: 20px; cursor: pointer;
-                                   font-size: 14px; font-weight: bold;
-                                   box-shadow: 0 4px 12px rgba(76,175,80,0.3);">
-                        🚀 加入 / 創建此房間
-                    </button>
-                </div>
-
-                <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
-                    <button id="cancelRoomSelectionBtn"
-                            style="background: #9e9e9e; color: white;
-                                   padding: 10px 30px; border: none;
-                                   border-radius: 24px; cursor: pointer;
-                                   font-size: 13px;">
-                        取消
-                    </button>
+                <div style="font-size: 12px; color: #b3e5fc; margin-top: 4px;">
+                    輸入名稱，選擇房間，開始遊戲！
                 </div>
             </div>
-        `;
+
+            <!-- ✅ NEW: Player name input -->
+            <div style="background: rgba(255,193,7,0.1); padding: 14px;
+                        border-radius: 12px; margin-bottom: 16px;
+                        border: 1px solid rgba(255,193,7,0.3);">
+                <div style="color: #ffd966; font-weight: bold;
+                            margin-bottom: 8px; font-size: 14px;">
+                    👤 玩家名稱
+                </div>
+                <input type="text" id="roomPlayerNameInput"
+                       placeholder="輸入你的名稱..."
+                       maxlength="20"
+                       style="width: 100%; padding: 10px;
+                              border-radius: 8px; border: 2px solid #ffd966;
+                              background: rgba(0,0,0,0.5); color: #fff;
+                              font-size: 14px; text-align: center;
+                              box-sizing: border-box;">
+            </div>
+
+            <!-- Available Rooms Section -->
+            <div style="background: rgba(66,165,245,0.1); padding: 14px;
+                        border-radius: 12px; margin-bottom: 16px;
+                        border: 1px solid rgba(66,165,245,0.3);">
+                <div style="color: #4fc3f7; font-weight: bold;
+                            margin-bottom: 10px; font-size: 14px;">
+                    📋 現有房間
+                </div>
+                <div id="roomListContainer"
+                     style="max-height: 30vh; overflow-y: auto;">
+                    <div style="text-align: center; color: #90a4ae; padding: 20px;">
+                        載入中...
+                    </div>
+                </div>
+                <button id="refreshRoomsBtn"
+                        style="width: 100%; margin-top: 10px;
+                               background: rgba(66,165,245,0.3); color: white;
+                               padding: 8px; border: 1px solid #4fc3f7;
+                               border-radius: 20px; cursor: pointer;
+                               font-size: 12px;">
+                    🔄 重新整理
+                </button>
+            </div>
+
+            <div style="text-align: center; margin: 16px 0;
+                        color: #b3e5fc; font-size: 12px;">
+                ─── 或 ───
+            </div>
+
+            <!-- Create/Join Custom Room -->
+            <div style="background: rgba(76,175,80,0.1); padding: 14px;
+                        border-radius: 12px; margin-bottom: 16px;
+                        border: 1px solid rgba(76,175,80,0.3);">
+                <div style="color: #81c784; font-weight: bold;
+                            margin-bottom: 10px; font-size: 14px;">
+                    ✨ 創建/加入房間 (輸入房間號)
+                </div>
+
+                <input type="text" id="roomIdInput"
+                       placeholder="例如: room1, myroom, ..."
+                       maxlength="20"
+                       style="width: 100%; padding: 10px;
+                              border-radius: 8px; border: 2px solid #4caf50;
+                              background: rgba(0,0,0,0.5); color: #fff;
+                              font-size: 14px; text-align: center;
+                              box-sizing: border-box; margin-bottom: 10px;">
+
+                <button id="joinCustomRoomBtn"
+                        style="width: 100%; background: linear-gradient(135deg, #4caf50, #2e7d32);
+                               color: white; padding: 10px; border: none;
+                               border-radius: 20px; cursor: pointer;
+                               font-size: 14px; font-weight: bold;
+                               box-shadow: 0 4px 12px rgba(76,175,80,0.3);">
+                    🚀 加入 / 創建此房間
+                </button>
+            </div>
+
+            <div class="modal-buttons" style="justify-content: center; margin-top: 10px;">
+                <button id="cancelRoomSelectionBtn"
+                        style="background: #9e9e9e; color: white;
+                               padding: 10px 30px; border: none;
+                               border-radius: 24px; cursor: pointer;
+                               font-size: 13px;">
+                    取消
+                </button>
+            </div>
+        </div>
+    `;
     }
 
     static renderRoomList(rooms, onJoinRoom) {
@@ -97,10 +115,10 @@ export class RoomSelectionTemplate {
 
         if (!rooms || rooms.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; color: #90a4ae; padding: 20px;">
-                    📭 目前沒有房間，請創建一個新的房間
-                </div>
-            `;
+            <div style="text-align: center; color: #90a4ae; padding: 20px;">
+                📭 目前沒有房間，請創建一個新的房間
+            </div>
+        `;
             return;
         }
 
@@ -111,11 +129,20 @@ export class RoomSelectionTemplate {
                 const roomId = btn.dataset.roomId;
                 const isFull = btn.dataset.isFull === 'true';
                 if (isFull) return;
-                onJoinRoom(roomId);
+
+                // ✅ Validate name before joining
+                const nameInput = document.getElementById('roomPlayerNameInput');
+                const playerName = nameInput ? nameInput.value.trim() : '';
+                if (!playerName) {
+                    alert('請先輸入玩家名稱');
+                    if (nameInput) nameInput.focus();
+                    return;
+                }
+
+                onJoinRoom(roomId, playerName);
             };
         });
     }
-
     static bindEvents(callbacks) {
         const refreshBtn = document.getElementById('refreshRoomsBtn');
         if (refreshBtn) {
@@ -124,24 +151,35 @@ export class RoomSelectionTemplate {
             refreshBtn.onmouseleave = () => { refreshBtn.style.background = 'rgba(66,165,245,0.3)'; };
         }
 
-        const joinBtn = document.getElementById('joinCustomRoomBtn');
-        const input   = document.getElementById('roomIdInput');
-        if (joinBtn && input) {
+        const joinBtn   = document.getElementById('joinCustomRoomBtn');
+        const roomInput = document.getElementById('roomIdInput');
+        const nameInput = document.getElementById('roomPlayerNameInput');
+
+        if (joinBtn && roomInput) {
             const submitCustom = () => {
-                const roomId = input.value.trim();
+                // ✅ Validate name first
+                const playerName = nameInput ? nameInput.value.trim() : '';
+                if (!playerName) {
+                    alert('請輸入玩家名稱');
+                    if (nameInput) nameInput.focus();
+                    return;
+                }
+
+                const roomId = roomInput.value.trim();
                 if (!roomId) {
                     alert('請輸入房間號');
+                    roomInput.focus();
                     return;
                 }
                 if (!/^[a-zA-Z0-9_\-\u4e00-\u9fa5]+$/.test(roomId)) {
                     alert('房間號只能包含英文字母、數字、中文、_ 和 -');
                     return;
                 }
-                callbacks.onJoinRoom(roomId);
+                callbacks.onJoinRoom(roomId, playerName);
             };
 
             joinBtn.onclick = submitCustom;
-            input.addEventListener('keydown', (e) => {
+            roomInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') submitCustom();
             });
         }
@@ -149,6 +187,15 @@ export class RoomSelectionTemplate {
         const cancelBtn = document.getElementById('cancelRoomSelectionBtn');
         if (cancelBtn) {
             cancelBtn.onclick = () => callbacks.onCancel();
+        }
+
+        // ✅ Pre-fill name from the top bar input if it has a value
+        if (nameInput) {
+            const topBarName = document.getElementById('playerName');
+            if (topBarName && topBarName.value.trim()) {
+                nameInput.value = topBarName.value.trim();
+            }
+            nameInput.focus();
         }
     }
 

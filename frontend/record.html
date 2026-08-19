@@ -3,882 +3,943 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交易記錄 - 財富流沙盤</title>
+    <title>遊戲分析報告 - 財富流沙盤</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            background: linear-gradient(145deg, #003d4d 0%, #007799 100%);
+            background: linear-gradient(145deg, #0a1628 0%, #1a3a5c 100%);
             font-family: 'Segoe UI', 'Noto Sans TC', system-ui, sans-serif;
-            margin: 0;
-            padding: 24px;
+            color: #ffefc0;
             min-height: 100vh;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        h1 {
-            color: #ffd966;
-            margin: 0;
-            font-size: 28px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .stats-panel {
-            background: rgba(28, 28, 32, 0.95);
-            border-radius: 16px;
-            padding: 15px 25px;
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-            border: 1px solid #ffb347;
-        }
-        
-        .stat-item {
-            color: #ffefc0;
-            font-size: 14px;
-        }
-        
-        .stat-value {
-            font-weight: bold;
-            color: #ffb347;
-            font-size: 18px;
-            margin-left: 8px;
-        }
-        
-        .filter-bar {
-            background: rgba(0,0,0,0.5);
-            border-radius: 12px;
-            padding: 12px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .filter-btn {
-            background: rgba(255, 179, 71, 0.3);
-            border: 1px solid #ffb347;
-            color: #ffefc0;
-            padding: 8px 18px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        
-        .filter-btn:hover, .filter-btn.active {
-            background: #ffb347;
-            color: #333;
-        }
-        
-        .search-input {
-            background: rgba(255,255,255,0.9);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 30px;
-            width: 200px;
-            font-size: 14px;
-        }
-        
-        .refresh-btn {
-            background: #4caf50;
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .records-table {
-            background: rgba(28, 28, 32, 0.95);
-            border-radius: 16px;
-            overflow-x: auto;
-            border: 1px solid #ffb347;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            color: #ffefc0;
-        }
-        
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 179, 71, 0.3);
-        }
-        
-        th {
-            background: rgba(0,0,0,0.5);
-            color: #ffd966;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-        }
-        
-        tr:hover {
-            background: rgba(255, 179, 71, 0.1);
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .badge-volunteer {background: #4caf72;color: white;}
-        .badge-part_time { background: #ff9191; color: white; }
-        .badge-finance { background: #2196f3; color: white; }
-        .badge-business { background: #ff9800; color: white; }
-        .badge-property { background: #9c27b0; color: white; }
-        .badge-lier { background: #dc143c; color: white; }
-        .badge-police { background: #2196f3; color: white; }
-        .badge-general { background: #666; color: white; }
-        .badge-market_news { background: #2196f3; color: white; }
-        .badge-tip { background: #9c27b0; color: white; }
-     
-        .amount-positive { color: #4caf50; }
-        .amount-negative { color: #ff6b6b; }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        .back-btn {
-            background: #ffb347;
-            border: none;
-            color: #333;
-            padding: 10px 25px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .back-btn:hover {
-            background: #ffc107;
-        }
-        
-        @media (max-width: 768px) {
-            th, td {
-                padding: 8px 10px;
-                font-size: 12px;
-            }
-            .stats-panel {
-                padding: 10px 15px;
-            }
-        }
 
-        /* ── View toggle ─────────────────────────────────────────── */
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* ── Header ────────────────────────────────────────────────── */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        }
+        .header h1 { font-size: 26px; color: #ffd966; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .back-btn {
+            background: #ffb347; border: none; color: #333; padding: 8px 20px;
+            border-radius: 24px; cursor: pointer; font-weight: bold;
+            text-decoration: none; display: inline-block; font-size: 13px;
+        }
+        .back-btn:hover { background: #ffc107; }
+
+        /* ── View tabs ─────────────────────────────────────────────── */
         .view-toggle {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
         }
         .view-btn {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid #ffb347;
-            color: #ffefc0;
-            padding: 10px 24px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-            transition: all 0.2s;
+            background: rgba(0,0,0,0.4); border: 1px solid #ffb347; color: #ffefc0;
+            padding: 8px 18px; border-radius: 24px; cursor: pointer;
+            font-size: 13px; font-weight: bold; transition: all 0.2s;
         }
-        .view-btn:hover, .view-btn.active {
-            background: #ffb347;
-            color: #333;
-        }
+        .view-btn:hover, .view-btn.active { background: #ffb347; color: #333; }
 
-        /* ── Per-player analytics view ───────────────────────────── */
-        .charts-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-        @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
-
-        .chart-card {
-            background: rgba(28, 28, 32, 0.95);
+        /* ── Cards & panels ────────────────────────────────────────── */
+        .card {
+            background: rgba(16, 24, 40, 0.95);
+            border: 1px solid rgba(255,179,71,0.3);
             border-radius: 16px;
-            border: 1px solid #ffb347;
             padding: 18px 20px;
+            margin-bottom: 16px;
         }
-        .chart-card h3 {
-            color: #ffd966;
-            margin: 0 0 12px;
-            font-size: 17px;
+        .card h3 {
+            color: #ffd966; margin: 0 0 6px; font-size: 16px;
         }
-        .chart-card svg { width: 100%; height: auto; display: block; }
+        .card .subtitle {
+            color: #b3e5fc; font-size: 12px; margin-bottom: 14px;
+            line-height: 1.5;
+        }
+
+        .cards-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+        }
+        @media (max-width: 900px) { .cards-row { grid-template-columns: 1fr; } }
+
+        /* ── Stats summary ─────────────────────────────────────────── */
+        .stats-bar {
+            background: rgba(16,24,40,0.95); border-radius: 14px; padding: 12px 20px;
+            display: flex; gap: 24px; flex-wrap: wrap; border: 1px solid rgba(255,179,71,0.3);
+            margin-bottom: 16px;
+        }
+        .stat-item { font-size: 13px; }
+        .stat-val { font-weight: bold; color: #ffb347; font-size: 16px; margin-left: 6px; }
+
+        /* ── Filter bar ────────────────────────────────────────────── */
+        .filter-bar {
+            background: rgba(0,0,0,0.4); border-radius: 12px; padding: 10px 16px;
+            margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+        }
+        .filter-btn {
+            background: rgba(255,179,71,0.2); border: 1px solid rgba(255,179,71,0.5);
+            color: #ffefc0; padding: 6px 14px; border-radius: 20px;
+            cursor: pointer; font-size: 12px; transition: all 0.2s;
+        }
+        .filter-btn:hover, .filter-btn.active { background: #ffb347; color: #333; }
+        .search-input {
+            background: rgba(255,255,255,0.9); border: none; padding: 6px 12px;
+            border-radius: 20px; width: 160px; font-size: 12px; color: #333;
+        }
+        .refresh-btn {
+            background: #4caf50; border: none; color: white; padding: 6px 16px;
+            border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 12px;
+        }
+
+        /* ── Table ─────────────────────────────────────────────────── */
+        .records-table {
+            background: rgba(16,24,40,0.95); border-radius: 14px;
+            overflow-x: auto; border: 1px solid rgba(255,179,71,0.3);
+        }
+        table { width: 100%; border-collapse: collapse; color: #ffefc0; font-size: 12px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid rgba(255,179,71,0.15); }
+        th { background: rgba(0,0,0,0.4); color: #ffd966; font-weight: bold; position: sticky; top: 0; font-size: 11px; }
+        tr:hover { background: rgba(255,179,71,0.08); }
+
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; color: white; }
+        .amount-positive { color: #4caf50; }
+        .amount-negative { color: #ff6b6b; }
+        .no-data { text-align: center; padding: 30px; color: #90a4ae; font-size: 13px; }
+
+        /* ── Interactive chart ──────────────────────────────────────── */
+        .chart-container { position: relative; }
+        .chart-container svg { width: 100%; height: auto; display: block; }
+
+        .chart-tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #ffd966;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #ffefc0;
+            pointer-events: none;
+            z-index: 100;
+            white-space: nowrap;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .chart-tooltip .tt-player { font-weight: bold; margin-bottom: 2px; }
+        .chart-tooltip .tt-value { font-size: 14px; font-weight: bold; }
+        .chart-tooltip .tt-detail { font-size: 11px; color: #b0bec5; margin-top: 2px; }
 
         .chart-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 10px;
-            font-size: 13px;
-            color: #ffefc0;
+            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12px;
         }
         .chart-legend .dot {
-            display: inline-block;
-            width: 12px; height: 12px;
-            border-radius: 3px;
-            margin-right: 5px;
-            vertical-align: middle;
+            display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+            margin-right: 4px; vertical-align: middle;
         }
 
+        /* ── Player cards ──────────────────────────────────────────── */
         .player-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 18px;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;
         }
         .player-card {
-            background: rgba(28, 28, 32, 0.95);
-            border-radius: 16px;
-            border-top: 5px solid #ffb347;
-            padding: 18px 20px;
+            background: rgba(16,24,40,0.95); border-radius: 14px;
+            border-top: 4px solid #ffb347; padding: 16px 18px;
         }
         .player-card h2 {
-            margin: 0 0 12px;
-            font-size: 20px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin: 0 0 10px; font-size: 17px; color: #fff;
+            display: flex; align-items: center; gap: 6px;
         }
-        .pc-metrics {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 14px;
-        }
-        .pc-metric {
-            background: rgba(0,0,0,0.35);
-            border-radius: 10px;
-            padding: 8px 12px;
-        }
-        .pc-metric .label { font-size: 12px; color: #bdbdbd; }
-        .pc-metric .value { font-size: 18px; font-weight: bold; }
+        .pc-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .pc-metric { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 6px 10px; }
+        .pc-metric .label { font-size: 11px; color: #b0bec5; }
+        .pc-metric .value { font-size: 16px; font-weight: bold; }
         .pc-typebar {
-            display: flex;
-            height: 14px;
-            border-radius: 7px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.08);
+            display: flex; height: 12px; border-radius: 6px; overflow: hidden;
+            margin-bottom: 6px; background: rgba(255,255,255,0.08);
         }
         .pc-typebar span { height: 100%; }
-        .pc-typelist { font-size: 12px; color: #ddd; line-height: 1.7; }
-        .pc-typelist .k { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+        .pc-typelist { font-size: 11px; color: #ddd; line-height: 1.6; }
+        .pc-typelist .k { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
 
-        /* ── Per-room analytics view ─────────────────────────────── */
+        /* ── Room view ─────────────────────────────────────────────── */
         .room-section {
-            background: rgba(28, 28, 32, 0.95);
-            border-radius: 16px;
-            border: 1px solid #ffb347;
-            border-left: 6px solid #ffd966;
-            padding: 18px 22px;
-            margin-bottom: 20px;
+            background: rgba(16,24,40,0.95); border-radius: 14px;
+            border: 1px solid rgba(255,179,71,0.3); border-left: 5px solid #ffd966;
+            padding: 16px 18px; margin-bottom: 16px;
         }
         .room-header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            border-bottom: 1px solid rgba(255,179,71,0.3);
-            padding-bottom: 12px;
-            margin-bottom: 14px;
+            display: flex; align-items: baseline; justify-content: space-between;
+            flex-wrap: wrap; gap: 6px; border-bottom: 1px solid rgba(255,179,71,0.2);
+            padding-bottom: 10px; margin-bottom: 12px;
         }
-        .room-header h2 { margin: 0; color: #ffd966; font-size: 22px; }
-        .room-meta { color: #ffefc0; font-size: 14px; }
+        .room-header h2 { margin: 0; color: #ffd966; font-size: 18px; }
+        .room-meta { color: #ffefc0; font-size: 13px; }
         .room-body {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-            gap: 20px;
-            align-items: start;
+            display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr);
+            gap: 16px; align-items: start;
         }
         @media (max-width: 900px) { .room-body { grid-template-columns: 1fr; } }
-        .room-chart svg { width: 100%; height: auto; display: block; }
-        .rc-title { color: #ffd966; font-size: 14px; margin-bottom: 6px; }
-        .room-players { display: flex; flex-direction: column; gap: 8px; }
+        .rc-title { color: #ffd966; font-size: 13px; margin-bottom: 4px; }
+        .room-players { display: flex; flex-direction: column; gap: 6px; }
         .room-player-row {
-            background: rgba(0,0,0,0.35);
-            border-radius: 10px;
-            padding: 8px 12px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 6px 16px;
-            font-size: 13px;
-            color: #e8e8e8;
+            background: rgba(0,0,0,0.3); border-radius: 8px; padding: 6px 10px;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+            font-size: 12px; color: #e8e8e8;
         }
-        .room-player-row .rp-name { font-weight: bold; min-width: 70px; }
+        .room-player-row .rp-name { font-weight: bold; min-width: 60px; }
         .room-player-row .rp-metric b { color: #fff; }
+
+        /* ── Moments ───────────────────────────────────────────────── */
+        .moment-card {
+            background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 6px; display: flex; justify-content: space-between;
+            align-items: center; gap: 10px;
+        }
+        .moment-card .mc-left { flex: 1; }
+        .moment-card .mc-player { font-weight: bold; font-size: 12px; }
+        .moment-card .mc-card { font-size: 11px; color: #b0bec5; }
+        .moment-card .mc-amount { font-size: 16px; font-weight: bold; white-space: nowrap; }
+
+        /* ── Scoreboard ────────────────────────────────────────────── */
+        .ranking-row {
+            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+            background: rgba(0,0,0,0.25); border-radius: 8px; margin-bottom: 6px;
+        }
+        .ranking-row .rank { font-size: 24px; min-width: 36px; text-align: center; }
+        .ranking-row .rr-info { flex: 1; }
+        .ranking-row .rr-name { font-size: 14px; font-weight: bold; color: #fff; }
+        .ranking-row .rr-metrics {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-top: 3px;
+            font-size: 11px; color: #b0bec5;
+        }
+        .ranking-row .rr-metrics b { color: #ffd966; }
+        .ranking-row .rr-score { font-size: 20px; font-weight: bold; color: #ffd966; min-width: 70px; text-align: right; }
+
+        .badge-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .achievement-badge {
+            background: rgba(0,0,0,0.35); border: 2px solid; border-radius: 10px;
+            padding: 8px 12px; text-align: center; min-width: 110px;
+        }
+        .achievement-badge .ab-icon { font-size: 24px; }
+        .achievement-badge .ab-name { font-size: 10px; color: #ffefc0; margin-top: 3px; }
+        .achievement-badge .ab-player { font-size: 9px; color: #b0bec5; margin-top: 1px; }
+
+        /* ── Annotations ───────────────────────────────────────────── */
+        .annotation-item {
+            background: rgba(255,193,7,0.08); border-left: 3px solid #ffd966;
+            border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 12px;
+        }
+        .annotation-item .ai-header { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .annotation-item .ai-player { font-weight: bold; color: #ffd966; }
+        .annotation-item .ai-time { font-size: 10px; color: #90a4ae; }
+        .annotation-item .ai-text { color: #ffefc0; line-height: 1.4; }
+        .annotation-item .ai-delete { background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 10px; padding: 0; width: auto; }
+
+        /* ── Reflection box ────────────────────────────────────────── */
+        .reflection-box {
+            background: rgba(33,150,243,0.1);
+            border: 1px solid rgba(33,150,243,0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: #b3e5fc;
+            line-height: 1.6;
+        }
+        .reflection-box .rq { color: #4fc3f7; font-weight: bold; margin-bottom: 4px; }
+
+        /* ── Print ─────────────────────────────────────────────────── */
+        @media print {
+            body { background: white; color: #333; padding: 10px; }
+            .header .back-btn, .view-toggle, .filter-bar, .refresh-btn,
+            #exportPdfBtn, #saveAnnotation, .ai-delete { display: none !important; }
+            .card, .player-card, .room-section, .ranking-row,
+            .achievement-badge, .annotation-item { break-inside: avoid; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>📊 交易記錄總覽</h1>
+        <h1>📊 遊戲分析報告</h1>
         <a href="index.html" class="back-btn">← 返回遊戲</a>
     </div>
 
     <div class="view-toggle">
-        <button class="view-btn active" data-view="table">📋 全部記錄</button>
-        <button class="view-btn" data-view="player">👥 分玩家分析</button>
-        <button class="view-btn" data-view="room">🏠 分房間分析</button>
+        <button class="view-btn active" data-view="table">📋 交易記錄</button>
+        <button class="view-btn" data-view="player">👥 個人表現</button>
+        <button class="view-btn" data-view="room">🏠 班級比較</button>
+        <button class="view-btn" data-view="metrics">📈 理財分析</button>
+        <button class="view-btn" data-view="moments">🎯 重要時刻</button>
+        <button class="view-btn" data-view="scoreboard">🏆 最終成績</button>
     </div>
 
+    <!-- ═══════════════ TAB 1: Transaction Records ═══════════════ -->
     <div id="tableView">
-    <div class="stats-panel">
-        <div class="stat-item">📋 總交易次數: <span class="stat-value" id="totalCount">0</span></div>
-        <div class="stat-item">💰 總現金變化: <span class="stat-value" id="totalCashChange">0</span></div>
-        <div class="stat-item">📈 總被動收入變化: <span class="stat-value" id="totalPassiveChange">0</span></div>
-        <div class="stat-item">💪 總副業收入變化: <span class="stat-value" id="totalSideChange">0</span></div>
-    </div>
-    
-    <div class="filter-bar">
-        <button class="filter-btn active" data-filter="all">全部</button>
-        <button class="filter-btn" data-filter="part_time">💼 兼職</button>
-        <button class="filter-btn" data-filter="finance">📈 財務</button>
-        <button class="filter-btn" data-filter="business">🚀 創業</button>
-        <button class="filter-btn" data-filter="property">🏠 地產</button>
-        <button class="filter-btn" data-filter="lier">🎭 騙子卡</button>
-        <button class="filter-btn" data-filter="police">👮 警察卡</button>
-        <button class="filter-btn" data-filter="volunteer">🤝 義工卡</button>
-        <button class="filter-btn" data-filter="market_news">📊 市場消息</button>
-        <button class="filter-btn" data-filter="hardship">🎭 逆境自強</button>
-        <button class="filter-btn" data-filter="tip">🎁 錦囊卡</button>
-        <button class="filter-btn" data-filter="trust">🏦 資產信託</button>
-        <button class="filter-btn" data-filter="investment">🏗️ 投資</button>
-        <button class="filter-btn" data-filter="social">🤝 社會卡</button>
-        <input type="text" class="search-input" id="searchInput" placeholder="搜尋玩家或卡片...">
-        <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
-    </div>
-    
-    <div class="records-table">
-        <table>
-            <thead>
-                <tr>
-                    <th>時間</th>
-                    <th>玩家</th>
-                    <th>卡片類型</th>
-                    <th>卡片名稱</th>
-                    <th>操作</th>
-                    <th>金額變化</th>
-                    <th>被動收入變化</th>
-                    <th>副業收入變化</th>
-                    <th>詳細描述</th>
-                </tr>
-            </thead>
-            <tbody id="recordsBody">
-                <tr><td colspan="9" class="no-data">載入中...</td></tr>
-            </tbody>
-        </table>
-    </div>
-    </div><!-- /tableView -->
+        <div class="stats-bar">
+            <div class="stat-item">📋 總交易: <span class="stat-val" id="totalCount">0</span></div>
+            <div class="stat-item">💰 現金變化: <span class="stat-val" id="totalCashChange">0</span></div>
+            <div class="stat-item">📈 被動收入: <span class="stat-val" id="totalPassiveChange">0</span></div>
+            <div class="stat-item">💪 副業收入: <span class="stat-val" id="totalSideChange">0</span></div>
+        </div>
 
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">全部</button>
+            <button class="filter-btn" data-filter="part_time">💼 兼職</button>
+            <button class="filter-btn" data-filter="finance">📈 財務</button>
+            <button class="filter-btn" data-filter="business">🚀 創業</button>
+            <button class="filter-btn" data-filter="property">🏠 地產</button>
+            <button class="filter-btn" data-filter="lier">🎭 騙子卡</button>
+            <button class="filter-btn" data-filter="police">👮 警察卡</button>
+            <button class="filter-btn" data-filter="volunteer">🤝 義工卡</button>
+            <button class="filter-btn" data-filter="market_news">📊 市場消息</button>
+            <button class="filter-btn" data-filter="hardship">😰 逆境卡</button>
+            <button class="filter-btn" data-filter="tip">🎁 錦囊卡</button>
+            <button class="filter-btn" data-filter="trust">🏦 信託</button>
+            <button class="filter-btn" data-filter="investment">🏗️ 投資</button>
+            <button class="filter-btn" data-filter="social">🤝 社會卡</button>
+            <input type="text" class="search-input" id="searchInput" placeholder="搜尋玩家或卡片...">
+            <button class="refresh-btn" id="refreshBtn">🔄 刷新</button>
+        </div>
+
+        <div class="records-table">
+            <table>
+                <thead>
+                <tr>
+                    <th>時間</th><th>玩家</th><th>類型</th><th>卡片</th>
+                    <th>操作</th><th>金額</th><th>被動收入</th>
+                    <th>副業</th><th>說明</th>
+                </tr>
+                </thead>
+                <tbody id="recordsBody">
+                <tr><td colspan="9" class="no-data">載入中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 2: Player Analysis ═══════════════ -->
     <div id="playerView" style="display:none;">
-        <div class="charts-row">
-            <div class="chart-card">
-                <h3>📈 各玩家累計現金變化</h3>
-                <div id="lineChart"></div>
+        <div class="cards-row">
+            <div class="card">
+                <h3>📈 每個人的錢怎麼變化的？</h3>
+                <div class="subtitle">這張圖顯示每位玩家從遊戲開始到現在，累計賺了或虧了多少錢。<br>
+                    向上 = 越來越有錢，向下 = 越來越窮。把滑鼠移到線上可以看到具體金額。</div>
+                <div class="chart-container" id="lineChartContainer">
+                    <div id="lineChart"></div>
+                    <div class="chart-tooltip" id="lineTooltip"></div>
+                </div>
                 <div class="chart-legend" id="lineLegend"></div>
             </div>
-            <div class="chart-card">
-                <h3>💰 各玩家淨現金變化</h3>
-                <div id="barChart"></div>
+            <div class="card">
+                <h3>💰 誰賺最多？誰虧最多？</h3>
+                <div class="subtitle">每個人在整場遊戲中，總共賺了或虧了多少錢。<br>
+                    🟢 綠色 = 賺錢，🔴 紅色 = 虧錢。越長的條代表金額越大。</div>
+                <div class="chart-container" id="barChartContainer">
+                    <div id="barChart"></div>
+                    <div class="chart-tooltip" id="barTooltip"></div>
+                </div>
             </div>
         </div>
-        <div class="player-grid" id="playerGrid">
-            <div class="no-data">暫無資料</div>
-        </div>
-    </div><!-- /playerView -->
+        <div class="player-grid" id="playerGrid"><div class="no-data">暫無資料</div></div>
+    </div>
 
+    <!-- ═══════════════ TAB 3: Room Comparison ═══════════════ -->
     <div id="roomView" style="display:none;">
-        <div class="chart-card" id="roomCompareCard" style="margin-bottom:20px;">
-            <h3>🏆 房間比較 · 淨現金總和</h3>
-            <div id="roomCompareChart"></div>
+        <div class="card" id="roomCompareCard" style="margin-bottom:16px;">
+            <h3>🏆 哪個房間表現最好？</h3>
+            <div class="subtitle">比較不同房間的總體表現。每個房間所有玩家的淨收入加在一起，看看哪個房間最會賺錢！</div>
+            <div class="chart-container" id="roomCompareContainer">
+                <div id="roomCompareChart"></div>
+                <div class="chart-tooltip" id="roomTooltip"></div>
+            </div>
         </div>
-        <div id="roomSections">
-            <div class="no-data">暫無資料</div>
+        <div id="roomSections"><div class="no-data">暫無資料</div></div>
+    </div>
+
+    <!-- ═══════════════ TAB 4: Financial Metrics ═══════════════ -->
+    <div id="metricsView" style="display:none;">
+        <div class="cards-row">
+            <div class="card">
+                <h3>📈 你的存款夠不夠？</h3>
+                <div class="subtitle">這張圖追蹤每個人的現金餘額變化。<br>
+                    如果線一直往下掉，代表你花錢太快了！穩定上升才是好的理財方式。</div>
+                <div class="chart-container" id="cashBalanceContainer">
+                    <div id="cashBalanceChart"></div>
+                    <div class="chart-tooltip" id="cashTooltip"></div>
+                </div>
+                <div class="chart-legend" id="cashBalanceLegend"></div>
+                <div class="reflection-box">
+                    <div class="rq">💡 反思問題</div>
+                    你的現金有沒有出現大幅下降的時候？是什麼原因造成的？<br>
+                    如果重來一次，你會怎麼管理你的現金？
+                </div>
+            </div>
+            <div class="card">
+                <h3>💸 你欠了多少錢？</h3>
+                <div class="subtitle">負債比率 = 你的債務 ÷ 你的月收入。<br>
+                    🟢 低於50% = 健康，🟡 50-100% = 需要注意，🔴 超過100% = 危險！</div>
+                <div id="debtRatioChart"></div>
+                <div class="reflection-box">
+                    <div class="rq">💡 反思問題</div>
+                    你有沒有借太多錢？借來的錢有沒有用在能賺錢的投資上？<br>
+                    在現實生活中，什麼時候借錢是好的？什麼時候是壞的？
+                </div>
+            </div>
+        </div>
+        <div class="cards-row">
+            <div class="card">
+                <h3>🎯 你的投資有多多元化？</h3>
+                <div class="subtitle">多元化 = 不把所有雞蛋放在同一個籃子裡。<br>
+                    投資越多不同類型的卡片，風險就越分散！⭐ 越多星越好。</div>
+                <div id="diversificationChart"></div>
+                <div class="reflection-box">
+                    <div class="rq">💡 反思問題</div>
+                    你是不是只投資了一種類型？為什麼分散投資很重要？<br>
+                    想像一下：如果你把所有錢都投資在股票上，股市暴跌的話會怎樣？
+                </div>
+            </div>
+            <div class="card">
+                <h3>📊 你的投資賺回來了嗎？</h3>
+                <div class="subtitle">月回報率 = 每月被動收入 ÷ 總投資金額。<br>
+                    回本月數 = 需要幾個月才能把投資的錢賺回來。越短越好！</div>
+                <div id="roiChart"></div>
+                <div class="reflection-box">
+                    <div class="rq">💡 反思問題</div>
+                    你投資的項目回本需要多久？值得嗎？<br>
+                    在現實中，一般投資需要多久才能回本？
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 5: Key Moments ═══════════════ -->
+    <div id="momentsView" style="display:none;">
+        <div class="cards-row">
+            <div class="card">
+                <h3>🔥 最大贏利時刻</h3>
+                <div class="subtitle">遊戲中賺最多錢的 8 個瞬間。看看是什麼操作讓他們大賺一筆！</div>
+                <div id="biggestWins"></div>
+            </div>
+            <div class="card">
+                <h3>💔 最大損失時刻</h3>
+                <div class="subtitle">遊戲中虧最多錢的 8 個瞬間。了解為什麼會虧損，下次如何避免！</div>
+                <div id="biggestLosses"></div>
+            </div>
+        </div>
+        <div class="card">
+            <h3>📅 每個人的決策軌跡</h3>
+            <div class="subtitle">每個圓點代表一次決策。🟢 賺錢的決策 🔴 虧錢的決策 🔵 中性決策。圓點越大 = 金額越大。<br>
+                把滑鼠移到圓點上可以看到詳細資訊。</div>
+            <div class="chart-container" id="timelineContainer">
+                <div id="decisionTimeline"></div>
+                <div class="chart-tooltip" id="timelineTooltip"></div>
+            </div>
+            <div class="reflection-box">
+                <div class="rq">💡 反思問題</div>
+                你的紅點（虧損）集中在哪個時期？是不是某些決定導致了連續虧損？<br>
+                如果能回到那個時候，你會做出不同的選擇嗎？
+            </div>
+        </div>
+        <div class="card">
+            <h3>🎰 你是什麼類型的投資者？</h3>
+            <div class="subtitle">分析每個人選擇高風險（股票、創業、投資）vs 低風險（兼職、警察、義工）卡片的比例。<br>
+                🔥 冒險型 = 高風險多 | ⚖️ 平衡型 = 均衡 | 🛡️ 保守型 = 低風險多</div>
+            <div id="riskProfile"></div>
+            <div class="reflection-box">
+                <div class="rq">💡 反思問題</div>
+                你覺得自己是哪種投資者？冒險型的人一定賺更多嗎？<br>
+                在現實生活中，你會選擇保守還是冒險的理財方式？為什麼？
+            </div>
+        </div>
+        <div class="card">
+            <h3>📝 教師備註</h3>
+            <div class="subtitle">教師可以針對每位學生寫下觀察和建議。</div>
+            <div style="margin-bottom:8px;">
+                <select id="annotatePlayer" style="padding:5px 10px; border-radius:6px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #ffb347; font-size:12px;">
+                    <option value="">選擇玩家...</option>
+                </select>
+                <textarea id="annotateText" placeholder="輸入備註..."
+                          style="width:100%; margin-top:6px; padding:8px; border-radius:6px;
+                           background:rgba(0,0,0,0.4); color:#ffefc0; border:1px solid #ffb347;
+                           min-height:60px; font-family:inherit; font-size:12px; resize:vertical;"></textarea>
+                <button id="saveAnnotation" style="margin-top:6px; background:#4caf50; color:white;
+                        padding:6px 16px; border:none; border-radius:16px; cursor:pointer; font-weight:bold; font-size:12px;">
+                    💾 儲存
+                </button>
+            </div>
+            <div id="annotationsList"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ TAB 6: Scoreboard ═══════════════ -->
+    <div id="scoreboardView" style="display:none;">
+        <div class="card">
+            <h3>🏆 最終排名</h3>
+            <div class="subtitle">綜合你的現金、被動收入、總資產、義工服務和個人成長，計算出最終分數。<br>
+                分數越高 = 你在遊戲中的綜合表現越好！</div>
+            <div id="finalRankings"></div>
+        </div>
+        <div class="cards-row">
+            <div class="card">
+                <h3>🏅 誰拿到了這些成就？</h3>
+                <div class="subtitle">每個成就只有表現最好的玩家能獲得。看看你有沒有拿到！</div>
+                <div id="achievementBadges"></div>
+            </div>
+            <div class="card">
+                <h3>📊 分數怎麼算的？</h3>
+                <div id="compositeScore"></div>
+                <div class="reflection-box">
+                    <div class="rq">💡 最終反思</div>
+                    回顧整場遊戲，你學到了什麼？<br>
+                    如果你是理財顧問，你會給自己什麼建議？<br>
+                    你在現實生活中會改變你的理財方式嗎？
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:16px;">
+            <button id="exportPdfBtn" style="background:#ff9800; color:white; padding:10px 24px;
+                    border:none; border-radius:24px; cursor:pointer; font-size:14px; font-weight:bold;">
+                📄 列印報告
+            </button>
         </div>
     </div>
 </div>
-
 <script>
-    // 獲取交易記錄
-    async function fetchTransactions() {
-        try {
-            const response = await fetch('http://localhost:8080/api/transactions');
-            if (response.ok) {
-                const data = await response.json();
-                return data;
-            }
-        } catch (e) {
-            console.log('無法獲取交易記錄，使用本地存儲');
-        }
-        
-        // 從 localStorage 獲取
-        const saved = localStorage.getItem('wealthFlow_transactions');
-        return saved ? JSON.parse(saved) : [];
-    }
-    
-    // 渲染表格
-    function renderTable(transactions, filter = 'all', search = '') {
-    const tbody = document.getElementById('recordsBody');
-    const filtered = transactions.filter(t => {
-        if (filter !== 'all' && t.cardType !== filter) return false;
-        if (search) {
-            const q = search.toLowerCase();
-            const inPlayer = (t.playerName || '').toLowerCase().includes(q);
-            const inCard   = (t.cardName   || '').toLowerCase().includes(q);
-            if (!inPlayer && !inCard) return false;
-        }
-        return true;
-    });
-    
-    if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="no-data">暫無交易記錄</td></tr>';
-        return;
-    }
-    
-    let totalCash = 0;
-    let totalPassive = 0;
-    let totalSide = 0;
-    
-    tbody.innerHTML = filtered.map(t => {
-        const amountClass = (t.amountChange || 0) >= 0 ? 'amount-positive' : 'amount-negative';
-        const amountSymbol = (t.amountChange || 0) >= 0 ? '+' : '';
-        
-        totalCash += t.amountChange || 0;
-        totalPassive += t.passiveIncomeChange || 0;
-        totalSide += t.sideIncomeChange || 0;
-        
-        let badgeClass = '';
-        let typeName = '';
-        if (t.cardType === 'part_time') {
-            badgeClass = 'badge-part_time';
-            typeName = '💼 兼職';
-        } else if (t.cardType === 'finance') {
-            badgeClass = 'badge-finance';
-            typeName = '📈 財務';
-        } else if (t.cardType === 'business') {
-            badgeClass = 'badge-business';
-            typeName = '🚀 創業';
-        } else if (t.cardType === 'property') {
-            badgeClass = 'badge-property';
-            typeName = '🏠 地產';
-        } else if (t.cardType === 'lier') {
-            badgeClass = 'badge-lier';
-            typeName = '🎭 騙子卡';
-        } else if (t.cardType === 'police') {
-            badgeClass = 'badge-police';
-            typeName = '👮 警察卡';
-        } else if (t.cardType === 'volunteer') {  
-            badgeClass = 'badge-volunteer';
-            typeName = '🤝 義工卡';
-        } else if (t.cardType === 'market_news') {
-            badgeClass = 'badge-finance';
-            typeName = '📊 市場消息';
-        } else if (t.cardType === 'tip') {
-            badgeClass = 'badge-business';
-            typeName = '🎁 錦囊卡';
-        } else if (t.cardType === 'hardship') {
-            badgeClass = 'badge-lier';
-            typeName = '🎭 逆境自強';
-        } else if (t.cardType === 'trust') {
-            badgeClass = 'badge-general';
-            typeName = '🏦 資產信託';
-        } else if (t.cardType === 'investment') {
-            badgeClass = 'badge-business';
-            typeName = '🏗️ 投資';
-        }  else if (t.cardType === 'social') {
-            badgeClass = 'badge-volunteer';
-            typeName = '🤝 社會卡';
-        }  else {
-            badgeClass = 'badge-general';
-            typeName = '🎁 察覺';
-        }
-        
-        return `<tr>
-            <td style="font-size: 11px;">${t.timestamp || '-'}</td>
-            <td><strong>${escapeHtml(t.playerName || '-')}</strong></td>
-            <td><span class="badge ${badgeClass}">${typeName}</span></td>
-            <td>${escapeHtml(t.cardName || '-')}</td>
-            <td>${t.action || '執行'}</td>
-            <td class="${amountClass}">${amountSymbol}${(t.amountChange || 0).toLocaleString()} 元</td>
-            <td class="${(t.passiveIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.passiveIncomeChange || 0) >= 0 ? '+' : ''}${(t.passiveIncomeChange || 0).toLocaleString()}</td>
-            <td class="${(t.sideIncomeChange || 0) >= 0 ? 'amount-positive' : 'amount-negative'}">${(t.sideIncomeChange || 0) >= 0 ? '+' : ''}${(t.sideIncomeChange || 0).toLocaleString()}</td>
-            <td style="max-width: 250px; word-break: break-word;">${escapeHtml(t.details || '-')}</td>
-        </tr>`;
-    }).join('');
-    
-    document.getElementById('totalCount').innerText = filtered.length;
-    document.getElementById('totalCashChange').innerHTML = totalCash >= 0 ? `+${totalCash.toLocaleString()}` : totalCash.toLocaleString();
-    document.getElementById('totalCashChange').style.color = totalCash >= 0 ? '#4caf50' : '#ff6b6b';
-    document.getElementById('totalPassiveChange').innerHTML = totalPassive >= 0 ? `+${totalPassive.toLocaleString()}` : totalPassive.toLocaleString();
-    document.getElementById('totalSideChange').innerHTML = totalSide >= 0 ? `+${totalSide.toLocaleString()}` : totalSide.toLocaleString();
-}
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // UTILITIES
+    // ═══════════════════════════════════════════════════════════════
 
-    // ── 卡片類型元資料（顏色 + 名稱），供圖表與玩家卡共用 ──────────────
-    const TYPE_META = {
-        part_time:   { name: '💼 兼職', color: '#ff9191' },
-        finance:     { name: '📈 財務', color: '#2196f3' },
-        business:    { name: '🚀 創業', color: '#ff9800' },
-        property:    { name: '🏠 地產', color: '#9c27b0' },
-        lier:        { name: '🎭 騙子', color: '#dc143c' },
-        police:      { name: '👮 警察', color: '#03a9f4' },
-        volunteer:   { name: '🤝 義工', color: '#4caf72' },
-        market_news: { name: '📊 市場消息', color: '#00bcd4' },
-        hardship:    { name: '🎭 逆境', color: '#e91e63' },
-        tip:         { name: '🎁 錦囊', color: '#7e57c2' },
-        trust:       { name: '🏦 信託', color: '#795548' },
-        investment:  { name: '🏗️ 投資', color: '#8bc34a' },
-        social:      { name: '🤝 社會', color: '#26a69a' },
-        general:     { name: '🎁 察覺', color: '#888' }
-    };
-    function typeMeta(t) { return TYPE_META[t] || TYPE_META.general; }
-
-    // 玩家固定配色（依出現順序）
-    const PLAYER_COLORS = ['#ffd966','#4dd0e1','#ff8a65','#81c784','#ba68c8','#f06292','#a1887f','#90a4ae'];
-    function playerColorMap(names) {
-        const m = {};
-        names.forEach((n, i) => { m[n] = PLAYER_COLORS[i % PLAYER_COLORS.length]; });
-        return m;
-    }
-
-    // ── 依玩家彙總資料 ────────────────────────────────────────────────
-    function aggregateByPlayer(txs) {
-        // 交易以最新在前儲存 → 反轉為時間順序，方便計算累計值
-        const chrono = txs.slice().reverse();
-        const players = {};
-        chrono.forEach(t => {
-            const name = t.playerName || '(未知)';
-            if (!players[name]) {
-                players[name] = {
-                    name, count: 0,
-                    cash: 0, passive: 0, side: 0, salary: 0, energy: 0,
-                    byType: {}, series: []
-                };
-            }
-            const p = players[name];
-            p.count++;
-            p.cash    += t.amountChange || 0;
-            p.passive += t.passiveIncomeChange || 0;
-            p.side    += t.sideIncomeChange || 0;
-            p.salary  += t.salaryChange || 0;
-            p.energy  += t.energyChange || 0;
-            p.byType[t.cardType] = (p.byType[t.cardType] || 0) + 1;
-            p.series.push(p.cash); // 累計現金
-        });
-        return players;
-    }
-
+    function esc(s) { return !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     const fmt = n => (n >= 0 ? '+' : '') + (n || 0).toLocaleString();
-    const signClass = n => (n >= 0 ? 'amount-positive' : 'amount-negative');
+    const sc  = n => n >= 0 ? 'amount-positive' : 'amount-negative';
 
-    // ── 折線圖：各玩家累計現金 ────────────────────────────────────────
+    const TYPE_META = {
+        part_time:{name:'💼 兼職',color:'#ff9191'},finance:{name:'📈 財務',color:'#2196f3'},
+        business:{name:'🚀 創業',color:'#ff9800'},property:{name:'🏠 地產',color:'#9c27b0'},
+        lier:{name:'🎭 騙子',color:'#dc143c'},police:{name:'👮 警察',color:'#03a9f4'},
+        volunteer:{name:'🤝 義工',color:'#4caf72'},market_news:{name:'📊 市場',color:'#00bcd4'},
+        hardship:{name:'😰 逆境',color:'#e91e63'},tip:{name:'🎁 錦囊',color:'#7e57c2'},
+        trust:{name:'🏦 信託',color:'#795548'},investment:{name:'🏗️ 投資',color:'#8bc34a'},
+        social:{name:'🤝 社會',color:'#26a69a'},general:{name:'📌 其他',color:'#888'}
+    };
+    function tm(t) { return TYPE_META[t] || TYPE_META.general; }
+
+    const PC = ['#ffd966','#4dd0e1','#ff8a65','#81c784','#ba68c8','#f06292','#a1887f','#90a4ae','#ffab91','#80cbc4','#ce93d8','#fff176'];
+    function pcm(names) { const m = {}; names.forEach((n,i) => { m[n] = PC[i % PC.length]; }); return m; }
+
+    function agg(txs) {
+        const c = txs.slice().reverse(), p = {};
+        c.forEach(t => {
+            const n = t.playerName || '(未知)';
+            if (!p[n]) p[n] = { name:n, count:0, cash:0, passive:0, side:0, salary:0, energy:0, byType:{}, series:[], txs:[] };
+            const o = p[n]; o.count++; o.cash += t.amountChange||0; o.passive += t.passiveIncomeChange||0;
+            o.side += t.sideIncomeChange||0; o.salary += t.salaryChange||0; o.energy += t.energyChange||0;
+            o.byType[t.cardType] = (o.byType[t.cardType]||0) + 1;
+            o.series.push({ val: o.cash, card: t.cardName, amount: t.amountChange||0 });
+            o.txs.push(t);
+        });
+        return p;
+    }
+
+    function grp(txs) { const r = {}; (txs||[]).forEach(t => { const id = t.roomId||'未分配'; (r[id]=r[id]||[]).push(t); }); return r; }
+
+    async function fetchTx() {
+        try { const r = await fetch('http://localhost:8080/api/transactions'); if (r.ok) return await r.json(); } catch(e) {}
+        const s = localStorage.getItem('wealthFlow_transactions'); return s ? JSON.parse(s) : [];
+    }
+
+    // ═══════════════ Tooltip helper ═══════════════
+    function showTip(tipEl, x, y, html) {
+        tipEl.innerHTML = html; tipEl.style.display = 'block';
+        const rect = tipEl.parentElement.getBoundingClientRect();
+        let left = x - rect.left + 10, top = y - rect.top - 40;
+        if (left + 180 > rect.width) left = left - 200;
+        if (top < 0) top = y - rect.top + 15;
+        tipEl.style.left = left + 'px'; tipEl.style.top = top + 'px';
+    }
+    function hideTip(tipEl) { tipEl.style.display = 'none'; }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 1: TABLE
+    // ═══════════════════════════════════════════════════════════════
+
+    function renderTable(txs, filter, search) {
+        const tbody = document.getElementById('recordsBody');
+        const fd = txs.filter(t => {
+            if (filter !== 'all' && t.cardType !== filter) return false;
+            if (search) { const q = search.toLowerCase(); if (!(t.playerName||'').toLowerCase().includes(q) && !(t.cardName||'').toLowerCase().includes(q)) return false; }
+            return true;
+        });
+        if (!fd.length) { tbody.innerHTML = '<tr><td colspan="9" class="no-data">暫無記錄</td></tr>'; return; }
+        let tc=0,tp=0,ts=0;
+        tbody.innerHTML = fd.map(t => {
+            tc += t.amountChange||0; tp += t.passiveIncomeChange||0; ts += t.sideIncomeChange||0;
+            const m = tm(t.cardType);
+            return '<tr><td style="font-size:10px;">'+(t.timestamp||'-')+'</td><td><strong>'+esc(t.playerName||'-')+'</strong></td><td><span class="badge" style="background:'+m.color+'">'+m.name+'</span></td><td>'+esc(t.cardName||'-')+'</td><td>'+(t.action||'')+'</td><td class="'+sc(t.amountChange)+'">'+fmt(t.amountChange)+'</td><td class="'+sc(t.passiveIncomeChange)+'">'+fmt(t.passiveIncomeChange)+'</td><td class="'+sc(t.sideIncomeChange)+'">'+fmt(t.sideIncomeChange)+'</td><td style="max-width:200px;word-break:break-word;font-size:11px;">'+esc(t.details||'-')+'</td></tr>';
+        }).join('');
+        document.getElementById('totalCount').innerText = fd.length;
+        const ce = document.getElementById('totalCashChange'); ce.innerHTML = fmt(tc); ce.style.color = tc>=0?'#4caf50':'#ff6b6b';
+        document.getElementById('totalPassiveChange').innerHTML = fmt(tp);
+        document.getElementById('totalSideChange').innerHTML = fmt(ts);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 2: PLAYER — Interactive charts
+    // ═══════════════════════════════════════════════════════════════
+
     function buildLineChart(players, colors) {
         const names = Object.keys(players);
-        const W = 520, H = 260, padL = 56, padR = 16, padT = 16, padB = 28;
-        const maxLen = Math.max(1, ...names.map(n => players[n].series.length));
-        let lo = 0, hi = 0;
-        names.forEach(n => players[n].series.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
-        if (hi === lo) hi = lo + 1;
-        const x = i => padL + (maxLen <= 1 ? 0 : (i / (maxLen - 1)) * (W - padL - padR));
-        const y = v => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+        const W=560,H=280,pL=62,pR=20,pT=20,pB=30;
+        const maxLen = Math.max(1,...names.map(n=>players[n].series.length));
+        let lo=0,hi=0; names.forEach(n=>players[n].series.forEach(s=>{if(s.val<lo)lo=s.val;if(s.val>hi)hi=s.val;}));
+        if(hi===lo)hi=lo+1;
+        const x=i=>pL+(maxLen<=1?0:(i/(maxLen-1))*(W-pL-pR));
+        const y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
 
-        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
-        // 基線（0）與網格
-        for (let g = 0; g <= 4; g++) {
-            const gv = lo + (hi - lo) * g / 4;
-            const gy = y(gv);
-            svg += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="rgba(255,255,255,0.12)"/>`;
-            svg += `<text x="${padL - 8}" y="${gy + 4}" fill="#bbb" font-size="11" text-anchor="end">${Math.round(gv).toLocaleString()}</text>`;
-        }
-        if (lo < 0 && hi > 0) {
-            svg += `<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="rgba(255,255,255,0.4)" stroke-dasharray="4 3"/>`;
-        }
-        names.forEach(n => {
-            const s = players[n].series;
-            if (!s.length) return;
-            const pts = s.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-            svg += `<polyline points="${pts}" fill="none" stroke="${colors[n]}" stroke-width="2.5" stroke-linejoin="round"/>`;
-            const li = s.length - 1;
-            svg += `<circle cx="${x(li).toFixed(1)}" cy="${y(s[li]).toFixed(1)}" r="3.5" fill="${colors[n]}"/>`;
+        let svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        // Grid
+        for(let g=0;g<=4;g++){const gv=lo+(hi-lo)*g/4,gy=y(gv);svg+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(W-pR)+'" y2="'+gy+'" stroke="rgba(255,255,255,0.1)"/>';svg+='<text x="'+(pL-6)+'" y="'+(gy+4)+'" fill="#bbb" font-size="10" text-anchor="end">'+Math.round(gv).toLocaleString()+'</text>';}
+        if(lo<0&&hi>0)svg+='<line x1="'+pL+'" y1="'+y(0)+'" x2="'+(W-pR)+'" y2="'+y(0)+'" stroke="rgba(255,255,255,0.3)" stroke-dasharray="4 3"/>';
+
+        // Lines + interactive dots
+        names.forEach(n=>{
+            const s=players[n].series;if(!s.length)return;
+            const pts=s.map((d,i)=>x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2.5" stroke-linejoin="round"/>';
+            s.forEach((d,i)=>{
+                svg+='<circle class="lc-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="4" fill="'+colors[n]+'" stroke="rgba(0,0,0,0.5)" stroke-width="1" style="cursor:pointer" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" data-change="'+d.amount+'"/>';
+            });
         });
-        svg += `</svg>`;
+        svg+='</svg>';
+
         document.getElementById('lineChart').innerHTML = svg;
-        document.getElementById('lineLegend').innerHTML = names
-            .map(n => `<span><span class="dot" style="background:${colors[n]}"></span>${escapeHtml(n)}</span>`).join('');
+        document.getElementById('lineLegend').innerHTML = names.map(n=>'<span><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>').join('');
+
+        // Bind tooltips
+        const tip = document.getElementById('lineTooltip');
+        document.querySelectorAll('.lc-dot').forEach(dot => {
+            dot.addEventListener('mouseenter', e => {
+                const p = dot.dataset.player, v = Number(dot.dataset.val), c = dot.dataset.card, ch = Number(dot.dataset.change);
+                showTip(tip, e.clientX, e.clientY,
+                    '<div class="tt-player" style="color:'+colors[p]+'">'+esc(p)+'</div>'+
+                    '<div class="tt-value">累計: $'+v.toLocaleString()+'</div>'+
+                    (c ? '<div class="tt-detail">📌 '+esc(c)+' ('+fmt(ch)+')</div>' : ''));
+            });
+            dot.addEventListener('mouseleave', () => hideTip(tip));
+            dot.addEventListener('mousemove', e => { if(tip.style.display!=='none') showTip(tip,e.clientX,e.clientY,tip.innerHTML); });
+        });
     }
 
-    // ── 長條圖：各玩家淨現金變化 ──────────────────────────────────────
-    // 玩家全名放在長條上方（不再截斷），數值放在長條末端。
     function buildBarChart(players, colors) {
-        const names = Object.keys(players);
-        const W = 520, rowH = 52, padL = 12, padR = 66, padT = 10;
-        const H = padT * 2 + Math.max(1, names.length) * rowH;
-        const maxAbs = Math.max(1, ...names.map(n => Math.abs(players[n].cash)));
-        const zeroX = padL + (W - padL - padR) / 2;
-        const halfW = (W - padL - padR) / 2;
+        const names=Object.keys(players);const W=560,rowH=48,padL=14,padR=70,padT=10;
+        const H=padT*2+Math.max(1,names.length)*rowH;const maxAbs=Math.max(1,...names.map(n=>Math.abs(players[n].cash)));
+        const zeroX=padL+(W-padL-padR)/2,halfW=(W-padL-padR)/2;
 
-        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
-        svg += `<line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${H - padT}" stroke="rgba(255,255,255,0.3)"/>`;
-        names.forEach((n, i) => {
-            const rowTop = padT + i * rowH;
-            const barY   = rowTop + 26;
-            const val    = players[n].cash;
-            const w      = (Math.abs(val) / maxAbs) * halfW;
-            const bx     = val >= 0 ? zeroX : zeroX - w;
-            const barColor = val >= 0 ? '#4caf50' : '#ff6b6b';
-            // 全名（上方，完整顯示）
-            svg += `<text x="${padL}" y="${rowTop + 16}" fill="${colors[n]}" font-size="13" font-weight="bold">${escapeHtml(n)}</text>`;
-            // 長條
-            svg += `<rect x="${bx.toFixed(1)}" y="${barY}" width="${Math.max(1, w).toFixed(1)}" height="18" rx="4" fill="${barColor}"/>`;
-            // 數值
-            const tx = val >= 0 ? bx + w + 6 : bx - 6;
-            const anchor = val >= 0 ? 'start' : 'end';
-            svg += `<text x="${tx.toFixed(1)}" y="${barY + 14}" fill="#ffefc0" font-size="12" text-anchor="${anchor}">${fmt(val)}</text>`;
+        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        svg+='<line x1="'+zeroX+'" y1="'+padT+'" x2="'+zeroX+'" y2="'+(H-padT)+'" stroke="rgba(255,255,255,0.25)"/>';
+        names.forEach((n,i)=>{
+            const rt=padT+i*rowH,bY=rt+26,val=players[n].cash,w=(Math.abs(val)/maxAbs)*halfW,bx=val>=0?zeroX:zeroX-w,bc=val>=0?'#4caf50':'#ff6b6b';
+            svg+='<text x="'+padL+'" y="'+(rt+16)+'" fill="'+colors[n]+'" font-size="12" font-weight="bold">'+esc(n)+'</text>';
+            svg+='<rect class="bar-rect" x="'+bx.toFixed(1)+'" y="'+bY+'" width="'+Math.max(2,w).toFixed(1)+'" height="16" rx="4" fill="'+bc+'" data-player="'+esc(n)+'" data-val="'+val+'" style="cursor:pointer"/>';
+            const tx=val>=0?bx+w+6:bx-6,anch=val>=0?'start':'end';
+            svg+='<text x="'+tx.toFixed(1)+'" y="'+(bY+13)+'" fill="#ffefc0" font-size="11" text-anchor="'+anch+'">'+fmt(val)+'</text>';
         });
-        svg += `</svg>`;
-        document.getElementById('barChart').innerHTML = svg;
+        svg+='</svg>';
+        document.getElementById('barChart').innerHTML=svg;
+
+        const tip = document.getElementById('barTooltip');
+        document.querySelectorAll('.bar-rect').forEach(bar => {
+            bar.addEventListener('mouseenter', e => {
+                const p=bar.dataset.player, v=Number(bar.dataset.val);
+                const label = v >= 0 ? '遊戲中總共賺了' : '遊戲中總共虧了';
+                showTip(tip, e.clientX, e.clientY,
+                    '<div class="tt-player" style="color:'+colors[p]+'">'+esc(p)+'</div>'+
+                    '<div class="tt-value">'+label+' $'+Math.abs(v).toLocaleString()+'</div>');
+            });
+            bar.addEventListener('mouseleave', () => hideTip(tip));
+        });
     }
 
-    // ── 每位玩家的詳情卡 ──────────────────────────────────────────────
     function buildPlayerCards(players, colors) {
-        const names = Object.keys(players);
-        const grid = document.getElementById('playerGrid');
-        if (!names.length) { grid.innerHTML = '<div class="no-data">暫無資料</div>'; return; }
-
-        grid.innerHTML = names.map(n => {
-            const p = players[n];
-            const typeEntries = Object.entries(p.byType).sort((a, b) => b[1] - a[1]);
-            const total = p.count || 1;
-            const bar = typeEntries.map(([t, c]) =>
-                `<span style="width:${(c / total * 100).toFixed(1)}%;background:${typeMeta(t).color}" title="${escapeHtml(typeMeta(t).name)}: ${c}"></span>`
-            ).join('');
-            const list = typeEntries.map(([t, c]) =>
-                `<span style="margin-right:12px;white-space:nowrap"><span class="k" style="background:${typeMeta(t).color}"></span>${escapeHtml(typeMeta(t).name)} ×${c}</span>`
-            ).join('');
-            return `<div class="player-card" style="border-top-color:${colors[n]}">
-                <h2><span style="width:14px;height:14px;border-radius:4px;background:${colors[n]};display:inline-block"></span>${escapeHtml(n)}</h2>
-                <div class="pc-metrics">
-                    <div class="pc-metric"><div class="label">操作次數</div><div class="value" style="color:#ffd966">${p.count}</div></div>
-                    <div class="pc-metric"><div class="label">淨現金變化</div><div class="value ${signClass(p.cash)}">${fmt(p.cash)}</div></div>
-                    <div class="pc-metric"><div class="label">被動收入變化</div><div class="value ${signClass(p.passive)}">${fmt(p.passive)}</div></div>
-                    <div class="pc-metric"><div class="label">副業收入變化</div><div class="value ${signClass(p.side)}">${fmt(p.side)}</div></div>
-                    <div class="pc-metric"><div class="label">月薪變化</div><div class="value ${signClass(p.salary)}">${fmt(p.salary)}</div></div>
-                    <div class="pc-metric"><div class="label">精力變化</div><div class="value ${signClass(p.energy)}">${fmt(p.energy)}</div></div>
-                </div>
-                <div class="pc-typebar">${bar}</div>
-                <div class="pc-typelist">${list}</div>
-            </div>`;
-        }).join('');
+        const names=Object.keys(players),grid=document.getElementById('playerGrid');
+        if(!names.length){grid.innerHTML='<div class="no-data">暫無資料</div>';return;}
+        grid.innerHTML=names.map(n=>{const p=players[n],te=Object.entries(p.byType).sort((a,b)=>b[1]-a[1]),tot=p.count||1;
+            const bar=te.map(([t,c])=>'<span style="width:'+(c/tot*100).toFixed(1)+'%;background:'+tm(t).color+'" title="'+esc(tm(t).name)+': '+c+'"></span>').join('');
+            const list=te.map(([t,c])=>'<span style="margin-right:10px;white-space:nowrap"><span class="k" style="background:'+tm(t).color+'"></span>'+esc(tm(t).name)+' ×'+c+'</span>').join('');
+            return '<div class="player-card" style="border-top-color:'+colors[n]+'"><h2><span style="width:12px;height:12px;border-radius:3px;background:'+colors[n]+';display:inline-block"></span>'+esc(n)+'</h2>'+
+                '<div class="pc-metrics"><div class="pc-metric"><div class="label">操作次數</div><div class="value" style="color:#ffd966">'+p.count+'</div></div>'+
+                '<div class="pc-metric"><div class="label">總收支</div><div class="value '+sc(p.cash)+'">'+fmt(p.cash)+'</div></div>'+
+                '<div class="pc-metric"><div class="label">被動收入</div><div class="value '+sc(p.passive)+'">'+fmt(p.passive)+'</div></div>'+
+                '<div class="pc-metric"><div class="label">副業收入</div><div class="value '+sc(p.side)+'">'+fmt(p.side)+'</div></div></div>'+
+                '<div class="pc-typebar">'+bar+'</div><div class="pc-typelist">'+list+'</div></div>';}).join('');
     }
 
-    function renderPlayerView(txs) {
-        const players = aggregateByPlayer(txs || []);
-        const names = Object.keys(players);
-        const colors = playerColorMap(names);
-        buildLineChart(players, colors);
-        buildBarChart(players, colors);
-        buildPlayerCards(players, colors);
+    function renderPlayerView(txs) { const p=agg(txs),n=Object.keys(p),c=pcm(n); buildLineChart(p,c);buildBarChart(p,c);buildPlayerCards(p,c); }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 3: ROOM
+    // ═══════════════════════════════════════════════════════════════
+
+    function roomLine(players, colors) {
+        const names=Object.keys(players);const W=520,H=200,pL=52,pR=14,pT=14,pB=22;
+        const maxLen=Math.max(1,...names.map(n=>players[n].series.length));
+        let lo=0,hi=0;names.forEach(n=>players[n].series.forEach(s=>{if(s.val<lo)lo=s.val;if(s.val>hi)hi=s.val;}));if(hi===lo)hi=lo+1;
+        const x=i=>pL+(maxLen<=1?0:(i/(maxLen-1))*(W-pL-pR)),y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
+        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        for(let g=0;g<=3;g++){const gv=lo+(hi-lo)*g/3,gy=y(gv);svg+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(W-pR)+'" y2="'+gy+'" stroke="rgba(255,255,255,0.08)"/><text x="'+(pL-6)+'" y="'+(gy+4)+'" fill="#aaa" font-size="9" text-anchor="end">'+Math.round(gv).toLocaleString()+'</text>';}
+        names.forEach(n=>{const s=players[n].series;if(!s.length)return;const pts=s.map((d,i)=>x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2" stroke-linejoin="round"/>';const li=s.length-1;svg+='<circle cx="'+x(li).toFixed(1)+'" cy="'+y(s[li].val).toFixed(1)+'" r="3" fill="'+colors[n]+'"/>';});
+        svg+='</svg>';return svg;
     }
 
-    // ── 分房間分析 ────────────────────────────────────────────────────
-    function groupByRoom(txs) {
-        const rooms = {};
-        (txs || []).forEach(t => {
-            const r = t.roomId || '未分配';
-            (rooms[r] = rooms[r] || []).push(t);
+    function buildRoomCompare(summaries) {
+        const el=document.getElementById('roomCompareChart'),card=document.getElementById('roomCompareCard');
+        if(!summaries.length){el.innerHTML='';card.style.display='none';return;}card.style.display='';
+        const rows=summaries.slice().sort((a,b)=>b.totalCash-a.totalCash);
+        const W=560,rowH=48,padL=14,padR=70,padT=10,H=padT*2+rows.length*rowH;
+        const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.totalCash)));
+        const zeroX=padL+(W-padL-padR)/2,halfW=(W-padL-padR)/2;
+        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        svg+='<line x1="'+zeroX+'" y1="'+padT+'" x2="'+zeroX+'" y2="'+(H-padT)+'" stroke="rgba(255,255,255,0.25)"/>';
+        const medals=['🥇','🥈','🥉'];
+        rows.forEach((r,i)=>{const rt=padT+i*rowH,bY=rt+26,val=r.totalCash,w=(Math.abs(val)/maxAbs)*halfW,bx=val>=0?zeroX:zeroX-w,bc=val>=0?'#4caf50':'#ff6b6b';
+            svg+='<text x="'+padL+'" y="'+(rt+16)+'" fill="#ffd966" font-size="12" font-weight="bold">'+(medals[i]||'')+' 🏠 '+esc(r.roomId)+' <tspan fill="#bbb" font-weight="normal">('+r.playerCount+'人)</tspan></text>';
+            svg+='<rect class="room-bar" x="'+bx.toFixed(1)+'" y="'+bY+'" width="'+Math.max(2,w).toFixed(1)+'" height="16" rx="4" fill="'+bc+'" data-room="'+esc(r.roomId)+'" data-val="'+val+'" data-count="'+r.playerCount+'" style="cursor:pointer"/>';
+            const tx=val>=0?bx+w+6:bx-6,anch=val>=0?'start':'end';
+            svg+='<text x="'+tx.toFixed(1)+'" y="'+(bY+13)+'" fill="#ffefc0" font-size="11" text-anchor="'+anch+'">'+fmt(val)+'</text>';});
+        svg+='</svg>';el.innerHTML=svg;
+
+        const tip=document.getElementById('roomTooltip');
+        document.querySelectorAll('.room-bar').forEach(bar=>{
+            bar.addEventListener('mouseenter',e=>{const r=bar.dataset.room,v=Number(bar.dataset.val),c=bar.dataset.count;
+                showTip(tip,e.clientX,e.clientY,'<div class="tt-player">🏠 '+esc(r)+'</div><div class="tt-value">全房間總共'+(v>=0?'賺了':'虧了')+' $'+Math.abs(v).toLocaleString()+'</div><div class="tt-detail">'+c+' 位玩家</div>');});
+            bar.addEventListener('mouseleave',()=>hideTip(tip));
         });
-        return rooms;
-    }
-
-    // 每個房間的累計現金折線圖（每位玩家一條線）
-    function roomLineSVG(players, colors) {
-        const names = Object.keys(players);
-        const W = 520, H = 200, padL = 52, padR = 14, padT = 14, padB = 22;
-        const maxLen = Math.max(1, ...names.map(n => players[n].series.length));
-        let lo = 0, hi = 0;
-        names.forEach(n => players[n].series.forEach(v => { if (v < lo) lo = v; if (v > hi) hi = v; }));
-        if (hi === lo) hi = lo + 1;
-        const x = i => padL + (maxLen <= 1 ? 0 : (i / (maxLen - 1)) * (W - padL - padR));
-        const y = v => padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
-
-        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
-        for (let g = 0; g <= 3; g++) {
-            const gv = lo + (hi - lo) * g / 3, gy = y(gv);
-            svg += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="rgba(255,255,255,0.1)"/>`;
-            svg += `<text x="${padL - 8}" y="${gy + 4}" fill="#aaa" font-size="10" text-anchor="end">${Math.round(gv).toLocaleString()}</text>`;
-        }
-        if (lo < 0 && hi > 0) svg += `<line x1="${padL}" y1="${y(0)}" x2="${W - padR}" y2="${y(0)}" stroke="rgba(255,255,255,0.35)" stroke-dasharray="4 3"/>`;
-        names.forEach(n => {
-            const s = players[n].series;
-            if (!s.length) return;
-            const pts = s.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
-            svg += `<polyline points="${pts}" fill="none" stroke="${colors[n]}" stroke-width="2.2" stroke-linejoin="round"/>`;
-            const li = s.length - 1;
-            svg += `<circle cx="${x(li).toFixed(1)}" cy="${y(s[li]).toFixed(1)}" r="3" fill="${colors[n]}"/>`;
-        });
-        svg += `</svg>`;
-        return svg;
-    }
-
-    // 房間比較長條圖：各房間淨現金總和（由高至低）
-    function buildRoomCompareChart(summaries) {
-        const el = document.getElementById('roomCompareChart');
-        const card = document.getElementById('roomCompareCard');
-        if (!summaries.length) { el.innerHTML = ''; card.style.display = 'none'; return; }
-        card.style.display = '';
-        const rows = summaries.slice().sort((a, b) => b.totalCash - a.totalCash);
-        const W = 520, rowH = 52, padL = 12, padR = 66, padT = 10;
-        const H = padT * 2 + rows.length * rowH;
-        const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.totalCash)));
-        const zeroX = padL + (W - padL - padR) / 2;
-        const halfW = (W - padL - padR) / 2;
-
-        let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="inherit">`;
-        svg += `<line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${H - padT}" stroke="rgba(255,255,255,0.3)"/>`;
-        rows.forEach((r, i) => {
-            const rowTop = padT + i * rowH;
-            const barY   = rowTop + 26;
-            const val    = r.totalCash;
-            const w      = (Math.abs(val) / maxAbs) * halfW;
-            const bx     = val >= 0 ? zeroX : zeroX - w;
-            const barColor = val >= 0 ? '#4caf50' : '#ff6b6b';
-            const medal  = i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : '';
-            svg += `<text x="${padL}" y="${rowTop + 16}" fill="#ffd966" font-size="13" font-weight="bold">${medal}🏠 ${escapeHtml(r.roomId)} <tspan fill="#bbb" font-weight="normal">(${r.playerCount}人)</tspan></text>`;
-            svg += `<rect x="${bx.toFixed(1)}" y="${barY}" width="${Math.max(1, w).toFixed(1)}" height="18" rx="4" fill="${barColor}"/>`;
-            const tx = val >= 0 ? bx + w + 6 : bx - 6;
-            const anchor = val >= 0 ? 'start' : 'end';
-            svg += `<text x="${tx.toFixed(1)}" y="${barY + 14}" fill="#ffefc0" font-size="12" text-anchor="${anchor}">${fmt(val)}</text>`;
-        });
-        svg += `</svg>`;
-        el.innerHTML = svg;
     }
 
     function renderRoomView(txs) {
-        const container = document.getElementById('roomSections');
-        const rooms = groupByRoom(txs);
-        const roomIds = Object.keys(rooms).sort((a, b) => rooms[b].length - rooms[a].length);
-        if (!roomIds.length) {
-            container.innerHTML = '<div class="no-data">暫無資料</div>';
-            buildRoomCompareChart([]);
-            return;
-        }
-
-        const summaries = [];
-        container.innerHTML = roomIds.map(rid => {
-            const rtx     = rooms[rid];
-            const players = aggregateByPlayer(rtx);
-            const names   = Object.keys(players);
-            const colors  = playerColorMap(names);
-            const totalCash = names.reduce((s, n) => s + players[n].cash, 0);
-            summaries.push({ roomId: rid, totalCash, playerCount: names.length, recordCount: rtx.length });
-            const legend  = names.map(n => `<span><span class="dot" style="background:${colors[n]}"></span>${escapeHtml(n)}</span>`).join('');
-            const rows = names.map(n => {
-                const p = players[n];
-                return `<div class="room-player-row">
-                    <span class="rp-name" style="color:${colors[n]}">${escapeHtml(n)}</span>
-                    <span class="rp-metric">操作 <b>${p.count}</b></span>
-                    <span class="rp-metric">淨現金 <b class="${signClass(p.cash)}">${fmt(p.cash)}</b></span>
-                    <span class="rp-metric">被動 <b class="${signClass(p.passive)}">${fmt(p.passive)}</b></span>
-                    <span class="rp-metric">精力 <b class="${signClass(p.energy)}">${fmt(p.energy)}</b></span>
-                </div>`;
-            }).join('');
-            return `<div class="room-section">
-                <div class="room-header">
-                    <h2>🏠 ${escapeHtml(rid)}</h2>
-                    <div class="room-meta">👥 ${names.length} 位玩家 · 📋 ${rtx.length} 筆記錄 · 💰 淨現金 <span class="${signClass(totalCash)}">${fmt(totalCash)}</span></div>
-                </div>
-                <div class="room-body">
-                    <div class="room-chart">
-                        <div class="rc-title">📈 累計現金變化</div>
-                        ${roomLineSVG(players, colors)}
-                        <div class="chart-legend">${legend}</div>
-                    </div>
-                    <div class="room-players">${rows}</div>
-                </div>
-            </div>`;
-        }).join('');
-
-        buildRoomCompareChart(summaries);
+        const container=document.getElementById('roomSections'),rooms=grp(txs);
+        const roomIds=Object.keys(rooms).sort((a,b)=>rooms[b].length-rooms[a].length);
+        if(!roomIds.length){container.innerHTML='<div class="no-data">暫無資料</div>';buildRoomCompare([]);return;}
+        const summaries=[];
+        container.innerHTML=roomIds.map(rid=>{const rtx=rooms[rid],players=agg(rtx),names=Object.keys(players),colors=pcm(names);
+            const totalCash=names.reduce((s,n)=>s+players[n].cash,0);
+            summaries.push({roomId:rid,totalCash,playerCount:names.length,recordCount:rtx.length});
+            const legend=names.map(n=>'<span><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>').join('');
+            const rows=names.map(n=>{const p=players[n];return '<div class="room-player-row"><span class="rp-name" style="color:'+colors[n]+'">'+esc(n)+'</span><span class="rp-metric">操作 <b>'+p.count+'</b></span><span class="rp-metric">收支 <b class="'+sc(p.cash)+'">'+fmt(p.cash)+'</b></span><span class="rp-metric">被動 <b class="'+sc(p.passive)+'">'+fmt(p.passive)+'</b></span></div>';}).join('');
+            return '<div class="room-section"><div class="room-header"><h2>🏠 '+esc(rid)+'</h2><div class="room-meta">👥 '+names.length+' 人 · 📋 '+rtx.length+' 筆 · 💰 總收支 <span class="'+sc(totalCash)+'">'+fmt(totalCash)+'</span></div></div><div class="room-body"><div class="room-chart"><div class="rc-title">📈 每個人的錢怎麼變化</div>'+roomLine(players,colors)+'<div class="chart-legend">'+legend+'</div></div><div class="room-players">'+rows+'</div></div></div>';}).join('');
+        buildRoomCompare(summaries);
     }
 
-    // 初始化
-    let currentFilter = 'all';
-    let currentSearch = '';
-    let transactions = [];
-    
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 4: FINANCIAL METRICS
+    // ═══════════════════════════════════════════════════════════════
+
+    function renderMetricsView(txs) {
+        const players=agg(txs),names=Object.keys(players),colors=pcm(names);
+        buildCashBalance(txs,names,colors);buildDebtRatio(txs,names,colors);
+        buildDiversity(players,colors);buildROI(txs,names,colors);
+    }
+
+    function buildCashBalance(txs,names,colors) {
+        const chrono=txs.slice().reverse(),series={};names.forEach(n=>{series[n]=[];});
+        chrono.forEach(t=>{if(!series[t.playerName])return;const c=t.snapshot?t.snapshot.cash:null;if(c!==null)series[t.playerName].push({val:c,card:t.cardName});});
+        const W=560,H=260,pL=70,pR=20,pT=20,pB=28,maxLen=Math.max(1,...names.map(n=>series[n].length));
+        let lo=Infinity,hi=-Infinity;names.forEach(n=>series[n].forEach(s=>{if(s.val<lo)lo=s.val;if(s.val>hi)hi=s.val;}));
+        if(lo===Infinity)lo=0;if(hi===-Infinity||hi===lo)hi=lo+1;
+        const x=i=>pL+(maxLen<=1?0:(i/(maxLen-1))*(W-pL-pR)),y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
+        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        for(let g=0;g<=4;g++){const gv=lo+(hi-lo)*g/4,gy=y(gv);svg+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(W-pR)+'" y2="'+gy+'" stroke="rgba(255,255,255,0.08)"/><text x="'+(pL-6)+'" y="'+(gy+4)+'" fill="#bbb" font-size="9" text-anchor="end">'+Math.round(gv).toLocaleString()+'</text>';}
+        names.forEach(n=>{const s=series[n];if(s.length<2)return;const pts=s.map((d,i)=>x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2" stroke-linejoin="round"/>';
+            s.forEach((d,i)=>{svg+='<circle class="cb-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="3" fill="'+colors[n]+'" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" style="cursor:pointer"/>';});
+        });
+        svg+='</svg>';
+        document.getElementById('cashBalanceChart').innerHTML=svg||'<div class="no-data">需要更多遊戲數據</div>';
+        document.getElementById('cashBalanceLegend').innerHTML=names.map(n=>'<span><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>').join('');
+
+        const tip=document.getElementById('cashTooltip');
+        document.querySelectorAll('.cb-dot').forEach(dot=>{
+            dot.addEventListener('mouseenter',e=>{showTip(tip,e.clientX,e.clientY,'<div class="tt-player" style="color:'+colors[dot.dataset.player]+'">'+esc(dot.dataset.player)+'</div><div class="tt-value">存款: $'+Number(dot.dataset.val).toLocaleString()+'</div>'+(dot.dataset.card?'<div class="tt-detail">📌 '+esc(dot.dataset.card)+'</div>':''));});
+            dot.addEventListener('mouseleave',()=>hideTip(tip));
+        });
+    }
+
+    function buildDebtRatio(txs,names,colors) {
+        const latest={};txs.forEach(t=>{if(t.snapshot&&!latest[t.playerName])latest[t.playerName]=t.snapshot;});
+        const el=document.getElementById('debtRatioChart');
+        const valid=names.filter(n=>latest[n]);
+        if(!valid.length){el.innerHTML='<div class="no-data">需要更多遊戲數據</div>';return;}
+        el.innerHTML=valid.map(n=>{const s=latest[n],debt=(s.loanAmount||0)+(s.accruedInterest||0)+(s.pendingDebtTotal||0),inc=(s.salary||0)+(s.sideIncome||0)+(s.passiveIncome||0);
+            const ratio=inc>0?(debt/inc*100):0,bc=ratio>100?'#f44336':ratio>50?'#ff9800':'#4caf50',label=ratio>100?'⚠️ 危險':ratio>50?'⚡ 注意':'✅ 健康';
+            const barW=Math.min(ratio/150*100,100);
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;">'+label+' '+ratio.toFixed(0)+'%</span></div><div style="background:rgba(255,255,255,0.08);height:10px;border-radius:5px;overflow:hidden;"><div style="width:'+barW+'%;height:100%;background:'+bc+';border-radius:5px;"></div></div><div style="font-size:10px;color:#b0bec5;margin-top:3px;">債務 $'+debt.toLocaleString()+' ÷ 月收入 $'+inc.toLocaleString()+'</div></div>';}).join('');
+    }
+
+    function buildDiversity(players,colors) {
+        const names=Object.keys(players),el=document.getElementById('diversificationChart');
+        if(!names.length){el.innerHTML='<div class="no-data">暫無資料</div>';return;}
+        el.innerHTML=names.map(n=>{const p=players[n],types=Object.keys(p.byType),total=p.count||1,d=types.length;
+            const maxPct=Math.max(...Object.values(p.byType))/total*100,score=d>=5?'⭐⭐⭐':d>=3?'⭐⭐':'⭐';
+            const bar=Object.entries(p.byType).sort((a,b)=>b[1]-a[1]).map(([t,c])=>'<span style="width:'+(c/total*100).toFixed(1)+'%;background:'+tm(t).color+'" title="'+tm(t).name+': '+c+'"></span>').join('');
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;color:#ffd966;">'+score+' ('+d+' 種類型)</span></div><div class="pc-typebar">'+bar+'</div><div style="font-size:10px;color:#b0bec5;">最集中: '+maxPct.toFixed(0)+'%</div></div>';}).join('');
+    }
+
+    function buildROI(txs,names,colors) {
+        const inv={};names.forEach(n=>{inv[n]={spent:0,ret:0};});
+        txs.forEach(t=>{if(!inv[t.playerName])return;if(['finance','business','property','investment'].includes(t.cardType)&&t.amountChange<0)inv[t.playerName].spent+=Math.abs(t.amountChange);if(t.passiveIncomeChange>0)inv[t.playerName].ret+=t.passiveIncomeChange;});
+        document.getElementById('roiChart').innerHTML=names.map(n=>{const i=inv[n],roi=i.spent>0?(i.ret/i.spent*100).toFixed(1):'0.0',pb=i.ret>0?Math.ceil(i.spent/i.ret):'∞';
+            const barW=Math.min(parseFloat(roi)*4,100),bc=parseFloat(roi)>5?'#4caf50':parseFloat(roi)>2?'#ff9800':'#f44336';
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;color:#ffd966;">月回報 '+roi+'%</span></div><div style="background:rgba(255,255,255,0.08);height:10px;border-radius:5px;overflow:hidden;"><div style="width:'+barW+'%;height:100%;background:'+bc+';border-radius:5px;"></div></div><div style="font-size:10px;color:#b0bec5;margin-top:3px;">投入 $'+i.spent.toLocaleString()+' → 月收 $'+i.ret.toLocaleString()+' · 回本 '+pb+' 月</div></div>';}).join('');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 5: KEY MOMENTS
+    // ═══════════════════════════════════════════════════════════════
+
+    function renderMomentsView(txs) { buildWins(txs);buildLosses(txs);buildTimeline(txs);buildRisk(txs);setupAnnot(txs); }
+
+    function buildWins(txs) {
+        const s=txs.filter(t=>t.amountChange>0).sort((a,b)=>b.amountChange-a.amountChange).slice(0,8);
+        document.getElementById('biggestWins').innerHTML=s.length===0?'<div class="no-data">暫無</div>':s.map(t=>'<div class="moment-card"><div class="mc-left"><div class="mc-player" style="color:#4caf50;">'+esc(t.playerName)+'</div><div class="mc-card">'+esc(t.cardName)+' · '+t.action+'</div></div><div class="mc-amount amount-positive">+$'+t.amountChange.toLocaleString()+'</div></div>').join('');
+    }
+
+    function buildLosses(txs) {
+        const s=txs.filter(t=>t.amountChange<0).sort((a,b)=>a.amountChange-b.amountChange).slice(0,8);
+        document.getElementById('biggestLosses').innerHTML=s.length===0?'<div class="no-data">暫無</div>':s.map(t=>'<div class="moment-card"><div class="mc-left"><div class="mc-player" style="color:#ff6b6b;">'+esc(t.playerName)+'</div><div class="mc-card">'+esc(t.cardName)+' · '+t.action+'</div></div><div class="mc-amount amount-negative">$'+t.amountChange.toLocaleString()+'</div></div>').join('');
+    }
+
+    function buildTimeline(txs) {
+        const chrono=txs.slice().reverse(),names=[...new Set(chrono.map(t=>t.playerName))],colors=pcm(names);
+        const riskT=new Set(['finance','business','investment','lier','hardship']),safeT=new Set(['part_time','police','volunteer','social','tip']);
+        const el=document.getElementById('decisionTimeline');
+        if(!chrono.length){el.innerHTML='<div class="no-data">暫無</div>';return;}
+        const W=800,H=30+names.length*34,padL=80,padR=20,total=chrono.length;
+        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        names.forEach((name,row)=>{const yy=20+row*34;
+            svg+='<text x="'+(padL-6)+'" y="'+(yy+4)+'" fill="'+colors[name]+'" font-size="10" text-anchor="end" font-weight="bold">'+esc(name.length>7?name.slice(0,7)+'…':name)+'</text>';
+            svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="rgba(255,255,255,0.06)"/>';
+            chrono.forEach((t,i)=>{if(t.playerName!==name)return;const cx=padL+(i/Math.max(1,total-1))*(W-padL-padR);
+                let color='#888';if(riskT.has(t.cardType))color=t.amountChange>=0?'#4caf50':'#f44336';else if(safeT.has(t.cardType))color='#2196f3';
+                const r=Math.min(5,2.5+Math.abs(t.amountChange||0)/80000);
+                svg+='<circle class="tl-dot" cx="'+cx.toFixed(1)+'" cy="'+yy+'" r="'+r.toFixed(1)+'" fill="'+color+'" opacity="0.8" style="cursor:pointer" data-player="'+esc(name)+'" data-card="'+esc(t.cardName)+'" data-amount="'+(t.amountChange||0)+'" data-type="'+esc(tm(t.cardType).name)+'"/>';
+            });
+        });
+        svg+='</svg>';el.innerHTML=svg;
+
+        const tip=document.getElementById('timelineTooltip');
+        document.querySelectorAll('.tl-dot').forEach(dot=>{
+            dot.addEventListener('mouseenter',e=>{const p=dot.dataset.player,c=dot.dataset.card,a=Number(dot.dataset.amount),ty=dot.dataset.type;
+                showTip(tip,e.clientX,e.clientY,'<div class="tt-player" style="color:'+colors[p]+'">'+esc(p)+'</div><div class="tt-value">'+esc(c)+'</div><div class="tt-detail">'+ty+' · '+fmt(a)+'</div>');});
+            dot.addEventListener('mouseleave',()=>hideTip(tip));
+            dot.addEventListener('mousemove',e=>{if(tip.style.display!=='none')showTip(tip,e.clientX,e.clientY,tip.innerHTML);});
+        });
+    }
+
+    function buildRisk(txs) {
+        const names=[...new Set(txs.map(t=>t.playerName))],colors=pcm(names),riskT=new Set(['finance','business','investment','lier','hardship']);
+        document.getElementById('riskProfile').innerHTML=names.map(n=>{const pt=txs.filter(t=>t.playerName===n),tot=pt.length||1,risky=pt.filter(t=>riskT.has(t.cardType)).length,safe=tot-risky,pct=(risky/tot*100).toFixed(0);
+            const label=pct>60?'🔥 冒險型':pct>30?'⚖️ 平衡型':'🛡️ 保守型';
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:12px;">'+label+' ('+pct+'%)</span></div><div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.06);"><div style="width:'+pct+'%;background:#f44336;"></div><div style="width:'+(100-pct)+'%;background:#4caf50;"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:#b0bec5;margin-top:3px;"><span>🔴 高風險 '+risky+'</span><span>🟢 低風險 '+safe+'</span></div></div>';}).join('');
+    }
+
+    // ── Annotations ──────────────────────────────────────────────
+    let annot = JSON.parse(localStorage.getItem('wf_annotations') || '[]');
+
+    function setupAnnot(txs) {
+        const names=[...new Set(txs.map(t=>t.playerName))],sel=document.getElementById('annotatePlayer');
+        sel.innerHTML='<option value="">全體</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+        document.getElementById('saveAnnotation').onclick=()=>{const p=sel.value,txt=document.getElementById('annotateText').value.trim();
+            if(!txt){alert('請輸入備註');return;}annot.push({id:Date.now(),player:p||'(全體)',text:txt,time:new Date().toLocaleString('zh-HK')});
+            localStorage.setItem('wf_annotations',JSON.stringify(annot));document.getElementById('annotateText').value='';renderAnnot();};
+        renderAnnot();
+    }
+
+    function renderAnnot() {
+        const el=document.getElementById('annotationsList');
+        if(!annot.length){el.innerHTML='<div style="color:#90a4ae;font-size:12px;">尚無備註</div>';return;}
+        el.innerHTML=annot.slice().reverse().map(a=>'<div class="annotation-item"><div class="ai-header"><span class="ai-player">'+esc(a.player)+'</span><span><span class="ai-time">'+a.time+'</span> <button class="ai-delete" onclick="delAnnot('+a.id+')">🗑️</button></span></div><div class="ai-text">'+esc(a.text)+'</div></div>').join('');
+    }
+
+    function delAnnot(id) { annot=annot.filter(a=>a.id!==id);localStorage.setItem('wf_annotations',JSON.stringify(annot));renderAnnot(); }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 6: SCOREBOARD
+    // ═══════════════════════════════════════════════════════════════
+
+    function renderScoreboard(txs) { buildRankings(txs);buildBadges(txs);buildFormula();document.getElementById('exportPdfBtn').onclick=()=>window.print(); }
+
+    function buildRankings(txs) {
+        const players=agg(txs),names=Object.keys(players),colors=pcm(names);
+        const latest={};txs.forEach(t=>{if(t.snapshot&&!latest[t.playerName])latest[t.playerName]=t.snapshot;});
+        const scored=names.map(n=>{const s=latest[n]||{};const score=(s.cash||0)+(s.passiveIncome||0)*12+(s.totalAssets||0)*0.3+(s.volunteerCount||0)*50000+(s.contributionCount||0)*100000+(s.health||0)*1000+(s.ability||0)*5000;return{name:n,score,s,color:colors[n]};}).sort((a,b)=>b.score-a.score);
+        const medals=['🥇','🥈','🥉'];
+        document.getElementById('finalRankings').innerHTML=scored.map((p,i)=>{const s=p.s;return '<div class="ranking-row" style="border-left:3px solid '+p.color+';"><div class="rank">'+(medals[i]||'#'+(i+1))+'</div><div class="rr-info"><div class="rr-name" style="color:'+p.color+';">'+esc(p.name)+'</div><div class="rr-metrics"><span>💰 $<b>'+(s.cash||0).toLocaleString()+'</b></span><span>📈 $<b>'+(s.passiveIncome||0).toLocaleString()+'</b>/月</span><span>👮 <b>'+(s.volunteerCount||0)+'</b>/5</span><span>💚 <b>'+(s.health||0)+'</b></span><span>💪 <b>'+(s.ability||0)+'</b></span></div></div><div class="rr-score">'+Math.round(p.score).toLocaleString()+'</div></div>';}).join('');
+    }
+
+    function buildBadges(txs) {
+        const players=agg(txs),names=Object.keys(players),colors=pcm(names);
+        const latest={};txs.forEach(t=>{if(t.snapshot&&!latest[t.playerName])latest[t.playerName]=t.snapshot;});
+        const badges=[];
+        const best=(f,icon,name,fmt)=>{const b=names.reduce((best,n)=>{const v=latest[n]?.[f]||0;return v>(best.v||0)?{n,v}:best;},{});if(b.n)badges.push({icon,name,player:b.n,color:colors[b.n]||'#ffd966',detail:fmt(b.v)});};
+        best('cash','💰','最富有',v=>'$'+v.toLocaleString());
+        best('passiveIncome','📈','被動收入王',v=>'$'+v.toLocaleString()+'/月');
+        best('health','💚','最健康',v=>'健康 '+v);
+        best('ability','💪','最有能力',v=>'能力 '+v);
+        best('volunteerCount','👮','最多義工',v=>v+' 次');
+        const busiest=names.reduce((b,n)=>players[n].count>(b.v||0)?{n,v:players[n].count}:b,{});
+        if(busiest.n)badges.push({icon:'📊',name:'最活躍',player:busiest.n,color:colors[busiest.n]||'#4fc3f7',detail:busiest.v+' 次'});
+        const bigWin=txs.reduce((b,t)=>t.amountChange>(b.v||0)?{n:t.playerName,v:t.amountChange,c:t.cardName}:b,{});
+        if(bigWin.n)badges.push({icon:'🎯',name:'最大贏利',player:bigWin.n,color:'#ff9800',detail:'+$'+bigWin.v.toLocaleString()});
+        document.getElementById('achievementBadges').innerHTML='<div class="badge-grid">'+badges.map(b=>'<div class="achievement-badge" style="border-color:'+b.color+';"><div class="ab-icon">'+b.icon+'</div><div class="ab-name">'+b.name+'</div><div class="ab-player" style="color:'+b.color+';">'+esc(b.player)+'</div><div style="font-size:9px;color:#90a4ae;margin-top:2px;">'+b.detail+'</div></div>').join('')+'</div>';
+    }
+
+    function buildFormula() {
+        document.getElementById('compositeScore').innerHTML='<div style="color:#b0bec5;font-size:12px;padding:8px;line-height:1.8;">'+
+            '📌 <strong style="color:#ffd966;">計分方式：</strong><br>'+
+            '<code style="color:#ffd966;background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;font-size:11px;">'+
+            '現金 + 被動收入×12 + 總資產×0.3 + 義工×5萬 + 社會貢獻×10萬 + 健康×1千 + 能力×5千</code><br><br>'+
+            '💡 這個分數不只看你賺了多少錢，還看你有沒有幫助別人（義工）、保持健康、和提升能力。<br>'+
+            '真正的財務自由 = 金錢 + 社會責任 + 個人成長！</div>';
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════
+
+    let currentFilter='all', currentSearch='', transactions=[];
+
     async function loadData() {
-        transactions = await fetchTransactions();
+        transactions = await fetchTx();
         renderTable(transactions, currentFilter, currentSearch);
         renderPlayerView(transactions);
         renderRoomView(transactions);
+        renderMetricsView(transactions);
+        renderMomentsView(transactions);
+        renderScoreboard(transactions);
     }
 
-    // 視圖切換：全部記錄 <-> 分玩家分析 <-> 分房間分析
+    // View toggle
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            const view = btn.dataset.view;
-            document.getElementById('tableView').style.display  = view === 'table'  ? '' : 'none';
-            document.getElementById('playerView').style.display = view === 'player' ? '' : 'none';
-            document.getElementById('roomView').style.display   = view === 'room'   ? '' : 'none';
+            const v = btn.dataset.view;
+            ['tableView','playerView','roomView','metricsView','momentsView','scoreboardView'].forEach(id => {
+                document.getElementById(id).style.display = id === v+'View' ? '' : 'none';
+            });
         });
     });
 
     document.getElementById('refreshBtn').addEventListener('click', loadData);
-    document.getElementById('searchInput').addEventListener('input', (e) => {
-        currentSearch = e.target.value;
-        renderTable(transactions, currentFilter, currentSearch);
-    });
-    
+    document.getElementById('searchInput').addEventListener('input', e => { currentSearch=e.target.value; renderTable(transactions,currentFilter,currentSearch); });
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderTable(transactions, currentFilter, currentSearch);
+            btn.classList.add('active'); currentFilter=btn.dataset.filter;
+            renderTable(transactions,currentFilter,currentSearch);
         });
     });
-    
+
     loadData();
-    
-    // 每隔5秒自動刷新
     setInterval(loadData, 5000);
 </script>
 </body>

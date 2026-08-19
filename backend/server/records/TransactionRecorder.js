@@ -64,7 +64,6 @@ function getCardTypeFromCard(card) {
 function addTransactionRecord(playerName, card, action, amountChange, details, stateBefore, stateAfter) {
     console.log(`🔍 addTransactionRecord: ${playerName} ${action} ${card.name}`);
 
-    // Income changes
     const passiveIncomeChange = _passiveDiff(stateBefore, stateAfter);
     const sideIncomeChange    = _diff(stateBefore, stateAfter, 'sideIncome');
     const salaryChange        = _diff(stateBefore, stateAfter, 'salary');
@@ -72,16 +71,39 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
 
     const cardType = getCardTypeFromCard(card);
 
-    // 玩家所屬房間（gameState.roomId 於加入時寫入），供分房間分析使用。
-    // 後備：若記錄沒有帶入狀態，改用 玩家→房間 對照表。
     const roomId = (stateAfter && stateAfter.roomId)
-                || (stateBefore && stateBefore.roomId)
-                || playerRoomMap[playerName]
-                || '未分配';
+        || (stateBefore && stateBefore.roomId)
+        || playerRoomMap[playerName]
+        || '未分配';
+
+    // ✅ NEW: Extract snapshot data from stateAfter for analysis
+    const snapshot = stateAfter ? {
+        cash:           stateAfter.cash || 0,
+        loanCash:       stateAfter.loanCash || 0,
+        passiveIncome:  stateAfter.passiveIncome || 0,
+        flowPassiveIncome: stateAfter.flowPassiveIncome || 0,
+        sideIncome:     stateAfter.sideIncome || 0,
+        salary:         stateAfter.salary || 0,
+        energy:         stateAfter.energy || 0,
+        maxEnergy:      stateAfter.maxEnergy || 0,
+        health:         stateAfter.health || 0,
+        ability:        stateAfter.ability || 0,
+        loanAmount:     stateAfter.loanAmount || 0,
+        accruedInterest: stateAfter.accruedInterest || 0,
+        livingExpense:  stateAfter.livingExpense || 0,
+        tax:            stateAfter.tax || 0,
+        totalAssets:    stateAfter.totalAssets || 0,
+        volunteerCount: stateAfter.volunteerCount || 0,
+        contributionCount: stateAfter.contributionCount || 0,
+        inFlow:         stateAfter.inFlow || false,
+        inReverse:      stateAfter.inReverse || false,
+        pendingDebtTotal: (stateAfter.pendingDebts || []).reduce((s, d) => s + d.amount, 0)
+    } : null;
 
     const record = {
         id:                   `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         timestamp:            new Date().toLocaleString('zh-HK'),
+        unixTime:             Date.now(),   // ✅ NEW: sortable timestamp
         playerName,
         roomId,
         cardType,
@@ -92,7 +114,8 @@ function addTransactionRecord(playerName, card, action, amountChange, details, s
         sideIncomeChange,
         salaryChange,
         energyChange,
-        details:              details || ''
+        details:              details || '',
+        snapshot                              // ✅ NEW: state snapshot
     };
 
     transactions.unshift(record);

@@ -69,7 +69,7 @@ export class AssetChoiceTemplate {
     static populate(message, escapeHtml) {
         const nameEl = document.getElementById('assetChoiceCardName');
         const descEl = document.getElementById('assetChoiceDesc');
-        const imgEl  = document.getElementById('assetChoiceImg');
+        const imgEl = document.getElementById('assetChoiceImg');
         const infoEl = document.getElementById('assetInfoBox');
 
         if (nameEl) nameEl.textContent = message.card.name || '';
@@ -77,61 +77,101 @@ export class AssetChoiceTemplate {
 
         if (imgEl && message.card.image) {
             let url = message.card.image;
-            if (url && !url.startsWith('http') && !url.startsWith('/')) {
-                url = '/' + url;
-            }
+            if (url && !url.startsWith('http') && !url.startsWith('/')) url = '/' + url;
             imgEl.src = url;
-            imgEl.onerror = () => { imgEl.style.display = 'none'; };
+            imgEl.onerror = () => {
+                imgEl.style.display = 'none';
+            };
         }
 
-        // Build asset info
         if (infoEl) {
             const info = message.assetInfo || {};
             let html = `<div style="text-align: center; margin-bottom: 10px;
-                            color: #4fc3f7; font-weight: bold;">
-                    你的資產詳情
-                </div>`;
+                        color: #4fc3f7; font-weight: bold;">
+                你的資產詳情
+            </div>`;
 
-            // Handle single-asset (crypto, single property) vs multi-holdings (stocks)
-            if (info.holdings && Array.isArray(info.holdings)) {
-                // Multi-stock display
+            // ✅ Check if this is a multi-stock holding
+            if (info.holdings && Array.isArray(info.holdings) && info.holdings.length > 0) {
+                // Per-stock checkboxes
+                html += `<div style="margin-bottom:8px; font-size:12px; color:#b0bec5;">
+                請勾選你想出售的股票：
+            </div>`;
+
                 info.holdings.forEach(h => {
+                    const profitColor = h.profit >= 0 ? '#81c784' : '#ff5252';
+                    const profitSign = h.profit >= 0 ? '+' : '';
+
                     html += `
-                        <div style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <div style="color: #fff; font-weight: bold;">
+                    <label class="stock-select-row" data-code="${h.stockCode}"
+                           style="display:flex; align-items:center; gap:10px;
+                                  padding:10px; margin-bottom:6px;
+                                  border-bottom:1px solid rgba(255,255,255,0.1);
+                                  cursor:pointer; border-radius:8px;
+                                  transition: background 0.2s ease;">
+                        <input type="checkbox" class="stock-checkbox"
+                               data-code="${h.stockCode}"
+                               checked
+                               style="width:18px; height:18px; cursor:pointer;">
+                        <div style="flex:1;">
+                            <div style="color:#fff; font-weight:bold;">
                                 ${escapeHtml(h.stockName)} (${h.stockCode})
                             </div>
-                            <div style="color: #b0bec5; font-size: 12px;">
+                            <div style="color:#b0bec5; font-size:12px;">
                                 持股: ${h.shares} 股 × $${h.price}
-                                = <span style="color: #ffd966;">$${h.sellValue.toLocaleString()}</span>
-                            </div>
-                            <div style="font-size: 12px; color: ${h.profit >= 0 ? '#81c784' : '#ff5252'};">
-                                盈虧: ${h.profit >= 0 ? '+' : ''}$${h.profit.toLocaleString()}
+                                = <span style="color:#ffd966;">$${h.sellValue.toLocaleString()}</span>
                             </div>
                         </div>
-                    `;
+                        <div style="font-size:14px; color:${profitColor}; font-weight:bold; white-space:nowrap;">
+                            ${profitSign}$${h.profit.toLocaleString()}
+                        </div>
+                    </label>
+                `;
                 });
-                html += `<div style="text-align: center; margin-top: 10px; color: #ffd966; font-weight: bold;">
-                    總收入: $${info.totalSellValue.toLocaleString()} (盈虧: ${info.totalProfit >= 0 ? '+' : ''}$${info.totalProfit.toLocaleString()})
-                </div>`;
-            } else {
-                // Single asset display (crypto or property)
+
+                // Summary line (updates dynamically)
+                html += `<div id="stockSelectionSummary"
+                         style="text-align:center; margin-top:10px; padding-top:10px;
+                                border-top:1px solid rgba(255,255,255,0.2);
+                                color:#ffd966; font-weight:bold;">
+                總收入: $${info.totalSellValue.toLocaleString()}
+                (盈虧: ${info.totalProfit >= 0 ? '+' : ''}$${info.totalProfit.toLocaleString()})
+            </div>`;
+
+                // Select all / deselect all buttons
+                html += `<div style="display:flex; gap:8px; margin-top:8px;">
+                <button id="selectAllStocks" style="flex:1; padding:6px; font-size:11px;
+                        background:rgba(76,175,80,0.3); border:1px solid #4caf50;
+                        color:white; border-radius:8px; cursor:pointer;">
+                    ✅ 全選
+                </button>
+                <button id="deselectAllStocks" style="flex:1; padding:6px; font-size:11px;
+                        background:rgba(244,67,54,0.3); border:1px solid #f44336;
+                        color:white; border-radius:8px; cursor:pointer;">
+                    ❌ 取消全選
+                </button>
+            </div>`;
+
+            } else if (info.holdings) {
+                // Single-asset display (legacy)
                 html += `<div>💼 資產: ${escapeHtml(info.assetName || '')}</div>`;
-                if (info.units)         html += `<div>📊 數量: ${info.units.toLocaleString()}</div>`;
-                if (info.originalCost)  html += `<div>💰 原始成本: $${info.originalCost.toLocaleString()}</div>`;
-                if (info.marketPrice)   html += `<div>💵 市場價格: $${info.marketPrice.toLocaleString()}</div>`;
+                if (info.marketPrice) html += `<div>💵 市場價格: $${info.marketPrice.toLocaleString()}</div>`;
                 if (info.mortgageAmount !== undefined)
                     html += `<div>🏦 按揭: $${info.mortgageAmount.toLocaleString()}</div>`;
-                if (info.sellValue)     html += `<div>💸 出售金額: $${info.sellValue.toLocaleString()}</div>`;
                 if (info.profit !== undefined) {
                     const color = info.profit >= 0 ? '#81c784' : '#ff5252';
-                    html += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); color: ${color}; font-weight: bold;">
-                        📈 淨收益: ${info.profit >= 0 ? '+' : ''}$${info.profit.toLocaleString()}
-                    </div>`;
+                    html += `<div style="margin-top:8px; color:${color}; font-weight:bold;">
+                    📈 淨收益: ${info.profit >= 0 ? '+' : ''}$${info.profit.toLocaleString()}
+                </div>`;
                 }
             }
 
             infoEl.innerHTML = html;
+
+            // ✅ Bind checkbox events for dynamic summary update
+            if (info.holdings && Array.isArray(info.holdings)) {
+                AssetChoiceTemplate._bindStockCheckboxes(info.holdings);
+            }
         }
 
         // Update button label
@@ -159,8 +199,12 @@ export class AssetChoiceTemplate {
 
         if (declBtn) {
             declBtn.onclick = () => onDecline();
-            declBtn.onmouseenter = () => { declBtn.style.transform = 'scale(1.03)'; };
-            declBtn.onmouseleave = () => { declBtn.style.transform = 'scale(1)'; };
+            declBtn.onmouseenter = () => {
+                declBtn.style.transform = 'scale(1.03)';
+            };
+            declBtn.onmouseleave = () => {
+                declBtn.style.transform = 'scale(1)';
+            };
         }
     }
 
@@ -189,6 +233,96 @@ export class AssetChoiceTemplate {
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             }
+        });
+    }
+
+    static _bindStockCheckboxes(holdings) {
+        const checkboxes = document.querySelectorAll('.stock-checkbox');
+        const summaryEl = document.getElementById('stockSelectionSummary');
+
+        const updateSummary = () => {
+            let totalValue = 0;
+            let totalProfit = 0;
+            let count = 0;
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const code = cb.dataset.code;
+                    const h = holdings.find(x => x.stockCode === code);
+                    if (h) {
+                        totalValue += h.sellValue;
+                        totalProfit += h.profit;
+                        count++;
+                    }
+                }
+            });
+
+            if (summaryEl) {
+                if (count === 0) {
+                    summaryEl.innerHTML = `<span style="color:#90a4ae;">未選擇任何股票</span>`;
+                } else {
+                    summaryEl.innerHTML = `已選 ${count} 項 · 總收入: $${totalValue.toLocaleString()} ` +
+                        `(盈虧: <span style="color:${totalProfit >= 0 ? '#4caf50' : '#ff5252'};">` +
+                        `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toLocaleString()}</span>)`;
+                }
+            }
+
+            // Update participate button state
+            const partBtn = document.getElementById('assetChoiceParticipateBtn');
+            if (partBtn) {
+                partBtn.disabled = count === 0;
+                partBtn.style.opacity = count > 0 ? '1' : '0.4';
+                partBtn.style.cursor = count > 0 ? 'pointer' : 'not-allowed';
+            }
+        };
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateSummary);
+        });
+
+        // Row click toggles checkbox
+        document.querySelectorAll('.stock-select-row').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.style.background = 'rgba(66,165,245,0.15)';
+            });
+            row.addEventListener('mouseleave', () => {
+                row.style.background = 'transparent';
+            });
+
+            document.querySelectorAll('.stock-select-row').forEach(row => {
+                row.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'INPUT') return;  // don't double-toggle
+                    const cb = row.querySelector('.stock-checkbox');
+                    if (cb) {
+                        cb.checked = !cb.checked;
+                        updateSummary();
+                    }
+                });
+            });
+
+            // Select all / deselect all
+            const selectAll = document.getElementById('selectAllStocks');
+            const deselectAll = document.getElementById('deselectAllStocks');
+
+            if (selectAll) {
+                selectAll.onclick = () => {
+                    checkboxes.forEach(cb => {
+                        cb.checked = true;
+                    });
+                    updateSummary();
+                };
+            }
+            if (deselectAll) {
+                deselectAll.onclick = () => {
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                    });
+                    updateSummary();
+                };
+            }
+
+            // Initial summary
+            updateSummary();
         });
     }
 }

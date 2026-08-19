@@ -68,7 +68,7 @@ function handleGetPortfolio(ws, data, roomId, rooms) {
                 name:          inv.name,
                 units:         inv.units,
                 pricePerUnit:  inv.pricePerUnit,
-                monthlyReturn: inv.monthlyReturn || 0,
+                monthlyReturn:      (inv.monthlyReturn || 0) * (inv.units || 1),
                 totalCost:     inv.totalCost
             });
         });

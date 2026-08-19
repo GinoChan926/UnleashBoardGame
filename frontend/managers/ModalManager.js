@@ -463,6 +463,10 @@ export class ModalManager {
         // ✅ NEW: Random profession button
         if (randomBtn) {
             randomBtn.onclick = () => {
+                randomBtn.disabled      = true;
+                randomBtn.style.opacity = '0.5';
+                randomBtn.style.cursor  = 'not-allowed';
+                randomBtn.style.animation = 'none';
                 // Shuffle animation
                 this._animateRandomProfession(buttonsContainer, professionEntries, () => {
                     // Pick random

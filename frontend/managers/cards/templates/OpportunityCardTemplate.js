@@ -135,81 +135,88 @@ export class OpportunityCardTemplate {
         const footerText  = activationOnly
             ? '💡 順流層投資項目，免費查看，不啟動無需支付任何費用'
             : '(已支付 500 元，不執行費用不退還)';
-        const footerColor = activationOnly ? '#ff6f00' : '#666';
+        const footerColor = activationOnly ? '#bf360c' : '#555';
         const confirmBg   = activationOnly ? '#ff6f00' : '#4caf50';
         const confirmShadow = activationOnly
             ? 'rgba(255,111,0,0.3)'
             : 'rgba(76,175,80,0.3)';
         const imgBorder   = activationOnly ? '#ff6f00' : '#4caf50';
 
+        // ✅ Readable text colors on light backgrounds
+        const nameColor = activationOnly ? '#bf360c' : '#1b5e20';
+        const descColor = '#333';
+        const warningBg = '#fff3e0';
+        const warningColor = '#bf360c';
+
         return `
-        <div class="modal-content" style="max-width: 550px;
-             background: ${bgGradient};
-             border-radius: 20px; padding: 24px;">
+    <div class="modal-content" style="max-width: 550px;
+         background: ${bgGradient};
+         border-radius: 20px; padding: 24px;">
 
-            <div class="modal-title" style="text-align: center; color: ${titleColor};
-                 font-size: 24px; margin-bottom: 12px;">
-                ${titleText}
-            </div>
-
-            <div id="effectCardImage" style="text-align: center; margin: 15px 0;">
-                <img id="effectCardImg" src="" alt="機會卡"
-                     style="max-width: 100%; border-radius: 16px;
-                            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-                            border: 3px solid ${imgBorder};">
-            </div>
-
-            <div id="effectCardTypeBadge" style="text-align: center; margin: 10px 0;">
-                <span id="effectCardTypeSpan"
-                      style="display: inline-block; padding: 5px 12px;
-                             border-radius: 20px; font-size: 12px; color: white;">
-                </span>
-            </div>
-
-            <div class="modal-body" id="effectModalBody"
-                 style="font-size: 16px; line-height: 1.5;">
-            </div>
-
-            <div id="effectChanges" style="background: #ffffff; padding: 15px;
-                 border-radius: 12px; margin: 15px 0; font-size: 14px;">
-                <strong>📊 效果預覽:</strong>
-                <div id="effectChangesList"></div>
-            </div>
-
-            ${!activationOnly ? `
-            <div style="background: #fff3e0; padding: 12px; border-radius: 12px;
-                        margin: 15px 0; text-align: center;">
-                <span style="font-size: 16px; font-weight: bold;">
-                    ⚠️ 注意：執行後無法撤銷！
-                </span>
-            </div>
-            ` : ''}
-
-            <div class="modal-buttons"
-                 style="display: flex; gap: 15px; justify-content: center;">
-                <button id="declineExecuteBtn"
-                        style="background: #9e9e9e; padding: 12px 24px;
-                               font-size: 16px; border-radius: 30px;
-                               cursor: pointer; border: none; color: white;
-                               transition: all 0.2s ease;">
-                    ${declineText}
-                </button>
-                <button id="confirmExecuteBtn"
-                        style="background: ${confirmBg}; padding: 12px 24px;
-                               font-size: 16px; border-radius: 30px;
-                               cursor: pointer; border: none; color: white;
-                               transition: all 0.2s ease;
-                               box-shadow: 0 4px 12px ${confirmShadow};">
-                    ${confirmText}
-                </button>
-            </div>
-
-            <div style="text-align: center; margin-top: 10px;
-                        font-size: 12px; color: ${footerColor};">
-                ${footerText}
-            </div>
+        <div class="modal-title" style="text-align: center; color: ${titleColor};
+             font-size: 24px; margin-bottom: 12px;">
+            ${titleText}
         </div>
-    `;
+
+        <div id="effectCardImage" style="text-align: center; margin: 15px 0;">
+            <img id="effectCardImg" src="" alt="機會卡"
+                 style="max-width: 100%; border-radius: 16px;
+                        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+                        border: 3px solid ${imgBorder};">
+        </div>
+
+        <div id="effectCardTypeBadge" style="text-align: center; margin: 10px 0;">
+            <span id="effectCardTypeSpan"
+                  style="display: inline-block; padding: 5px 12px;
+                         border-radius: 20px; font-size: 12px; color: white;">
+            </span>
+        </div>
+
+        <div class="modal-body" id="effectModalBody"
+             style="font-size: 16px; line-height: 1.5;">
+        </div>
+
+        <div id="effectChanges" style="background: #ffffff; padding: 15px;
+             border-radius: 12px; margin: 15px 0; font-size: 14px;
+             color: #333;">
+            <strong style="color: #333;">📊 效果預覽:</strong>
+            <div id="effectChangesList"></div>
+        </div>
+
+        ${!activationOnly ? `
+        <div style="background: ${warningBg}; padding: 12px; border-radius: 12px;
+                    margin: 15px 0; text-align: center;">
+            <span style="font-size: 16px; font-weight: bold; color: ${warningColor};">
+                ⚠️ 注意：執行後無法撤銷！
+            </span>
+        </div>
+        ` : ''}
+
+        <div class="modal-buttons"
+             style="display: flex; gap: 15px; justify-content: center;">
+            <button id="declineExecuteBtn"
+                    style="background: #9e9e9e; padding: 12px 24px;
+                           font-size: 16px; border-radius: 30px;
+                           cursor: pointer; border: none; color: white;
+                           transition: all 0.2s ease;">
+                ${declineText}
+            </button>
+            <button id="confirmExecuteBtn"
+                    style="background: ${confirmBg}; padding: 12px 24px;
+                           font-size: 16px; border-radius: 30px;
+                           cursor: pointer; border: none; color: white;
+                           transition: all 0.2s ease;
+                           box-shadow: 0 4px 12px ${confirmShadow};">
+                ${confirmText}
+            </button>
+        </div>
+
+        <div style="text-align: center; margin-top: 10px;
+                    font-size: 12px; color: ${footerColor};">
+            ${footerText}
+        </div>
+    </div>
+`;
     }
 
     // ==================== Card Type Grid ====================
@@ -355,20 +362,20 @@ export class OpportunityCardTemplate {
      */
     static buildEffectBody(card, escapeHtml) {
         return `
-            <div style="text-align: center;">
-                <h3 style="color: #2e7d32; margin-bottom: 10px; font-size: 20px;">
-                    ${escapeHtml(card.name)}
-                </h3>
-                <p style="color: #555; font-size: 14px;">
-                    ${escapeHtml(card.description || '')}
-                </p>
-                ${card.energyCost ? `
-                    <div style="background: #fff3e0; padding: 8px; border-radius: 8px; margin-top: 10px;">
-                        <span style="color: #e65100;">⚡ 執行需要精力: ${card.energyCost}</span>
-                    </div>
-                ` : ''}
-            </div>
-        `;
+        <div style="text-align: center;">
+            <h3 style="color: #1b5e20; margin-bottom: 10px; font-size: 20px;">
+                ${escapeHtml(card.name)}
+            </h3>
+            <p style="color: #333; font-size: 14px; line-height: 1.6;">
+                ${escapeHtml(card.description || '')}
+            </p>
+            ${card.energyCost ? `
+                <div style="background: #fff3e0; padding: 8px; border-radius: 8px; margin-top: 10px;">
+                    <span style="color: #bf360c;">⚡ 執行需要精力: ${card.energyCost}</span>
+                </div>
+            ` : ''}
+        </div>
+    `;
     }
 
     /**
@@ -560,32 +567,31 @@ export class OpportunityCardTemplate {
 
         if (multiplier > 1) {
             costDisplay.innerHTML = `
-            <span style="font-size: 18px; font-weight: bold;">
+            <span style="font-size: 18px; font-weight: bold; color: #333;">
                 💰 購買費用:
                 <s style="color: #999; font-size: 14px;">$${baseCost}</s>
-                <span style="color: #f44336; font-size: 20px;">$${actualCost.toLocaleString()}</span> 元
+                <span style="color: #c62828; font-size: 20px;">$${actualCost.toLocaleString()}</span> 元
             </span>
-            <div style="font-size: 12px; color: #e65100; margin-top: 4px;">
+            <div style="font-size: 12px; color: #bf360c; margin-top: 4px;">
                 ⚔️ 因中東禁運，費用翻倍
             </div>
             <span id="purchaseAffordWarning"
-                  style="color: #d32f2f; display: ${canAfford ? 'none' : 'inline'};">
+                  style="color: #c62828; display: ${canAfford ? 'none' : 'inline'};">
                 (現金不足)
             </span>
         `;
         } else {
             costDisplay.innerHTML = `
-            <span style="font-size: 18px; font-weight: bold;">
+            <span style="font-size: 18px; font-weight: bold; color: #333;">
                 💰 購買費用: $${baseCost} 元
             </span>
             <span id="purchaseAffordWarning"
-                  style="color: #d32f2f; display: ${canAfford ? 'none' : 'inline'}; margin-left: 10px;">
+                  style="color: #c62828; display: ${canAfford ? 'none' : 'inline'}; margin-left: 10px;">
                 (現金不足)
             </span>
         `;
         }
 
-        // Update confirm button text
         if (confirmBtn) {
             confirmBtn.textContent = `💰 支付$${actualCost.toLocaleString()}購買`;
         }

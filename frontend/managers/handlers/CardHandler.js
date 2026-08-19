@@ -77,6 +77,7 @@ export class CardHandler {
     handleBankDebtRepaySuccess(m) { this.lending.handleBankDebtRepaySuccess(m); }
     handleGiftCardPrompt(m)          { this.revelation.handleGiftCardPrompt(m); }
     handleMoveForwardChoicePrompt(m) { this.revelation.handleMoveForwardChoicePrompt(m); }
+    handleFundMenu(m) { this.opportunity.handleFundMenu(m); }
 
     // ── Volunteer ─────────────────────────────────────────────────────────
     handleVolunteerCardExecute(m) { this.volunteer.handleVolunteerCardExecute(m); }

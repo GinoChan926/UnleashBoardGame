@@ -155,8 +155,8 @@ const policeCards = [
         category: "警察卡",
         hasGoodCitizenChoiceFeature: true,
         effect: (state) => {
-            state.volunteerCount  = (state.volunteerCount  || 0) + 2;
-            state.volunteerShield = (state.volunteerShield || 0) + 2;
+            // state.volunteerCount  = (state.volunteerCount  || 0) + 2;
+            // state.volunteerShield = (state.volunteerShield || 0) + 2;
 
             return `🏆 救人做好市民！你獲得 2 次義工資格！可用於抵擋騙子卡傷害。當前義工次數：${state.volunteerShield} 次。`;
         },

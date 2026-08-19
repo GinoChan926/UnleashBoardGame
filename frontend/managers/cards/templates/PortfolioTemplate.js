@@ -227,22 +227,27 @@ export class PortfolioTemplate {
         }
 
         return funds.map(f => `
-            <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
-                        padding: 14px; margin-bottom: 10px;
-                        border-left: 4px solid #ff9800;">
-                <div style="color: #ffb74d; font-size: 15px;
-                            font-weight: bold; margin-bottom: 8px;">
-                    ${escapeHtml(f.name)}
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr;
-                            gap: 4px; font-size: 12px; color: #b0bec5;">
-                    <div>單位: <span style="color: #fff;">${(f.units || 0).toLocaleString()}</span></div>
-                    <div>單價: <span style="color: #fff;">$${(f.pricePerUnit || 0).toLocaleString()}</span></div>
-                    <div>總成本: <span style="color: #ffd966;">$${(f.totalCost || 0).toLocaleString()}</span></div>
-                    <div>月收入: <span style="color: #81c784;">$${(f.monthlyReturn || 0).toLocaleString()}</span></div>
+        <div style="background: rgba(0,0,0,0.4); border-radius: 12px;
+                    padding: 14px; margin-bottom: 10px;
+                    border-left: 4px solid #ff9800;">
+            <div style="color: #ffb74d; font-size: 15px;
+                        font-weight: bold; margin-bottom: 8px;">
+                ${escapeHtml(f.name)}
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr;
+                        gap: 4px; font-size: 12px; color: #b0bec5;">
+                <div>單位: <span style="color: #fff;">${(f.units || 0).toLocaleString()}</span></div>
+                <div>單價: <span style="color: #fff;">$${(f.pricePerUnit || 0).toLocaleString()}</span></div>
+                <div>總成本: <span style="color: #ffd966;">$${(f.totalCost || 0).toLocaleString()}</span></div>
+                <div>每份月收: <span style="color: #81c784;">$${(f.monthlyReturnPerUnit || 0).toLocaleString()}</span></div>
+                <div style="grid-column: 1/-1; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    📈 總月收入: <span style="color: #4caf50; font-weight: bold;">
+                        $${(f.monthlyReturn || 0).toLocaleString()}/月
+                    </span>
                 </div>
             </div>
-        `).join('');
+        </div>
+    `).join('');
     }
 
     static _renderBusinesses(businesses, escapeHtml) {

@@ -112,6 +112,7 @@ function handleJoin(ws, data, roomId, rooms) {
         originalHealth:  0,
         ability:         0,
         originalAbility: 0,
+        cardCostMultiplier: 1,
         luck:            professionData.luck, maxLuck: 10,
         isMyTurn:        room.players.size === 0,
         currentTurnPlayer: playerName,

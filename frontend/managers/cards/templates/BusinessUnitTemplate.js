@@ -92,9 +92,9 @@ export class BusinessUnitTemplate {
                                       display: block; margin-bottom: 6px;">
                             🏢 購買數量
                         </label>
-                        <input type="number" id="buSelectorInput"
-                               min="${minUnits}" max="${remainingSlots}"
-                               step="1" value="${minUnits}"
+                       <input type="number" id="buSelectorInput"
+       min="${minUnits}" max="${remainingSlots}"
+       step="${message.stepSize || 1}" value="${minUnits}"
                                inputmode="numeric"
                                style="width: 100%; padding: 12px;
                                       border-radius: 8px; border: 2px solid #ff9800;
@@ -104,7 +104,7 @@ export class BusinessUnitTemplate {
 
                         <!-- Quick buttons -->
                         <div style="display: flex; gap: 6px; margin-top: 8px;">
-                            ${this._buildQuickButtons(remainingSlots)}
+                            ${this._buildQuickButtons(remainingSlots, message.stepSize || 1)}
                         </div>
                     </div>
 
@@ -149,30 +149,36 @@ export class BusinessUnitTemplate {
         `;
     }
 
-    static _buildQuickButtons(maxRemaining) {
+    static _buildQuickButtons(maxRemaining, stepSize = 1) {
         const buttons = [];
 
-        if (maxRemaining >= 1) {
-            buttons.push({ label: '1 部', value: 1 });
+        if (stepSize > 1) {
+            // For P2P-style cards: show fixed multiples
+            for (let v = stepSize; v <= maxRemaining; v += stepSize) {
+                if (buttons.length >= 4) break;   // max 4 quick buttons
+                buttons.push({ label: `${v}`, value: v });
+            }
+            // Always include max if not already there
+            if (!buttons.find(b => b.value === maxRemaining) && maxRemaining > 0) {
+                buttons.push({ label: `全部 (${maxRemaining})`, value: maxRemaining });
+            }
+        } else {
+            // For normal unit cards: 1, 2, 3, max
+            if (maxRemaining >= 1) buttons.push({ label: '1 部', value: 1 });
+            if (maxRemaining >= 2) buttons.push({ label: '2 部', value: 2 });
+            if (maxRemaining >= 3) buttons.push({ label: '3 部', value: 3 });
+            buttons.push({ label: `全部 (${maxRemaining})`, value: maxRemaining });
         }
-        if (maxRemaining >= 2) {
-            buttons.push({ label: '2 部', value: 2 });
-        }
-        if (maxRemaining >= 3) {
-            buttons.push({ label: '3 部', value: 3 });
-        }
-        // Always add "全部"
-        buttons.push({ label: `全部 (${maxRemaining})`, value: maxRemaining });
 
         return buttons.map(b => `
-            <button class="bu-quick-btn" data-value="${b.value}"
-                    style="flex: 1; padding: 6px; font-size: 12px;
-                           background: #455a64; border: none;
-                           color: white; border-radius: 8px;
-                           cursor: pointer; transition: all 0.2s ease;">
-                ${b.label}
-            </button>
-        `).join('');
+        <button class="bu-quick-btn" data-value="${b.value}"
+                style="flex: 1; padding: 6px; font-size: 12px;
+                       background: #455a64; border: none;
+                       color: white; border-radius: 8px;
+                       cursor: pointer; transition: all 0.2s ease;">
+            ${b.label}
+        </button>
+    `).join('');
     }
 
     /**
@@ -193,6 +199,7 @@ export class BusinessUnitTemplate {
         const currentEnergy = message.currentEnergy  || 0;
         const remainingSlots = message.remainingSlots || 0;
         const minUnits      = message.minUnits || 1;
+        const stepSize      = message.stepSize || 1;
 
         const updatePreview = () => {
             if (!input || !previewEl) return;
@@ -201,13 +208,20 @@ export class BusinessUnitTemplate {
             if (isNaN(units) || units < minUnits) units = minUnits;
             if (units > remainingSlots) units = remainingSlots;
 
+            // Snap to step size
+            if (stepSize > 1) {
+                units = Math.round(units / stepSize) * stepSize;
+                units = Math.max(minUnits, Math.min(remainingSlots, units));
+            }
+
             const totalCost   = units * pricePerUnit;
             const totalEnergy = units * energyCost;
             const totalReturn = units * monthlyReturn;
 
             const canAffordCash   = currentCash   >= totalCost;
             const canAffordEnergy = currentEnergy >= totalEnergy;
-            const canConfirm      = canAffordCash && canAffordEnergy && units > 0;
+            const validStep       = stepSize <= 1 || units % stepSize === 0;
+            const canConfirm      = canAffordCash && canAffordEnergy && units > 0 && validStep;
 
             previewEl.style.display = 'block';
             previewEl.style.background = canConfirm
@@ -218,33 +232,44 @@ export class BusinessUnitTemplate {
                 : 'rgba(244,67,54,0.4)';
 
             let html = `
-                <div style="text-align: center; font-weight: bold;
-                            color: ${canConfirm ? '#a5d6a7' : '#ff8a80'};
-                            margin-bottom: 6px;">
-                    購買 ${units} 部預覽
-                </div>
-                <div>💰 總花費: <strong>$${totalCost.toLocaleString()}</strong></div>
-                <div>⚡ 總精力消耗: <strong>-${totalEnergy}</strong>
-                    (剩 ${Math.max(0, currentEnergy - totalEnergy)})</div>
-                <div>📈 總月收入增加: <strong>+$${totalReturn.toLocaleString()}/月</strong></div>
-                <div style="margin-top: 6px; padding-top: 6px;
-                            border-top: 1px solid rgba(255,255,255,0.1);
-                            font-size: 11px; color: #90a4ae;">
-                    回本期: 約 ${Math.ceil(pricePerUnit / monthlyReturn)} 個月
-                </div>
-            `;
+            <div style="text-align: center; font-weight: bold;
+                        color: ${canConfirm ? '#a5d6a7' : '#ff8a80'};
+                        margin-bottom: 6px;">
+                購買 ${units} ${stepSize > 1 ? '股' : '部'} 預覽
+            </div>
+            <div>💰 總花費: <strong>$${totalCost.toLocaleString()}</strong></div>
+        `;
+
+            if (energyCost > 0) {
+                html += `<div>⚡ 總精力消耗: <strong>-${totalEnergy}</strong>
+                (剩 ${Math.max(0, currentEnergy - totalEnergy)})</div>`;
+            }
+
+            if (monthlyReturn > 0) {
+                html += `<div>📈 總月收入增加: <strong>+$${totalReturn.toLocaleString()}/月</strong></div>`;
+                html += `<div style="margin-top: 6px; padding-top: 6px;
+                        border-top: 1px solid rgba(255,255,255,0.1);
+                        font-size: 11px; color: #90a4ae;">
+                回本期: 約 ${Math.ceil(pricePerUnit / monthlyReturn)} 個月
+            </div>`;
+            }
 
             if (!canAffordCash) {
-                html += `<div style="color: #ff6b6b; margin-top: 6px;
-                                     font-weight: bold;">
-                    ⚠️ 資金不足！你只有 $${currentCash.toLocaleString()}
-                </div>`;
+                html += `<div style="color: #ff6b6b; margin-top: 6px; font-weight: bold;">
+                ⚠️ 資金不足！你只有 $${currentCash.toLocaleString()}
+            </div>`;
             }
-            if (!canAffordEnergy) {
-                html += `<div style="color: #ff6b6b; margin-top: 6px;
-                                     font-weight: bold;">
-                    ⚠️ 精力不足！你只有 ${currentEnergy}
-                </div>`;
+
+            if (energyCost > 0 && !canAffordEnergy) {
+                html += `<div style="color: #ff6b6b; margin-top: 6px; font-weight: bold;">
+                ⚠️ 精力不足！你只有 ${currentEnergy}
+            </div>`;
+            }
+
+            if (!validStep) {
+                html += `<div style="color: #ff6b6b; margin-top: 6px; font-weight: bold;">
+                ⚠️ 數量必須是 ${stepSize} 的倍數
+            </div>`;
             }
 
             previewEl.innerHTML = html;
@@ -254,7 +279,7 @@ export class BusinessUnitTemplate {
                 confirmBtn.style.opacity = canConfirm ? '1' : '0.4';
                 confirmBtn.style.cursor  = canConfirm ? 'pointer' : 'not-allowed';
                 confirmBtn.textContent   = canConfirm
-                    ? `✅ 購買 ${units} 部 ($${totalCost.toLocaleString()})`
+                    ? `✅ 購買 ${units} ${stepSize > 1 ? '股' : '部'} ($${totalCost.toLocaleString()})`
                     : '❌ 條件不足';
             }
         };
@@ -262,10 +287,13 @@ export class BusinessUnitTemplate {
         if (input) {
             input.addEventListener('input', updatePreview);
             input.addEventListener('change', () => {
-                // Clamp value
                 let v = parseInt(input.value, 10);
                 if (isNaN(v) || v < minUnits) v = minUnits;
                 if (v > remainingSlots) v = remainingSlots;
+                if (stepSize > 1) {
+                    v = Math.round(v / stepSize) * stepSize;
+                    v = Math.max(minUnits, Math.min(remainingSlots, v));
+                }
                 input.value = v;
                 updatePreview();
             });
@@ -286,8 +314,12 @@ export class BusinessUnitTemplate {
         if (confirmBtn) {
             confirmBtn.onclick = () => {
                 if (confirmBtn.disabled) return;
-                const units = parseInt(input?.value, 10);
+                let units = parseInt(input?.value, 10);
                 if (!units || units <= 0) { alert('請輸入購買數量'); return; }
+                if (stepSize > 1 && units % stepSize !== 0) {
+                    alert(`購買數量必須是 ${stepSize} 的倍數`);
+                    return;
+                }
                 onConfirm(units);
             };
         }

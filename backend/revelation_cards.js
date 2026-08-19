@@ -45,18 +45,34 @@ function _applyStockSales(room, participants, ctx, stockPrices, cardName, cardId
     const sold = [];
     let totalRevenue = 0;
 
-    for (const [playerName, willSell] of Object.entries(participants)) {
+    for (const [playerName, response] of Object.entries(participants)) {
+        // ✅ Support both old format (boolean) and new format (object with selectedStocks)
+        let willSell = false;
+        let selectedStocks = null;   // null = sell all affected stocks
+
+        if (typeof response === 'object' && response !== null) {
+            willSell = response.participate === true;
+            selectedStocks = response.selectedStocks || null;  // array of stock codes to sell
+        } else {
+            willSell = response === true;
+        }
+
         if (!willSell) continue;
+
         const p = ctx.findPlayerByName(playerName);
         if (!p || !p.gameState.stockHoldings) continue;
 
         let playerRevenue = 0;
         let playerProfit = 0;
         const soldStocks = [];
+        const idsToDelete = [];
 
         for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
             const code = holding.code;
             if (stockPrices[code] === undefined) continue;
+
+            // ✅ If selectedStocks is provided, only sell selected ones
+            if (selectedStocks && !selectedStocks.includes(code)) continue;
 
             const price = stockPrices[code];
             const revenue = holding.shares * price;
@@ -65,18 +81,24 @@ function _applyStockSales(room, participants, ctx, stockPrices, cardName, cardId
             p.gameState.cash += revenue;
             playerRevenue += revenue;
             playerProfit += profit;
-            soldStocks.push(`${code}(${holding.shares}股)`);
-            delete p.gameState.stockHoldings[stockId];
+            soldStocks.push(`${code}(${holding.shares}股 @$${price})`);
+            idsToDelete.push(stockId);
         }
+
+        // Delete sold stocks
+        idsToDelete.forEach(id => delete p.gameState.stockHoldings[id]);
 
         if (playerRevenue > 0) {
             totalRevenue += playerRevenue;
-            sold.push(`${playerName}: ${soldStocks.join(', ')} 獲利 $${playerProfit.toLocaleString()}`);
+            const profitStr = playerProfit >= 0
+                ? `獲利 +$${playerProfit.toLocaleString()}`
+                : `虧損 $${playerProfit.toLocaleString()}`;
+            sold.push(`${playerName}: ${soldStocks.join(', ')} ${profitStr}`);
             ctx.addTransactionRecord(
                 playerName,
                 { name: cardName, type: "market_news", id: cardId },
                 "市場消息出售", playerRevenue,
-                `依市場消息出售股票，總收入 $${playerRevenue.toLocaleString()}`,
+                `依市場消息出售股票 ${soldStocks.join(', ')}，總收入 $${playerRevenue.toLocaleString()} (${profitStr})`,
                 null, p.gameState
             );
         }
@@ -94,15 +116,18 @@ function _findPropertyHolders(room, targetPropertyId, marketPrice) {
 
         const prop = p.gameState.propertyInvestments.find(inv => inv.id === targetPropertyId);
         if (prop) {
-            const mortgageAmount = prop.remainingBalance !== undefined ? prop.remainingBalance : (prop.mortgageAmount || 0);
+            const mortgageAmount = prop.remainingBalance !== undefined
+                ? prop.remainingBalance
+                : (prop.mortgageAmount || 0);
             const profit = marketPrice - mortgageAmount;
             result.push({
                 playerId: p.playerId,
                 ws,
                 assetInfo: {
-                    assetName: prop.name,
+                    assetName:      prop.name,
                     marketPrice,
                     mortgageAmount,
+                    sellValue:      marketPrice,
                     profit
                 }
             });
@@ -173,30 +198,39 @@ const marketNewsCards = [
         effect: (state) => `📈 市場消息：基金業績上升`,
         applyAutomatic: (room, initiator, ctx) => {
             const investors = [];
-            const bonus = 500;
+            const bonusPerUnit = 500;
 
             for (const [, p] of room.players) {
                 const funds = (p.gameState.financeInvestments || [])
                     .filter(inv => inv.id === "F02");
 
+                let totalBonus = 0;
+
                 funds.forEach(fund => {
-                    fund.monthlyReturn = (fund.monthlyReturn || 0) + bonus;
+                    const units = fund.units || 1;
+                    fund.monthlyReturn = (fund.monthlyReturn || 0) + bonusPerUnit;
+
+                    // ✅ Multiply by units
+                    const bonus = bonusPerUnit * units;
                     p.gameState.passiveIncome += bonus;
+                    totalBonus += bonus;
+                });
+
+                if (totalBonus > 0) {
+                    investors.push(p.playerName);
                     ctx.addTransactionRecord(
                         p.playerName,
                         { name: "基金業績上升", type: "market_news", id: "M01" },
                         "基金利息增加", 0,
-                        `基金 F02 每月利息 +$${bonus}`,
+                        `基金 F02 每份利息 +$${bonusPerUnit}/月 (共 +$${totalBonus.toLocaleString()}/月)`,
                         null, p.gameState
                     );
-                });
-
-                if (funds.length > 0) investors.push(p.playerName);
+                }
             }
 
             if (investors.length === 0) return `📊 沒有玩家持有 F02，無人受益`;
 
-            return `📈 基金業績上升！\n👥 受益玩家：${investors.join(', ')}\n💰 每月利息 +$${bonus}`;
+            return `📈 基金業績上升！\n👥 受益玩家：${investors.join(', ')}\n💰 每份利息 +$${bonusPerUnit}/月`;
         },
         getEffectDescription: () => "市場消息：持有 F02 的玩家每月利息 +$500"
     },
@@ -215,33 +249,42 @@ const marketNewsCards = [
         effect: (state) => `📉 市場消息：基金業績下跌`,
         applyAutomatic: (room, initiator, ctx) => {
             const affected = [];
-            const decrease = 500;
+            const decreasePerUnit = 500;
 
             for (const [, p] of room.players) {
                 const funds = (p.gameState.financeInvestments || [])
                     .filter(inv => inv.id === "F02");
 
+                let totalDecrease = 0;
+
                 funds.forEach(fund => {
+                    const units = fund.units || 1;
                     const oldReturn = fund.monthlyReturn || 0;
-                    const newReturn = Math.max(0, oldReturn - decrease);
-                    const actualDecrease = oldReturn - newReturn;
+                    const newReturn = Math.max(0, oldReturn - decreasePerUnit);
+                    const actualDecreasePerUnit = oldReturn - newReturn;
                     fund.monthlyReturn = newReturn;
-                    p.gameState.passiveIncome -= actualDecrease;
+
+                    // ✅ Multiply by units
+                    const actualDecrease = actualDecreasePerUnit * units;
+                    p.gameState.passiveIncome = Math.max(0, p.gameState.passiveIncome - actualDecrease);
+                    totalDecrease += actualDecrease;
+                });
+
+                if (totalDecrease > 0) {
+                    affected.push(p.playerName);
                     ctx.addTransactionRecord(
                         p.playerName,
                         { name: "基金業績下跌", type: "market_news", id: "M02" },
                         "基金利息減少", 0,
-                        `基金 F02 每月利息 -$${actualDecrease}`,
+                        `基金 F02 每份利息 -$${decreasePerUnit}/月 (共 -$${totalDecrease.toLocaleString()}/月)`,
                         null, p.gameState
                     );
-                });
-
-                if (funds.length > 0) affected.push(p.playerName);
+                }
             }
 
             if (affected.length === 0) return `📊 沒有玩家持有 F02，無影響`;
 
-            return `📉 基金業績下跌！\n👥 受影響玩家：${affected.join(', ')}\n💰 每月利息 -$${decrease}`;
+            return `📉 基金業績下跌！\n👥 受影響玩家：${affected.join(', ')}\n💰 每份利息 -$${decreasePerUnit}/月`;
         },
         getEffectDescription: () => "市場消息：持有 F02 的玩家每月利息 -$500"
     },
@@ -539,25 +582,37 @@ const marketNewsCards = [
             for (const [ws, p] of room.players) {
                 if (!p.gameState.stockHoldings) continue;
 
-                let totalShares = 0;
+                const holdings = [];
                 let totalCost = 0;
+                let totalSellValue = 0;
 
                 for (const [, holding] of Object.entries(p.gameState.stockHoldings)) {
-                    totalShares += holding.shares;
-                    totalCost += holding.totalCost;
+                    const sellValue = holding.totalCost * 3;
+                    const profit    = sellValue - holding.totalCost;
+
+                    holdings.push({
+                        stockCode: holding.code || holding.id,
+                        stockName: holding.name || holding.code || '未知',
+                        shares:    holding.shares,
+                        price:     Math.round(holding.totalCost / holding.shares * 3),  // 3x per-share price
+                        sellValue: sellValue,
+                        cost:      holding.totalCost,
+                        profit:    profit
+                    });
+
+                    totalCost      += holding.totalCost;
+                    totalSellValue += sellValue;
                 }
 
-                if (totalShares > 0) {
-                    const sellValue = totalCost * 3;
+                if (holdings.length > 0) {
                     result.push({
                         playerId: p.playerId,
                         ws,
                         assetInfo: {
-                            assetName: '所有股票',
-                            units: totalShares,
-                            originalCost: totalCost,
-                            sellValue,
-                            profit: sellValue - totalCost
+                            assetName:      '所有股票 (3倍價格)',
+                            holdings,
+                            totalSellValue,
+                            totalProfit:    totalSellValue - totalCost
                         }
                     });
                 }
@@ -569,39 +624,68 @@ const marketNewsCards = [
             const sold = [];
             let totalRevenue = 0;
 
-            for (const [playerName, willSell] of Object.entries(participants)) {
+            for (const [playerName, response] of Object.entries(participants)) {
+                // ✅ Support both old boolean and new { participate, selectedStocks } format
+                let willSell = false;
+                let selectedStocks = null;
+
+                if (typeof response === 'object' && response !== null) {
+                    willSell = response.participate === true;
+                    selectedStocks = response.selectedStocks || null;
+                } else {
+                    willSell = response === true;
+                }
+
                 if (!willSell) continue;
+
                 const p = ctx.findPlayerByName(playerName);
                 if (!p || !p.gameState.stockHoldings) continue;
 
                 let playerRevenue = 0;
-                let playerProfit = 0;
+                let playerProfit  = 0;
+                const soldStocks  = [];
+                const idsToDelete = [];
 
-                for (const [, holding] of Object.entries(p.gameState.stockHoldings)) {
+                for (const [stockId, holding] of Object.entries(p.gameState.stockHoldings)) {
+                    const code = holding.code || holding.id;
+
+                    // ✅ If selectedStocks provided, only sell selected ones
+                    if (selectedStocks && !selectedStocks.includes(code)) continue;
+
                     const sellPrice = holding.totalCost * 3;
                     playerRevenue += sellPrice;
-                    playerProfit += (sellPrice - holding.totalCost);
+                    playerProfit  += (sellPrice - holding.totalCost);
+                    soldStocks.push(code + '(' + holding.shares + '股)');
+                    idsToDelete.push(stockId);
                 }
 
-                p.gameState.cash += playerRevenue;
-                p.gameState.stockHoldings = {};
+                // Delete sold stocks
+                idsToDelete.forEach(id => delete p.gameState.stockHoldings[id]);
 
-                // p.gameState.luck = Math.min(p.gameState.maxLuck || 10, p.gameState.luck + 3);
-                p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
-                totalRevenue += playerRevenue;
-                sold.push(`${playerName} 獲利 $${playerProfit.toLocaleString()}`);
-                ctx.addTransactionRecord(
-                    playerName,
-                    { name: "大奇蹟日出售股票", type: "market_news", id: "M08" },
-                    "3倍出售所有股票", playerRevenue,
-                    `所有股票以 3 倍價格出售，獲利 $${playerProfit.toLocaleString()}`,
-                    null, p.gameState
-                );
+                if (playerRevenue > 0) {
+                    p.gameState.cash += playerRevenue;
+                    p.gameState.energy = Math.min(p.gameState.maxEnergy, p.gameState.energy + 2);
+                    totalRevenue += playerRevenue;
+
+                    const profitStr = playerProfit >= 0
+                        ? '+$' + playerProfit.toLocaleString()
+                        : '$' + playerProfit.toLocaleString();
+                    sold.push(playerName + ': ' + soldStocks.join(', ') + ' 獲利 ' + profitStr);
+
+                    ctx.addTransactionRecord(
+                        playerName,
+                        { name: "大奇蹟日出售股票", type: "market_news", id: "M08" },
+                        "3倍出售股票", playerRevenue,
+                        '出售 ' + soldStocks.join(', ') + '，獲利 ' + profitStr,
+                        null, p.gameState
+                    );
+                }
             }
 
-            if (sold.length === 0) return `🌟 大奇蹟日發生，但無人選擇出售`;
+            if (sold.length === 0) return '🌟 大奇蹟日發生，但無人選擇出售';
 
-            return `🌟 大奇蹟日！\n👥 出售玩家：\n${sold.join('\n')}\n💰 總成交金額：$${totalRevenue.toLocaleString()}\n🍀 幸運值 +3, 精力 +2`;
+            return '🌟 大奇蹟日！\n👥 出售玩家：\n' + sold.join('\n') +
+                '\n💰 總成交金額：$' + totalRevenue.toLocaleString() + '\n⚡ 精力 +2';
         },
 
         getEffectDescription: () => "市場消息：所有股票可以 3 倍價格出售"

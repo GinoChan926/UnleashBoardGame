@@ -88,7 +88,7 @@ function drawPoliceCard(ws, state, roomId, player, policeCards, broadcastToRoom,
 
         setTimeout(() => {
             startGoodCitizenChoice(ws, roomId, player, broadcastToRoom);
-        }, 1000);
+        }, 5000);
     }
 }
 
