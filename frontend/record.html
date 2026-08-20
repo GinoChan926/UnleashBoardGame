@@ -22,12 +22,6 @@
             margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
         }
         .header h1 { font-size: 26px; color: #ffd966; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .back-btn {
-            background: #ffb347; border: none; color: #333; padding: 8px 20px;
-            border-radius: 24px; cursor: pointer; font-weight: bold;
-            text-decoration: none; display: inline-block; font-size: 13px;
-        }
-        .back-btn:hover { background: #ffc107; }
 
         /* ── View tabs ─────────────────────────────────────────────── */
         .view-toggle {
@@ -260,7 +254,16 @@
 <div class="container">
     <div class="header">
         <h1>📊 遊戲分析報告</h1>
-        <a href="index.html" class="back-btn">← 返回遊戲</a>
+        <div id="playerFilterBar" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <label style="font-size:13px; color:#ffd966;">🔍 篩選玩家：</label>
+            <select id="playerFilter" style="padding:6px 12px; border-radius:20px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #ffb347; font-size:13px; cursor:pointer; min-width:160px;">
+                <option value="">全部玩家</option>
+            </select>
+            <label style="font-size:12px; color:#b3e5fc; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                <input type="checkbox" id="showOthersToggle" checked style="cursor:pointer;">
+                顯示其他玩家作為參考
+            </label>
+        </div>
     </div>
 
     <div class="view-toggle">
@@ -331,8 +334,8 @@
             </div>
             <div class="card">
                 <h3>💰 誰賺最多？誰虧最多？</h3>
-                <div class="subtitle">每個人在整場遊戲中，總共賺了或虧了多少錢。<br>
-                    🟢 綠色 = 賺錢，🔴 紅色 = 虧錢。越長的條代表金額越大。</div>
+                <div class="subtitle">每個人在整場遊戲中，總共賺了或虧了多少錢（同時顯示相對初始資金的百分比）。<br>
+                    🟢 綠色 = 賺錢，🔴 紅色 = 虧錢。越長的條代表金額越大。初始資金不同，百分比更能反映真實表現！</div>
                 <div class="chart-container" id="barChartContainer">
                     <div id="barChart"></div>
                     <div class="chart-tooltip" id="barTooltip"></div>
@@ -427,7 +430,7 @@
         </div>
         <div class="card">
             <h3>📅 每個人的決策軌跡</h3>
-            <div class="subtitle">每個圓點代表一次決策。🟢 賺錢的決策 🔴 虧錢的決策 🔵 中性決策。圓點越大 = 金額越大。<br>
+            <div class="subtitle">每個圓點代表一次決策。🔵 投資決策（綠=賺/紅=虧）🟢 收入活動 🔴 隨機事件 ⚪ 其他。圓點越大 = 金額越大。<br>
                 把滑鼠移到圓點上可以看到詳細資訊。</div>
             <div class="chart-container" id="timelineContainer">
                 <div id="decisionTimeline"></div>
@@ -441,32 +444,14 @@
         </div>
         <div class="card">
             <h3>🎰 你是什麼類型的投資者？</h3>
-            <div class="subtitle">分析每個人選擇高風險（股票、創業、投資）vs 低風險（兼職、警察、義工）卡片的比例。<br>
-                🔥 冒險型 = 高風險多 | ⚖️ 平衡型 = 均衡 | 🛡️ 保守型 = 低風險多</div>
+            <div class="subtitle">分析每個人的操作分佈：📈 投資（財務、創業、地產、項目投資）vs 💼 收入（兼職）vs 🎲 事件（騙子、警察、逆境、市場等）。<br>
+                🔥 冒險型 = 投資比例高 | ⚖️ 平衡型 = 均衡 | 🛡️ 保守型 = 投資比例低</div>
             <div id="riskProfile"></div>
             <div class="reflection-box">
                 <div class="rq">💡 反思問題</div>
                 你覺得自己是哪種投資者？冒險型的人一定賺更多嗎？<br>
                 在現實生活中，你會選擇保守還是冒險的理財方式？為什麼？
             </div>
-        </div>
-        <div class="card">
-            <h3>📝 教師備註</h3>
-            <div class="subtitle">教師可以針對每位學生寫下觀察和建議。</div>
-            <div style="margin-bottom:8px;">
-                <select id="annotatePlayer" style="padding:5px 10px; border-radius:6px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #ffb347; font-size:12px;">
-                    <option value="">選擇玩家...</option>
-                </select>
-                <textarea id="annotateText" placeholder="輸入備註..."
-                          style="width:100%; margin-top:6px; padding:8px; border-radius:6px;
-                           background:rgba(0,0,0,0.4); color:#ffefc0; border:1px solid #ffb347;
-                           min-height:60px; font-family:inherit; font-size:12px; resize:vertical;"></textarea>
-                <button id="saveAnnotation" style="margin-top:6px; background:#4caf50; color:white;
-                        padding:6px 16px; border:none; border-radius:16px; cursor:pointer; font-weight:bold; font-size:12px;">
-                    💾 儲存
-                </button>
-            </div>
-            <div id="annotationsList"></div>
         </div>
     </div>
 
@@ -495,12 +480,6 @@
                 </div>
             </div>
         </div>
-        <div style="text-align:center; margin-top:16px;">
-            <button id="exportPdfBtn" style="background:#ff9800; color:white; padding:10px 24px;
-                    border:none; border-radius:24px; cursor:pointer; font-size:14px; font-weight:bold;">
-                📄 列印報告
-            </button>
-        </div>
     </div>
 </div>
 <script>
@@ -523,6 +502,44 @@
     };
     function tm(t) { return TYPE_META[t] || TYPE_META.general; }
 
+    // ── Investment classification ──
+    const INVEST_CATEGORY = {
+        finance:    { group: 'investment', label: '📈 投資', color: '#2196f3' },
+        business:   { group: 'investment', label: '📈 投資', color: '#2196f3' },
+        property:   { group: 'investment', label: '📈 投資', color: '#2196f3' },
+        investment: { group: 'investment', label: '📈 投資', color: '#2196f3' },
+        part_time:  { group: 'income',     label: '💼 收入', color: '#4caf50' },
+        lier:       { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        police:     { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        hardship:   { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        market_news:{ group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        tip:        { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        trust:      { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        social:     { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        volunteer:  { group: 'event',      label: '🎲 事件', color: '#ff6b6b' },
+        general:    { group: 'event',      label: '🎲 事件', color: '#888' }
+    };
+    function getInvestGroup(cardType) { return INVEST_CATEGORY[cardType] || INVEST_CATEGORY.general; }
+
+    // ── Decision point classification for timeline ──
+    const DECISION_CLASS = {
+        finance:    { group: 'investment', color: '#2196f3', label: '投資決策' },
+        business:   { group: 'investment', color: '#2196f3', label: '投資決策' },
+        property:   { group: 'investment', color: '#9c27b0', label: '投資決策' },
+        investment: { group: 'investment', color: '#8bc34a', label: '投資決策' },
+        part_time:  { group: 'income',     color: '#4caf50', label: '收入活動' },
+        lier:       { group: 'event',      color: '#dc143c', label: '隨機事件' },
+        police:     { group: 'event',      color: '#03a9f4', label: '隨機事件' },
+        hardship:   { group: 'event',      color: '#e91e63', label: '隨機事件' },
+        market_news:{ group: 'event',      color: '#00bcd4', label: '隨機事件' },
+        tip:        { group: 'event',      color: '#7e57c2', label: '隨機事件' },
+        trust:      { group: 'event',      color: '#795548', label: '隨機事件' },
+        social:     { group: 'event',      color: '#26a69a', label: '隨機事件' },
+        volunteer:  { group: 'event',      color: '#4caf72', label: '隨機事件' },
+        general:    { group: 'neutral',    color: '#888',    label: '其他' }
+    };
+    function getDecisionClass(cardType) { return DECISION_CLASS[cardType] || DECISION_CLASS.general; }
+
     const PC = ['#ffd966','#4dd0e1','#ff8a65','#81c784','#ba68c8','#f06292','#a1887f','#90a4ae','#ffab91','#80cbc4','#ce93d8','#fff176'];
     function pcm(names) { const m = {}; names.forEach((n,i) => { m[n] = PC[i % PC.length]; }); return m; }
 
@@ -530,12 +547,27 @@
         const c = txs.slice().reverse(), p = {};
         c.forEach(t => {
             const n = t.playerName || '(未知)';
-            if (!p[n]) p[n] = { name:n, count:0, cash:0, passive:0, side:0, salary:0, energy:0, byType:{}, series:[], txs:[] };
+            if (!p[n]) p[n] = { name:n, count:0, cash:0, passive:0, side:0, salary:0, energy:0, byType:{}, series:[], txs:[], initialCash: null };
             const o = p[n]; o.count++; o.cash += t.amountChange||0; o.passive += t.passiveIncomeChange||0;
             o.side += t.sideIncomeChange||0; o.salary += t.salaryChange||0; o.energy += t.energyChange||0;
             o.byType[t.cardType] = (o.byType[t.cardType]||0) + 1;
             o.series.push({ val: o.cash, card: t.cardName, amount: t.amountChange||0 });
             o.txs.push(t);
+            // Track initial cash from earliest snapshot
+            if (t.snapshot && t.snapshot.cash !== undefined && o.initialCash === null) {
+                o.initialCash = (t.snapshot.cash || 0) - (t.amountChange || 0);
+            }
+        });
+        // For players where we couldn't determine initial cash, try last snapshot
+        Object.values(p).forEach(o => {
+            if (o.initialCash === null) {
+                const lastTx = o.txs[o.txs.length - 1];
+                if (lastTx && lastTx.snapshot) {
+                    o.initialCash = (lastTx.snapshot.cash || 0) - o.cash;
+                } else {
+                    o.initialCash = 0;
+                }
+            }
         });
         return p;
     }
@@ -557,7 +589,6 @@
         tipEl.style.left = left + 'px'; tipEl.style.top = top + 'px';
     }
     function hideTip(tipEl) { tipEl.style.display = 'none'; }
-
     // ═══════════════════════════════════════════════════════════════
     // TAB 1: TABLE
     // ═══════════════════════════════════════════════════════════════
@@ -586,35 +617,52 @@
     // TAB 2: PLAYER — Interactive charts
     // ═══════════════════════════════════════════════════════════════
 
-    function buildLineChart(players, colors) {
+    function buildLineChart(players, colors, opacityMap) {
         const names = Object.keys(players);
         const W=560,H=280,pL=62,pR=20,pT=20,pB=30;
         const maxLen = Math.max(1,...names.map(n=>players[n].series.length));
-        let lo=0,hi=0; names.forEach(n=>players[n].series.forEach(s=>{if(s.val<lo)lo=s.val;if(s.val>hi)hi=s.val;}));
+        let lo=0,hi=0;
+        names.forEach(n => {
+            if (opacityMap && opacityMap[n] === 0) return;
+            players[n].series.forEach(s => { if(s.val<lo)lo=s.val; if(s.val>hi)hi=s.val; });
+        });
         if(hi===lo)hi=lo+1;
         const x=i=>pL+(maxLen<=1?0:(i/(maxLen-1))*(W-pL-pR));
         const y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
 
         let svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
-        // Grid
         for(let g=0;g<=4;g++){const gv=lo+(hi-lo)*g/4,gy=y(gv);svg+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(W-pR)+'" y2="'+gy+'" stroke="rgba(255,255,255,0.1)"/>';svg+='<text x="'+(pL-6)+'" y="'+(gy+4)+'" fill="#bbb" font-size="10" text-anchor="end">'+Math.round(gv).toLocaleString()+'</text>';}
         if(lo<0&&hi>0)svg+='<line x1="'+pL+'" y1="'+y(0)+'" x2="'+(W-pR)+'" y2="'+y(0)+'" stroke="rgba(255,255,255,0.3)" stroke-dasharray="4 3"/>';
 
-        // Lines + interactive dots
-        names.forEach(n=>{
-            const s=players[n].series;if(!s.length)return;
-            const pts=s.map((d,i)=>x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
-            svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2.5" stroke-linejoin="round"/>';
-            s.forEach((d,i)=>{
-                svg+='<circle class="lc-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="4" fill="'+colors[n]+'" stroke="rgba(0,0,0,0.5)" stroke-width="1" style="cursor:pointer" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" data-change="'+d.amount+'"/>';
+        // Draw dimmed lines FIRST (background)
+        names.forEach(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op === 0 || op === 1) return;
+            const s = players[n].series; if(!s.length) return;
+            const pts = s.map((d,i) => x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg += '<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="1.5" stroke-linejoin="round" opacity="'+op+'"/>';
+        });
+
+        // Draw full-opacity lines + interactive dots ON TOP
+        names.forEach(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op !== 1) return;
+            const s = players[n].series; if(!s.length) return;
+            const pts = s.map((d,i) => x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg += '<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2.5" stroke-linejoin="round"/>';
+            s.forEach((d,i) => {
+                svg += '<circle class="lc-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="4" fill="'+colors[n]+'" stroke="rgba(0,0,0,0.5)" stroke-width="1" style="cursor:pointer" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" data-change="'+d.amount+'"/>';
             });
         });
-        svg+='</svg>';
+        svg += '</svg>';
 
         document.getElementById('lineChart').innerHTML = svg;
-        document.getElementById('lineLegend').innerHTML = names.map(n=>'<span><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>').join('');
+        document.getElementById('lineLegend').innerHTML = names.map(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op === 0) return '';
+            return '<span style="opacity:'+op+'"><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>';
+        }).join('');
 
-        // Bind tooltips
         const tip = document.getElementById('lineTooltip');
         document.querySelectorAll('.lc-dot').forEach(dot => {
             dot.addEventListener('mouseenter', e => {
@@ -629,52 +677,129 @@
         });
     }
 
-    function buildBarChart(players, colors) {
-        const names=Object.keys(players);const W=560,rowH=48,padL=14,padR=70,padT=10;
-        const H=padT*2+Math.max(1,names.length)*rowH;const maxAbs=Math.max(1,...names.map(n=>Math.abs(players[n].cash)));
-        const zeroX=padL+(W-padL-padR)/2,halfW=(W-padL-padR)/2;
+    function buildBarChart(players, colors, opacityMap) {
+        const allNames = Object.keys(players);
+        // Filter out hidden players
+        const names = allNames.filter(n => !opacityMap || opacityMap[n] !== 0);
+        if (!names.length) { document.getElementById('barChart').innerHTML = '<div class="no-data">暫無資料</div>'; return; }
 
-        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
-        svg+='<line x1="'+zeroX+'" y1="'+padT+'" x2="'+zeroX+'" y2="'+(H-padT)+'" stroke="rgba(255,255,255,0.25)"/>';
-        names.forEach((n,i)=>{
-            const rt=padT+i*rowH,bY=rt+26,val=players[n].cash,w=(Math.abs(val)/maxAbs)*halfW,bx=val>=0?zeroX:zeroX-w,bc=val>=0?'#4caf50':'#ff6b6b';
-            svg+='<text x="'+padL+'" y="'+(rt+16)+'" fill="'+colors[n]+'" font-size="12" font-weight="bold">'+esc(n)+'</text>';
-            svg+='<rect class="bar-rect" x="'+bx.toFixed(1)+'" y="'+bY+'" width="'+Math.max(2,w).toFixed(1)+'" height="16" rx="4" fill="'+bc+'" data-player="'+esc(n)+'" data-val="'+val+'" style="cursor:pointer"/>';
-            const tx=val>=0?bx+w+6:bx-6,anch=val>=0?'start':'end';
-            svg+='<text x="'+tx.toFixed(1)+'" y="'+(bY+13)+'" fill="#ffefc0" font-size="11" text-anchor="'+anch+'">'+fmt(val)+'</text>';
+        const W = 720, rowH = 58, padL = 60, padR = 120, padT = 10;
+        const H = padT * 2 + names.length * rowH;
+        const maxAbs = Math.max(1, ...names.map(n => Math.abs(players[n].cash)));
+        const zeroX = padL + (W - padL - padR) / 2, halfW = (W - padL - padR) / 2;
+
+        let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        svg += '<line x1="' + zeroX + '" y1="' + padT + '" x2="' + zeroX + '" y2="' + (H - padT) + '" stroke="rgba(255,255,255,0.25)"/>';
+
+        names.forEach((n, i) => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            const rt = padT + i * rowH, bY = rt + 28;
+            const val = players[n].cash;
+            const initCash = players[n].initialCash || 0;
+            const pct = initCash !== 0 ? (val / initCash * 100) : 0;
+            const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+            const w = (Math.abs(val) / maxAbs) * halfW;
+            const bx = val >= 0 ? zeroX : zeroX - w;
+            const bc = val >= 0 ? '#4caf50' : '#ff6b6b';
+
+            svg += '<g opacity="' + op + '">';
+            svg += '<text x="' + padL + '" y="' + (rt + 14) + '" fill="' + colors[n] + '" font-size="12" font-weight="bold">' + esc(n) + '</text>';
+            svg += '<text x="' + padL + '" y="' + (rt + 26) + '" fill="#90a4ae" font-size="9">初始: $' + initCash.toLocaleString() + '</text>';
+            svg += '<rect class="bar-rect" x="' + bx.toFixed(1) + '" y="' + bY + '" width="' + Math.max(2, w).toFixed(1) + '" height="16" rx="4" fill="' + bc + '"'
+                + ' data-player="' + esc(n) + '" data-val="' + val + '" data-init="' + initCash + '" data-pct="' + pct.toFixed(1) + '" style="cursor:pointer"/>';
+
+            let labelX, anch;
+            if (val >= 0) { labelX = bx + w + 6; anch = 'start'; }
+            else { labelX = zeroX + 6; anch = 'start'; }
+            svg += '<text x="' + labelX.toFixed(1) + '" y="' + (bY + 13) + '" fill="#ffefc0" font-size="11" text-anchor="' + anch + '">'
+                + fmt(val) + ' (' + pctStr + ')</text>';
+            svg += '</g>';
         });
-        svg+='</svg>';
-        document.getElementById('barChart').innerHTML=svg;
+        svg += '</svg>';
+        document.getElementById('barChart').innerHTML = svg;
 
         const tip = document.getElementById('barTooltip');
         document.querySelectorAll('.bar-rect').forEach(bar => {
             bar.addEventListener('mouseenter', e => {
-                const p=bar.dataset.player, v=Number(bar.dataset.val);
+                const p = bar.dataset.player, v = Number(bar.dataset.val);
+                const init = Number(bar.dataset.init), pct = bar.dataset.pct;
                 const label = v >= 0 ? '遊戲中總共賺了' : '遊戲中總共虧了';
                 showTip(tip, e.clientX, e.clientY,
-                    '<div class="tt-player" style="color:'+colors[p]+'">'+esc(p)+'</div>'+
-                    '<div class="tt-value">'+label+' $'+Math.abs(v).toLocaleString()+'</div>');
+                    '<div class="tt-player" style="color:' + colors[p] + '">' + esc(p) + '</div>' +
+                    '<div class="tt-detail">初始資金: $' + init.toLocaleString() + '</div>' +
+                    '<div class="tt-value">' + label + ' $' + Math.abs(v).toLocaleString() + '</div>' +
+                    '<div class="tt-detail">變化幅度: ' + (pct >= 0 ? '+' : '') + pct + '%</div>');
             });
             bar.addEventListener('mouseleave', () => hideTip(tip));
         });
     }
 
-    function buildPlayerCards(players, colors) {
-        const names=Object.keys(players),grid=document.getElementById('playerGrid');
-        if(!names.length){grid.innerHTML='<div class="no-data">暫無資料</div>';return;}
-        grid.innerHTML=names.map(n=>{const p=players[n],te=Object.entries(p.byType).sort((a,b)=>b[1]-a[1]),tot=p.count||1;
-            const bar=te.map(([t,c])=>'<span style="width:'+(c/tot*100).toFixed(1)+'%;background:'+tm(t).color+'" title="'+esc(tm(t).name)+': '+c+'"></span>').join('');
-            const list=te.map(([t,c])=>'<span style="margin-right:10px;white-space:nowrap"><span class="k" style="background:'+tm(t).color+'"></span>'+esc(tm(t).name)+' ×'+c+'</span>').join('');
-            return '<div class="player-card" style="border-top-color:'+colors[n]+'"><h2><span style="width:12px;height:12px;border-radius:3px;background:'+colors[n]+';display:inline-block"></span>'+esc(n)+'</h2>'+
-                '<div class="pc-metrics"><div class="pc-metric"><div class="label">操作次數</div><div class="value" style="color:#ffd966">'+p.count+'</div></div>'+
-                '<div class="pc-metric"><div class="label">總收支</div><div class="value '+sc(p.cash)+'">'+fmt(p.cash)+'</div></div>'+
-                '<div class="pc-metric"><div class="label">被動收入</div><div class="value '+sc(p.passive)+'">'+fmt(p.passive)+'</div></div>'+
-                '<div class="pc-metric"><div class="label">副業收入</div><div class="value '+sc(p.side)+'">'+fmt(p.side)+'</div></div></div>'+
-                '<div class="pc-typebar">'+bar+'</div><div class="pc-typelist">'+list+'</div></div>';}).join('');
+    function buildPlayerCards(players, colors, opacityMap, selectedPlayer) {
+        const allNames = Object.keys(players);
+        const names = allNames.filter(n => !opacityMap || opacityMap[n] !== 0);
+        const grid = document.getElementById('playerGrid');
+        if (!names.length) { grid.innerHTML = '<div class="no-data">暫無資料</div>'; return; }
+        grid.innerHTML = names.map(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            const isSelected = selectedPlayer && n === selectedPlayer;
+            const p = players[n], te = Object.entries(p.byType).sort((a, b) => b[1] - a[1]), tot = p.count || 1;
+            const initCash = p.initialCash || 0;
+            const pct = initCash !== 0 ? (p.cash / initCash * 100) : 0;
+            const pctStr = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+
+            const groupCounts = {};
+            te.forEach(([t, c]) => {
+                const g = getInvestGroup(t);
+                groupCounts[g.label] = (groupCounts[g.label] || 0) + c;
+            });
+            const groupColors = { '📈 投資': '#2196f3', '💼 收入': '#4caf50', '🎲 事件': '#ff6b6b' };
+            const groupBar = Object.entries(groupCounts).map(([label, c]) => {
+                const gc = groupColors[label] || '#888';
+                return '<span style="width:' + (c / tot * 100).toFixed(1) + '%;background:' + gc + '" title="' + esc(label) + ': ' + c + '"></span>';
+            }).join('');
+            const groupList = Object.entries(groupCounts).map(([label, c]) => {
+                const gc = groupColors[label] || '#888';
+                return '<span style="margin-right:10px;white-space:nowrap"><span class="k" style="background:' + gc + '"></span>' + esc(label) + ' ×' + c + '</span>';
+            }).join('');
+            const detailList = te.map(([t, c]) =>
+                '<span style="margin-right:10px;white-space:nowrap"><span class="k" style="background:' + tm(t).color + '"></span>' + esc(tm(t).name) + ' ×' + c + '</span>'
+            ).join('');
+
+            const cardStyle = 'border-top-color:' + colors[n] + ';opacity:' + op
+                + (isSelected ? ';box-shadow:0 0 0 2px ' + colors[n] + ', 0 4px 12px rgba(255,217,102,0.4)' : '');
+
+            return '<div class="player-card" style="' + cardStyle + '">' +
+                '<h2><span style="width:12px;height:12px;border-radius:3px;background:' + colors[n] + ';display:inline-block"></span>' + esc(n) + (isSelected ? ' <span style="font-size:11px;color:#ffd966;">★ 已選擇</span>' : '') + '</h2>' +
+                '<div class="pc-metrics">' +
+                '<div class="pc-metric"><div class="label">初始資金</div><div class="value" style="color:#90a4ae">$' + initCash.toLocaleString() + '</div></div>' +
+                '<div class="pc-metric"><div class="label">總收支</div><div class="value ' + sc(p.cash) + '">' + fmt(p.cash) + ' <span style="font-size:11px;">(' + pctStr + ')</span></div></div>' +
+                '<div class="pc-metric"><div class="label">被動收入</div><div class="value ' + sc(p.passive) + '">' + fmt(p.passive) + '</div></div>' +
+                '<div class="pc-metric"><div class="label">副業收入</div><div class="value ' + sc(p.side) + '">' + fmt(p.side) + '</div></div>' +
+                '</div>' +
+                '<div style="font-size:11px;color:#ffd966;margin-bottom:4px;">投資分類</div>' +
+                '<div class="pc-typebar">' + groupBar + '</div>' +
+                '<div class="pc-typelist">' + groupList + '</div>' +
+                '<div style="font-size:11px;color:#b0bec5;margin-top:8px;">詳細分類</div>' +
+                '<div class="pc-typelist">' + detailList + '</div>' +
+                '</div>';
+        }).join('');
     }
 
-    function renderPlayerView(txs) { const p=agg(txs),n=Object.keys(p),c=pcm(n); buildLineChart(p,c);buildBarChart(p,c);buildPlayerCards(p,c); }
+    function renderPlayerView(txs, selectedPlayer, showOthers) {
+        const p = agg(txs), n = Object.keys(p), c = pcm(n);
 
+        // Compute opacity map for dimming
+        const opacityMap = {};
+        n.forEach(name => {
+            if (!selectedPlayer) opacityMap[name] = 1;
+            else if (name === selectedPlayer) opacityMap[name] = 1;
+            else opacityMap[name] = showOthers ? 0.25 : 0;
+        });
+
+        buildLineChart(p, c, opacityMap);
+        buildBarChart(p, c, opacityMap);
+        buildPlayerCards(p, c, opacityMap, selectedPlayer);
+    }
     // ═══════════════════════════════════════════════════════════════
     // TAB 3: ROOM
     // ═══════════════════════════════════════════════════════════════
@@ -691,27 +816,63 @@
     }
 
     function buildRoomCompare(summaries) {
-        const el=document.getElementById('roomCompareChart'),card=document.getElementById('roomCompareCard');
-        if(!summaries.length){el.innerHTML='';card.style.display='none';return;}card.style.display='';
-        const rows=summaries.slice().sort((a,b)=>b.totalCash-a.totalCash);
-        const W=560,rowH=48,padL=14,padR=70,padT=10,H=padT*2+rows.length*rowH;
-        const maxAbs=Math.max(1,...rows.map(r=>Math.abs(r.totalCash)));
-        const zeroX=padL+(W-padL-padR)/2,halfW=(W-padL-padR)/2;
-        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
-        svg+='<line x1="'+zeroX+'" y1="'+padT+'" x2="'+zeroX+'" y2="'+(H-padT)+'" stroke="rgba(255,255,255,0.25)"/>';
-        const medals=['🥇','🥈','🥉'];
-        rows.forEach((r,i)=>{const rt=padT+i*rowH,bY=rt+26,val=r.totalCash,w=(Math.abs(val)/maxAbs)*halfW,bx=val>=0?zeroX:zeroX-w,bc=val>=0?'#4caf50':'#ff6b6b';
-            svg+='<text x="'+padL+'" y="'+(rt+16)+'" fill="#ffd966" font-size="12" font-weight="bold">'+(medals[i]||'')+' 🏠 '+esc(r.roomId)+' <tspan fill="#bbb" font-weight="normal">('+r.playerCount+'人)</tspan></text>';
-            svg+='<rect class="room-bar" x="'+bx.toFixed(1)+'" y="'+bY+'" width="'+Math.max(2,w).toFixed(1)+'" height="16" rx="4" fill="'+bc+'" data-room="'+esc(r.roomId)+'" data-val="'+val+'" data-count="'+r.playerCount+'" style="cursor:pointer"/>';
-            const tx=val>=0?bx+w+6:bx-6,anch=val>=0?'start':'end';
-            svg+='<text x="'+tx.toFixed(1)+'" y="'+(bY+13)+'" fill="#ffefc0" font-size="11" text-anchor="'+anch+'">'+fmt(val)+'</text>';});
-        svg+='</svg>';el.innerHTML=svg;
+        const el = document.getElementById('roomCompareChart'), card = document.getElementById('roomCompareCard');
+        if (!summaries.length) { el.innerHTML = ''; card.style.display = 'none'; return; }
+        card.style.display = '';
+        const rows = summaries.slice().sort((a, b) => b.totalCash - a.totalCash);
+        const W = 720, rowH = 56, padL = 60, padR = 120, padT = 10;
+        const H = padT * 2 + rows.length * rowH;
+        const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.totalCash)));
+        const zeroX = padL + (W - padL - padR) / 2, halfW = (W - padL - padR) / 2;
+        const medals = ['🥇', '🥈', '🥉'];
 
-        const tip=document.getElementById('roomTooltip');
-        document.querySelectorAll('.room-bar').forEach(bar=>{
-            bar.addEventListener('mouseenter',e=>{const r=bar.dataset.room,v=Number(bar.dataset.val),c=bar.dataset.count;
-                showTip(tip,e.clientX,e.clientY,'<div class="tt-player">🏠 '+esc(r)+'</div><div class="tt-value">全房間總共'+(v>=0?'賺了':'虧了')+' $'+Math.abs(v).toLocaleString()+'</div><div class="tt-detail">'+c+' 位玩家</div>');});
-            bar.addEventListener('mouseleave',()=>hideTip(tip));
+        let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+        svg += '<line x1="' + zeroX + '" y1="' + padT + '" x2="' + zeroX + '" y2="' + (H - padT) + '" stroke="rgba(255,255,255,0.25)"/>';
+
+        rows.forEach((r, i) => {
+            const rt = padT + i * rowH, bY = rt + 28;
+            const val = r.totalCash;
+            const w = (Math.abs(val) / maxAbs) * halfW;
+            const bx = val >= 0 ? zeroX : zeroX - w;
+            const bc = val >= 0 ? '#4caf50' : '#ff6b6b';
+
+            // Room title
+            svg += '<text x="' + padL + '" y="' + (rt + 16) + '" fill="#ffd966" font-size="12" font-weight="bold">'
+                + (medals[i] || '') + ' 🏠 ' + esc(r.roomId)
+                + ' <tspan fill="#bbb" font-weight="normal">(' + r.playerCount + '人)</tspan></text>';
+
+            // Bar
+            svg += '<rect class="room-bar" x="' + bx.toFixed(1) + '" y="' + bY + '" width="' + Math.max(2, w).toFixed(1)
+                + '" height="16" rx="4" fill="' + bc + '" data-room="' + esc(r.roomId) + '" data-val="' + val
+                + '" data-count="' + r.playerCount + '" style="cursor:pointer"/>';
+
+            // Label — always place on the outer end of the bar
+            // For positive: to the right of bar end
+            // For negative: to the right of bar end (near zeroX), so it's always visible
+            let labelX, anch;
+            if (val >= 0) {
+                labelX = bx + w + 6;
+                anch = 'start';
+            } else {
+                labelX = zeroX + 6;   // ✅ place to the right of the zero line for negatives
+                anch = 'start';
+            }
+            svg += '<text x="' + labelX.toFixed(1) + '" y="' + (bY + 13) + '" fill="#ffefc0" font-size="11" text-anchor="' + anch + '">'
+                + fmt(val) + '</text>';
+        });
+        svg += '</svg>';
+        el.innerHTML = svg;
+
+        const tip = document.getElementById('roomTooltip');
+        document.querySelectorAll('.room-bar').forEach(bar => {
+            bar.addEventListener('mouseenter', e => {
+                const r = bar.dataset.room, v = Number(bar.dataset.val), c = bar.dataset.count;
+                showTip(tip, e.clientX, e.clientY,
+                    '<div class="tt-player">🏠 ' + esc(r) + '</div>' +
+                    '<div class="tt-value">全房間總共' + (v >= 0 ? '賺了' : '虧了') + ' $' + Math.abs(v).toLocaleString() + '</div>' +
+                    '<div class="tt-detail">' + c + ' 位玩家</div>');
+            });
+            bar.addEventListener('mouseleave', () => hideTip(tip));
         });
     }
 
@@ -728,38 +889,81 @@
             return '<div class="room-section"><div class="room-header"><h2>🏠 '+esc(rid)+'</h2><div class="room-meta">👥 '+names.length+' 人 · 📋 '+rtx.length+' 筆 · 💰 總收支 <span class="'+sc(totalCash)+'">'+fmt(totalCash)+'</span></div></div><div class="room-body"><div class="room-chart"><div class="rc-title">📈 每個人的錢怎麼變化</div>'+roomLine(players,colors)+'<div class="chart-legend">'+legend+'</div></div><div class="room-players">'+rows+'</div></div></div>';}).join('');
         buildRoomCompare(summaries);
     }
-
     // ═══════════════════════════════════════════════════════════════
     // TAB 4: FINANCIAL METRICS
     // ═══════════════════════════════════════════════════════════════
 
-    function renderMetricsView(txs) {
-        const players=agg(txs),names=Object.keys(players),colors=pcm(names);
-        buildCashBalance(txs,names,colors);buildDebtRatio(txs,names,colors);
-        buildDiversity(players,colors);buildROI(txs,names,colors);
+    function renderMetricsView(txs, selectedPlayer, showOthers) {
+        const players = agg(txs), allNames = Object.keys(players), colors = pcm(allNames);
+
+        // Determine which players to include
+        let names;
+        if (!selectedPlayer) {
+            names = allNames;
+        } else if (showOthers) {
+            names = allNames; // will dim others in individual charts
+        } else {
+            names = [selectedPlayer];
+        }
+
+        const opacityMap = {};
+        allNames.forEach(n => {
+            if (!selectedPlayer) opacityMap[n] = 1;
+            else if (n === selectedPlayer) opacityMap[n] = 1;
+            else opacityMap[n] = showOthers ? 0.3 : 0;
+        });
+
+        buildCashBalance(txs, names, colors, opacityMap);
+        buildDebtRatio(txs, names, colors);
+        buildDiversity(players, colors, names);
+        buildROI(txs, names, colors);
     }
 
-    function buildCashBalance(txs,names,colors) {
-        const chrono=txs.slice().reverse(),series={};names.forEach(n=>{series[n]=[];});
-        chrono.forEach(t=>{if(!series[t.playerName])return;const c=t.snapshot?t.snapshot.cash:null;if(c!==null)series[t.playerName].push({val:c,card:t.cardName});});
+    function buildCashBalance(txs, names, colors, opacityMap) {
+        const chrono = txs.slice().reverse(), series = {};
+        names.forEach(n => { series[n] = []; });
+        chrono.forEach(t => { if(!series[t.playerName]) return; const c = t.snapshot ? t.snapshot.cash : null; if(c !== null) series[t.playerName].push({val:c, card:t.cardName}); });
         const W=560,H=260,pL=70,pR=20,pT=20,pB=28,maxLen=Math.max(1,...names.map(n=>series[n].length));
-        let lo=Infinity,hi=-Infinity;names.forEach(n=>series[n].forEach(s=>{if(s.val<lo)lo=s.val;if(s.val>hi)hi=s.val;}));
-        if(lo===Infinity)lo=0;if(hi===-Infinity||hi===lo)hi=lo+1;
+        let lo=Infinity,hi=-Infinity;
+        names.forEach(n => {
+            if (opacityMap && opacityMap[n] === 0) return;
+            series[n].forEach(s => { if(s.val<lo)lo=s.val; if(s.val>hi)hi=s.val; });
+        });
+        if(lo===Infinity)lo=0; if(hi===-Infinity||hi===lo)hi=lo+1;
         const x=i=>pL+(maxLen<=1?0:(i/(maxLen-1))*(W-pL-pR)),y=v=>pT+(1-(v-lo)/(hi-lo))*(H-pT-pB);
         let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
         for(let g=0;g<=4;g++){const gv=lo+(hi-lo)*g/4,gy=y(gv);svg+='<line x1="'+pL+'" y1="'+gy+'" x2="'+(W-pR)+'" y2="'+gy+'" stroke="rgba(255,255,255,0.08)"/><text x="'+(pL-6)+'" y="'+(gy+4)+'" fill="#bbb" font-size="9" text-anchor="end">'+Math.round(gv).toLocaleString()+'</text>';}
-        names.forEach(n=>{const s=series[n];if(s.length<2)return;const pts=s.map((d,i)=>x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
-            svg+='<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2" stroke-linejoin="round"/>';
-            s.forEach((d,i)=>{svg+='<circle class="cb-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="3" fill="'+colors[n]+'" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" style="cursor:pointer"/>';});
-        });
-        svg+='</svg>';
-        document.getElementById('cashBalanceChart').innerHTML=svg||'<div class="no-data">需要更多遊戲數據</div>';
-        document.getElementById('cashBalanceLegend').innerHTML=names.map(n=>'<span><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>').join('');
 
-        const tip=document.getElementById('cashTooltip');
-        document.querySelectorAll('.cb-dot').forEach(dot=>{
-            dot.addEventListener('mouseenter',e=>{showTip(tip,e.clientX,e.clientY,'<div class="tt-player" style="color:'+colors[dot.dataset.player]+'">'+esc(dot.dataset.player)+'</div><div class="tt-value">存款: $'+Number(dot.dataset.val).toLocaleString()+'</div>'+(dot.dataset.card?'<div class="tt-detail">📌 '+esc(dot.dataset.card)+'</div>':''));});
-            dot.addEventListener('mouseleave',()=>hideTip(tip));
+        // Dimmed lines first
+        names.forEach(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op === 0 || op === 1) return;
+            const s = series[n]; if (s.length < 2) return;
+            const pts = s.map((d,i) => x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg += '<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="1.2" stroke-linejoin="round" opacity="'+op+'"/>';
+        });
+
+        // Full-opacity lines with dots
+        names.forEach(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op !== 1) return;
+            const s = series[n]; if (s.length < 2) return;
+            const pts = s.map((d,i) => x(i).toFixed(1)+','+y(d.val).toFixed(1)).join(' ');
+            svg += '<polyline points="'+pts+'" fill="none" stroke="'+colors[n]+'" stroke-width="2" stroke-linejoin="round"/>';
+            s.forEach((d,i) => { svg += '<circle class="cb-dot" cx="'+x(i).toFixed(1)+'" cy="'+y(d.val).toFixed(1)+'" r="3" fill="'+colors[n]+'" data-player="'+esc(n)+'" data-val="'+d.val+'" data-card="'+esc(d.card||'')+'" style="cursor:pointer"/>'; });
+        });
+        svg += '</svg>';
+        document.getElementById('cashBalanceChart').innerHTML = svg || '<div class="no-data">需要更多遊戲數據</div>';
+        document.getElementById('cashBalanceLegend').innerHTML = names.map(n => {
+            const op = opacityMap ? opacityMap[n] : 1;
+            if (op === 0) return '';
+            return '<span style="opacity:'+op+'"><span class="dot" style="background:'+colors[n]+'"></span>'+esc(n)+'</span>';
+        }).join('');
+
+        const tip = document.getElementById('cashTooltip');
+        document.querySelectorAll('.cb-dot').forEach(dot => {
+            dot.addEventListener('mouseenter', e => { showTip(tip, e.clientX, e.clientY, '<div class="tt-player" style="color:'+colors[dot.dataset.player]+'">'+esc(dot.dataset.player)+'</div><div class="tt-value">存款: $'+Number(dot.dataset.val).toLocaleString()+'</div>'+(dot.dataset.card?'<div class="tt-detail">📌 '+esc(dot.dataset.card)+'</div>':'')); });
+            dot.addEventListener('mouseleave', () => hideTip(tip));
         });
     }
 
@@ -774,28 +978,77 @@
             return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;">'+label+' '+ratio.toFixed(0)+'%</span></div><div style="background:rgba(255,255,255,0.08);height:10px;border-radius:5px;overflow:hidden;"><div style="width:'+barW+'%;height:100%;background:'+bc+';border-radius:5px;"></div></div><div style="font-size:10px;color:#b0bec5;margin-top:3px;">債務 $'+debt.toLocaleString()+' ÷ 月收入 $'+inc.toLocaleString()+'</div></div>';}).join('');
     }
 
-    function buildDiversity(players,colors) {
-        const names=Object.keys(players),el=document.getElementById('diversificationChart');
-        if(!names.length){el.innerHTML='<div class="no-data">暫無資料</div>';return;}
-        el.innerHTML=names.map(n=>{const p=players[n],types=Object.keys(p.byType),total=p.count||1,d=types.length;
-            const maxPct=Math.max(...Object.values(p.byType))/total*100,score=d>=5?'⭐⭐⭐':d>=3?'⭐⭐':'⭐';
-            const bar=Object.entries(p.byType).sort((a,b)=>b[1]-a[1]).map(([t,c])=>'<span style="width:'+(c/total*100).toFixed(1)+'%;background:'+tm(t).color+'" title="'+tm(t).name+': '+c+'"></span>').join('');
-            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;color:#ffd966;">'+score+' ('+d+' 種類型)</span></div><div class="pc-typebar">'+bar+'</div><div style="font-size:10px;color:#b0bec5;">最集中: '+maxPct.toFixed(0)+'%</div></div>';}).join('');
+    function buildDiversity(players, colors, filteredNames) {
+        const INVEST_TYPES = new Set(['finance', 'business', 'property', 'investment']);
+        const names = filteredNames || Object.keys(players);
+        const el = document.getElementById('diversificationChart');
+        if (!names.length) { el.innerHTML = '<div class="no-data">暫無資料</div>'; return; }
+
+        el.innerHTML = names.map(n => {
+            const p = players[n]; if (!p) return '';
+
+            // Only investment-related card types
+            const invEntries = Object.entries(p.byType)
+                .filter(([t]) => INVEST_TYPES.has(t))
+                .sort((a, b) => b[1] - a[1]);
+
+            if (!invEntries.length) {
+                return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;">' +
+                    '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+                    '<span style="color:' + colors[n] + ';font-weight:bold;font-size:12px;">' + esc(n) + '</span>' +
+                    '<span style="font-size:11px;color:#90a4ae;">尚未投資</span></div>' +
+                    '<div style="font-size:10px;color:#b0bec5;">沒有財務 / 創業 / 地產 / 項目投資 記錄</div></div>';
+            }
+
+            const total = invEntries.reduce((s, [, c]) => s + c, 0) || 1;
+            const d = invEntries.length;
+            const maxPct = Math.max(...invEntries.map(([, c]) => c)) / total * 100;
+            // 4 investment types max → 4=⭐⭐⭐, 2-3=⭐⭐, 1=⭐
+            const score = d >= 4 ? '⭐⭐⭐' : d >= 2 ? '⭐⭐' : '⭐';
+
+            const bar = invEntries.map(([t, c]) =>
+                '<span style="width:' + (c / total * 100).toFixed(1) + '%;background:' + tm(t).color +
+                '" title="' + tm(t).name + ': ' + c + '"></span>'
+            ).join('');
+
+            const list = invEntries.map(([t, c]) =>
+                '<span style="margin-right:10px;white-space:nowrap"><span class="k" style="background:' +
+                tm(t).color + '"></span>' + esc(tm(t).name) + ' ×' + c + '</span>'
+            ).join('');
+
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;">' +
+                '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+                '<span style="color:' + colors[n] + ';font-weight:bold;font-size:12px;">' + esc(n) + '</span>' +
+                '<span style="font-size:11px;color:#ffd966;">' + score + ' (' + d + '/4 種投資)</span></div>' +
+                '<div class="pc-typebar">' + bar + '</div>' +
+                '<div style="font-size:10px;color:#b0bec5;margin-top:3px;">最集中: ' + maxPct.toFixed(0) + '% · ' + list + '</div></div>';
+        }).join('');
     }
 
     function buildROI(txs,names,colors) {
+        const investTypes = new Set(['finance','business','property','investment']);
         const inv={};names.forEach(n=>{inv[n]={spent:0,ret:0};});
-        txs.forEach(t=>{if(!inv[t.playerName])return;if(['finance','business','property','investment'].includes(t.cardType)&&t.amountChange<0)inv[t.playerName].spent+=Math.abs(t.amountChange);if(t.passiveIncomeChange>0)inv[t.playerName].ret+=t.passiveIncomeChange;});
+        txs.forEach(t=>{if(!inv[t.playerName])return;if(investTypes.has(t.cardType)&&t.amountChange<0)inv[t.playerName].spent+=Math.abs(t.amountChange);if(t.passiveIncomeChange>0)inv[t.playerName].ret+=t.passiveIncomeChange;});
         document.getElementById('roiChart').innerHTML=names.map(n=>{const i=inv[n],roi=i.spent>0?(i.ret/i.spent*100).toFixed(1):'0.0',pb=i.ret>0?Math.ceil(i.spent/i.ret):'∞';
             const barW=Math.min(parseFloat(roi)*4,100),bc=parseFloat(roi)>5?'#4caf50':parseFloat(roi)>2?'#ff9800':'#f44336';
             return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:11px;color:#ffd966;">月回報 '+roi+'%</span></div><div style="background:rgba(255,255,255,0.08);height:10px;border-radius:5px;overflow:hidden;"><div style="width:'+barW+'%;height:100%;background:'+bc+';border-radius:5px;"></div></div><div style="font-size:10px;color:#b0bec5;margin-top:3px;">投入 $'+i.spent.toLocaleString()+' → 月收 $'+i.ret.toLocaleString()+' · 回本 '+pb+' 月</div></div>';}).join('');
     }
-
     // ═══════════════════════════════════════════════════════════════
     // TAB 5: KEY MOMENTS
     // ═══════════════════════════════════════════════════════════════
 
-    function renderMomentsView(txs) { buildWins(txs);buildLosses(txs);buildTimeline(txs);buildRisk(txs);setupAnnot(txs); }
+    function renderMomentsView(txs, selectedPlayer, showOthers) {
+        // For wins/losses/risk: filter to selected player if any (when hiding others)
+        const filteredTxs = (selectedPlayer && !showOthers)
+            ? txs.filter(t => t.playerName === selectedPlayer)
+            : txs;
+
+        buildWins(filteredTxs);
+        buildLosses(filteredTxs);
+        buildTimeline(txs, selectedPlayer, showOthers);
+        buildRisk(filteredTxs);
+        setupAnnot(txs);
+    }
 
     function buildWins(txs) {
         const s=txs.filter(t=>t.amountChange>0).sort((a,b)=>b.amountChange-a.amountChange).slice(0,8);
@@ -807,38 +1060,97 @@
         document.getElementById('biggestLosses').innerHTML=s.length===0?'<div class="no-data">暫無</div>':s.map(t=>'<div class="moment-card"><div class="mc-left"><div class="mc-player" style="color:#ff6b6b;">'+esc(t.playerName)+'</div><div class="mc-card">'+esc(t.cardName)+' · '+t.action+'</div></div><div class="mc-amount amount-negative">$'+t.amountChange.toLocaleString()+'</div></div>').join('');
     }
 
-    function buildTimeline(txs) {
-        const chrono=txs.slice().reverse(),names=[...new Set(chrono.map(t=>t.playerName))],colors=pcm(names);
-        const riskT=new Set(['finance','business','investment','lier','hardship']),safeT=new Set(['part_time','police','volunteer','social','tip']);
-        const el=document.getElementById('decisionTimeline');
-        if(!chrono.length){el.innerHTML='<div class="no-data">暫無</div>';return;}
-        const W=800,H=30+names.length*34,padL=80,padR=20,total=chrono.length;
-        let svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
-        names.forEach((name,row)=>{const yy=20+row*34;
-            svg+='<text x="'+(padL-6)+'" y="'+(yy+4)+'" fill="'+colors[name]+'" font-size="10" text-anchor="end" font-weight="bold">'+esc(name.length>7?name.slice(0,7)+'…':name)+'</text>';
-            svg+='<line x1="'+padL+'" y1="'+yy+'" x2="'+(W-padR)+'" y2="'+yy+'" stroke="rgba(255,255,255,0.06)"/>';
-            chrono.forEach((t,i)=>{if(t.playerName!==name)return;const cx=padL+(i/Math.max(1,total-1))*(W-padL-padR);
-                let color='#888';if(riskT.has(t.cardType))color=t.amountChange>=0?'#4caf50':'#f44336';else if(safeT.has(t.cardType))color='#2196f3';
-                const r=Math.min(5,2.5+Math.abs(t.amountChange||0)/80000);
-                svg+='<circle class="tl-dot" cx="'+cx.toFixed(1)+'" cy="'+yy+'" r="'+r.toFixed(1)+'" fill="'+color+'" opacity="0.8" style="cursor:pointer" data-player="'+esc(name)+'" data-card="'+esc(t.cardName)+'" data-amount="'+(t.amountChange||0)+'" data-type="'+esc(tm(t.cardType).name)+'"/>';
+    function buildTimeline(txs, selectedPlayer, showOthers) {
+        const chrono = txs.slice().reverse();
+        const allNames = [...new Set(chrono.map(t => t.playerName))];
+        const colors = pcm(allNames);
+
+        // Filter names
+        let names;
+        if (!selectedPlayer) names = allNames;
+        else if (showOthers) names = allNames;
+        else names = [selectedPlayer];
+
+        const el = document.getElementById('decisionTimeline');
+        if (!chrono.length || !names.length) { el.innerHTML = '<div class="no-data">暫無</div>'; return; }
+        const W = 800, H = 50 + names.length * 34, padL = 80, padR = 20, total = chrono.length;
+        let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" font-family="inherit">';
+
+        svg += '<circle cx="' + padL + '" cy="10" r="4" fill="#2196f3"/><text x="' + (padL + 8) + '" y="13" fill="#bbb" font-size="9">投資決策</text>';
+        svg += '<circle cx="' + (padL + 80) + '" cy="10" r="4" fill="#4caf50"/><text x="' + (padL + 88) + '" y="13" fill="#bbb" font-size="9">收入活動</text>';
+        svg += '<circle cx="' + (padL + 160) + '" cy="10" r="4" fill="#ff6b6b"/><text x="' + (padL + 168) + '" y="13" fill="#bbb" font-size="9">隨機事件</text>';
+        svg += '<circle cx="' + (padL + 240) + '" cy="10" r="4" fill="#888"/><text x="' + (padL + 248) + '" y="13" fill="#bbb" font-size="9">其他</text>';
+
+        names.forEach((name, row) => {
+            const isSelected = selectedPlayer === name;
+            const op = (!selectedPlayer || isSelected) ? 1 : (showOthers ? 0.3 : 0);
+            if (op === 0) return;
+
+            const yy = 30 + row * 34;
+            svg += '<text x="' + (padL - 6) + '" y="' + (yy + 4) + '" fill="' + colors[name] + '" font-size="10" text-anchor="end" font-weight="' + (isSelected ? 'bold' : 'normal') + '" opacity="' + op + '">' + esc(name.length > 7 ? name.slice(0, 7) + '…' : name) + '</text>';
+            svg += '<line x1="' + padL + '" y1="' + yy + '" x2="' + (W - padR) + '" y2="' + yy + '" stroke="rgba(255,255,255,0.06)"/>';
+
+            chrono.forEach((t, i) => {
+                if (t.playerName !== name) return;
+                const cx = padL + (i / Math.max(1, total - 1)) * (W - padL - padR);
+                const dc = getDecisionClass(t.cardType);
+
+                let dotColor = dc.color;
+                if (dc.group === 'investment') {
+                    if ((t.amountChange || 0) > 0) dotColor = '#4caf50';
+                    else if ((t.amountChange || 0) < 0) dotColor = '#f44336';
+                    else dotColor = '#2196f3';
+                } else if (dc.group === 'income') {
+                    dotColor = '#4caf50';
+                } else if (dc.group === 'event') {
+                    dotColor = dc.color;
+                }
+
+                const r = Math.min(5, 2.5 + Math.abs(t.amountChange || 0) / 80000);
+                svg += '<circle class="tl-dot" cx="' + cx.toFixed(1) + '" cy="' + yy + '" r="' + r.toFixed(1) + '" fill="' + dotColor + '" opacity="' + (op * 0.8) + '" style="cursor:pointer"'
+                    + ' data-player="' + esc(name) + '" data-card="' + esc(t.cardName) + '" data-amount="' + (t.amountChange || 0) + '"'
+                    + ' data-type="' + esc(tm(t.cardType).name) + '" data-group="' + esc(dc.label) + '"/>';
             });
         });
-        svg+='</svg>';el.innerHTML=svg;
+        svg += '</svg>';
+        el.innerHTML = svg;
 
-        const tip=document.getElementById('timelineTooltip');
-        document.querySelectorAll('.tl-dot').forEach(dot=>{
-            dot.addEventListener('mouseenter',e=>{const p=dot.dataset.player,c=dot.dataset.card,a=Number(dot.dataset.amount),ty=dot.dataset.type;
-                showTip(tip,e.clientX,e.clientY,'<div class="tt-player" style="color:'+colors[p]+'">'+esc(p)+'</div><div class="tt-value">'+esc(c)+'</div><div class="tt-detail">'+ty+' · '+fmt(a)+'</div>');});
-            dot.addEventListener('mouseleave',()=>hideTip(tip));
-            dot.addEventListener('mousemove',e=>{if(tip.style.display!=='none')showTip(tip,e.clientX,e.clientY,tip.innerHTML);});
+        const tip = document.getElementById('timelineTooltip');
+        document.querySelectorAll('.tl-dot').forEach(dot => {
+            dot.addEventListener('mouseenter', e => {
+                const p = dot.dataset.player, c = dot.dataset.card, a = Number(dot.dataset.amount), ty = dot.dataset.type, gr = dot.dataset.group;
+                showTip(tip, e.clientX, e.clientY,
+                    '<div class="tt-player" style="color:' + colors[p] + '">' + esc(p) + '</div>' +
+                    '<div class="tt-value">' + esc(c) + '</div>' +
+                    '<div class="tt-detail">' + ty + ' · ' + gr + ' · ' + fmt(a) + '</div>');
+            });
+            dot.addEventListener('mouseleave', () => hideTip(tip));
+            dot.addEventListener('mousemove', e => { if (tip.style.display !== 'none') showTip(tip, e.clientX, e.clientY, tip.innerHTML); });
         });
     }
 
     function buildRisk(txs) {
-        const names=[...new Set(txs.map(t=>t.playerName))],colors=pcm(names),riskT=new Set(['finance','business','investment','lier','hardship']);
-        document.getElementById('riskProfile').innerHTML=names.map(n=>{const pt=txs.filter(t=>t.playerName===n),tot=pt.length||1,risky=pt.filter(t=>riskT.has(t.cardType)).length,safe=tot-risky,pct=(risky/tot*100).toFixed(0);
-            const label=pct>60?'🔥 冒險型':pct>30?'⚖️ 平衡型':'🛡️ 保守型';
-            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="color:'+colors[n]+';font-weight:bold;font-size:12px;">'+esc(n)+'</span><span style="font-size:12px;">'+label+' ('+pct+'%)</span></div><div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.06);"><div style="width:'+pct+'%;background:#f44336;"></div><div style="width:'+(100-pct)+'%;background:#4caf50;"></div></div><div style="display:flex;justify-content:space-between;font-size:10px;color:#b0bec5;margin-top:3px;"><span>🔴 高風險 '+risky+'</span><span>🟢 低風險 '+safe+'</span></div></div>';}).join('');
+        const names = [...new Set(txs.map(t => t.playerName))], colors = pcm(names);
+        document.getElementById('riskProfile').innerHTML = names.map(n => {
+            const pt = txs.filter(t => t.playerName === n), tot = pt.length || 1;
+            const investCount = pt.filter(t => getInvestGroup(t.cardType).group === 'investment').length;
+            const incomeCount = pt.filter(t => getInvestGroup(t.cardType).group === 'income').length;
+            const eventCount = pt.filter(t => getInvestGroup(t.cardType).group === 'event').length;
+            const investPct = (investCount / tot * 100).toFixed(0);
+            const label = investPct > 50 ? '🔥 冒險型' : investPct > 25 ? '⚖️ 平衡型' : '🛡️ 保守型';
+
+            return '<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:8px 12px;margin-bottom:6px;">' +
+                '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+                '<span style="color:' + colors[n] + ';font-weight:bold;font-size:12px;">' + esc(n) + '</span>' +
+                '<span style="font-size:12px;">' + label + '</span></div>' +
+                '<div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,0.06);">' +
+                '<div style="width:' + investPct + '%;background:#2196f3;" title="投資 ' + investCount + '"></div>' +
+                '<div style="width:' + (incomeCount / tot * 100).toFixed(1) + '%;background:#4caf50;" title="收入 ' + incomeCount + '"></div>' +
+                '<div style="width:' + (eventCount / tot * 100).toFixed(1) + '%;background:#ff6b6b;" title="事件 ' + eventCount + '"></div>' +
+                '</div>' +
+                '<div style="display:flex;justify-content:space-between;font-size:10px;color:#b0bec5;margin-top:3px;">' +
+                '<span>🔵 投資 ' + investCount + '</span><span>🟢 收入 ' + incomeCount + '</span><span>🔴 事件 ' + eventCount + '</span></div></div>';
+        }).join('');
     }
 
     // ── Annotations ──────────────────────────────────────────────
@@ -860,7 +1172,6 @@
     }
 
     function delAnnot(id) { annot=annot.filter(a=>a.id!==id);localStorage.setItem('wf_annotations',JSON.stringify(annot));renderAnnot(); }
-
     // ═══════════════════════════════════════════════════════════════
     // TAB 6: SCOREBOARD
     // ═══════════════════════════════════════════════════════════════
@@ -906,16 +1217,74 @@
     // ═══════════════════════════════════════════════════════════════
 
     let currentFilter='all', currentSearch='', transactions=[];
+    let selectedPlayer = '';   // '' means all players
+    let showOthers = true;     // true = show others dimmed as reference
+
+    // Read initial player from URL parameter
+    function getUrlPlayer() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('player') || '';
+    }
+
+    // Filter transactions based on player selection + show-others toggle
+    function getFilteredTxs() {
+        if (!selectedPlayer) return transactions;
+        if (showOthers) return transactions;   // will handle dimming in render
+        return transactions.filter(t => t.playerName === selectedPlayer);
+    }
+
+    // Populate player dropdown from transactions
+    function populatePlayerFilter() {
+        const names = [...new Set(transactions.map(t => t.playerName))].sort();
+        const sel = document.getElementById('playerFilter');
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">全部玩家</option>' +
+            names.map(n => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('');
+        // Restore selection
+        if (currentVal && names.includes(currentVal)) sel.value = currentVal;
+        else if (selectedPlayer && names.includes(selectedPlayer)) sel.value = selectedPlayer;
+    }
 
     async function loadData() {
         transactions = await fetchTx();
-        renderTable(transactions, currentFilter, currentSearch);
-        renderPlayerView(transactions);
+        populatePlayerFilter();
+
+        // On first load, try to auto-select player from URL
+        if (!selectedPlayer) {
+            const urlPlayer = getUrlPlayer();
+            if (urlPlayer) {
+                const names = [...new Set(transactions.map(t => t.playerName))];
+                // Try exact match first, then contains match
+                const match = names.find(n => n === urlPlayer) || names.find(n => n.includes(urlPlayer));
+                if (match) {
+                    selectedPlayer = match;
+                    document.getElementById('playerFilter').value = match;
+                }
+            }
+        }
+
+        renderAll();
+    }
+
+    function renderAll() {
+        const filtered = getFilteredTxs();
+        renderTable(filtered, currentFilter, currentSearch);
+        renderPlayerView(transactions, selectedPlayer, showOthers);
         renderRoomView(transactions);
-        renderMetricsView(transactions);
-        renderMomentsView(transactions);
+        renderMetricsView(transactions, selectedPlayer, showOthers);
+        renderMomentsView(transactions, selectedPlayer, showOthers);
         renderScoreboard(transactions);
     }
+
+    // Player filter events
+    document.getElementById('playerFilter').addEventListener('change', e => {
+        selectedPlayer = e.target.value;
+        renderAll();
+    });
+    document.getElementById('showOthersToggle').addEventListener('change', e => {
+        showOthers = e.target.checked;
+        renderAll();
+    });
 
     // View toggle
     document.querySelectorAll('.view-btn').forEach(btn => {
@@ -930,12 +1299,12 @@
     });
 
     document.getElementById('refreshBtn').addEventListener('click', loadData);
-    document.getElementById('searchInput').addEventListener('input', e => { currentSearch=e.target.value; renderTable(transactions,currentFilter,currentSearch); });
+    document.getElementById('searchInput').addEventListener('input', e => { currentSearch=e.target.value; renderTable(getFilteredTxs(),currentFilter,currentSearch); });
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active'); currentFilter=btn.dataset.filter;
-            renderTable(transactions,currentFilter,currentSearch);
+            renderTable(getFilteredTxs(),currentFilter,currentSearch);
         });
     });
 
