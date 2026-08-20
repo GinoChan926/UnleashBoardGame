@@ -4,7 +4,7 @@ const { addTransactionRecord } = require('../records/TransactionRecorder.js');
 const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingGroupFinance = new Map();  // groupId → state
-const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec;  // 45 seconds default
+const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec * 1000;  // 45 seconds default
 
 /**
  * When a player draws a finance card (stock/crypto),
@@ -28,9 +28,12 @@ function startGroupFinance(
     const isCrypto = !!(card.cryptoCode);
     if (!isStock && !isCrypto) return;
 
+    // Only count connected players with a DIFFERENT playerId
     let hasOthers = false;
-    room.players.forEach((p, pWs) => {
-        if (pWs !== initiatorWs) hasOthers = true;
+    room.players.forEach((p) => {
+        if (p.playerId !== initiator.playerId && !p.disconnected) {
+            hasOthers = true;
+        }
     });
     if (!hasOthers) return;
 
@@ -65,7 +68,7 @@ function startGroupFinance(
     );
 
     room.players.forEach((p, pWs) => {
-        if (pWs === initiatorWs) return;
+        if (p.playerId === initiator.playerId) return;
 
         pWs.send(JSON.stringify({
             type: 'group_finance_prompt',
@@ -116,8 +119,12 @@ function handleGroupFinanceResponse(ws, data, roomId, rooms, broadcastToRoom) {
 
     const pending = pendingGroupFinance.get(data.groupId);
     if (!pending) {
-        ws.send(JSON.stringify({ type: 'error', message: '此交易已結束' }));
+        // ✅ Silently ignore late or duplicate timer responses after finalizing
         return;
+    }
+
+    if (pending.responses.has(player.playerId)) {
+        return; // Ignore duplicate submissions
     }
 
     const units = parseInt(data.units) || 0;
@@ -134,14 +141,12 @@ function handleGroupFinanceResponse(ws, data, roomId, rooms, broadcastToRoom) {
         message: `📊 ${player.playerName} 已回應 (${pending.responses.size} 人)`
     });
 
-    // Count how many non-initiator players exist
     let otherCount = 0;
     room.players.forEach((p) => {
-        if (p.playerId !== pending.initiatorId) otherCount++;
+        if (p.playerId !== pending.initiatorId && !p.disconnected) otherCount++;
     });
 
-    // If all others responded, finalize
-    if (pending.responses.size >= otherCount) {
+    if (otherCount > 0 && pending.responses.size >= otherCount) {
         _finalizeGroupFinance(data.groupId, rooms, broadcastToRoom);
     }
 }
@@ -152,11 +157,11 @@ function _finalizeGroupFinance(groupId, rooms, broadcastToRoom) {
     const pending = pendingGroupFinance.get(groupId);
     if (!pending) return;
 
+    // ✅ CRITICAL FIX: Delete pending group BEFORE processing to avoid double execution
+    pendingGroupFinance.delete(groupId);
+
     const room = rooms.get(pending.roomId);
-    if (!room) {
-        pendingGroupFinance.delete(groupId);
-        return;
-    }
+    if (!room) return;
 
     const { card, currentPrice, unit, minTrade, multiple, cardType } = pending;
 
@@ -303,7 +308,6 @@ function _finalizeGroupFinance(groupId, rooms, broadcastToRoom) {
         });
     });
 
-    pendingGroupFinance.delete(groupId);
     console.log(`✅ 團購金融完成: ${card.name}, ${buyerCount} 人參與`);
 }
 

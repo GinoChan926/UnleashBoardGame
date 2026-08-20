@@ -20,7 +20,7 @@ const SERVER_CONFIG = require('../constants/ServerConfig.js');
  */
 
 const activeTrades  = new Map();  // tradeId → trade state
-const TRADE_TIMEOUT = SERVER_CONFIG.energyTradeTimeoutSec;  // 30 seconds default
+const TRADE_TIMEOUT = SERVER_CONFIG.energyTradeTimeoutSec * 1000;  // 30 seconds default
 
 /**
  * Called after C20 executes. Prompts seller to set a price.

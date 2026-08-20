@@ -5,7 +5,7 @@ const SERVER_CONFIG = require('../constants/ServerConfig.js');
 
 const pendingGroupInvestments = new Map();  // groupId → state
 
-const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec;  // 45 seconds for everyone to decide
+const GROUP_TIMEOUT = SERVER_CONFIG.groupInvestmentTimeoutSec * 1000;  // 45 seconds for everyone to decide
 
 /**
  * Start group investment flow.

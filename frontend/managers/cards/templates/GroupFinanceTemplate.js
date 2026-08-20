@@ -201,7 +201,7 @@ export class GroupFinanceTemplate {
         el.textContent = remaining;
         return setInterval(() => {
             remaining--;
-            if (remaining <= 0) { if (onExpire) onExpire(); return; }
+            if (remaining <= 0) { clearInterval(timerId); if (onExpire) onExpire(); return; }
             if (el) el.textContent = remaining;
         }, 1000);
     }

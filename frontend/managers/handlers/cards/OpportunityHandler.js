@@ -341,9 +341,14 @@ export class OpportunityHandler {
         client.modalManager.openModal('groupFinanceModal');
         GroupFinanceTemplate.populate(message, client.escapeHtml.bind(client));
 
+        // Track if response was already sent
+        let submitted = false;
+
         const timerId = GroupFinanceTemplate.startCountdown(
             message.timeout || 60,
             () => {
+                if (submitted) return;
+                submitted = true;
                 GroupFinanceTemplate.disableSubmit();
                 client.connection.send({
                     type: 'group_finance_response',
@@ -351,10 +356,13 @@ export class OpportunityHandler {
                     units: 0
                 });
                 client.modalManager.closeModal('groupFinanceModal');
+                client.logManager.addLog('📊 團購超時，自動不參與', 'info');
             }
         );
 
         GroupFinanceTemplate.bindSubmit(message, (units) => {
+            if (submitted) return;
+            submitted = true;
             if (timerId) clearInterval(timerId);
             GroupFinanceTemplate.disableSubmit();
             client.connection.send({
@@ -370,12 +378,6 @@ export class OpportunityHandler {
                 units > 0 ? 'success' : 'info'
             );
         });
-    }
-
-    handleGroupFinanceResult(message) {
-        const { client } = this;
-        client.logManager.addLog(message.message, 'event');
-        client.logManager.showNotification(`📊 團購「${message.cardName}」完成`, 'success');
     }
 
     async handleFundMenu(message) {
