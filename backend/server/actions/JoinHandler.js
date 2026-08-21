@@ -97,6 +97,7 @@ function handleJoin(ws, data, roomId, rooms) {
         passiveIncome:   0,
         livingExpense:   professionData.livingExpense,
         tax:             professionData.tax,
+        totalExpense:  professionData.livingExpense + professionData.tax,
         loanAmount:            0,
         loanInterest:          0,
         loanCash:            0,

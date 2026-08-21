@@ -26,7 +26,8 @@ function startGroupFinance(
 
     const isStock  = !!(card.stockCode || card.getCurrentPrice);
     const isCrypto = !!(card.cryptoCode);
-    if (!isStock && !isCrypto) return;
+    const isP2P    = !!(card.p2pCode);
+    if (!isStock && !isCrypto && !isP2P) return;
 
     // Only count connected players with a DIFFERENT playerId
     let hasOthers = false;
@@ -42,10 +43,10 @@ function startGroupFinance(
     // Use locked price from drawer's card reveal / actual purchase price if available
     const currentPrice = lockedPrice || card._lockedPrice || card.currentPrice || 0;
 
-    const cardType = isCrypto ? 'crypto' : 'stock';
-    const unit     = isCrypto ? '顆' : '股';
-    const minTrade = isCrypto ? (card.minUnits || 1) : (card.minShares || 100);
-    const multiple = isCrypto ? 1 : (card.shareMultiple || 100);
+    const cardType = isCrypto ? 'crypto' : (isP2P ? 'p2p' : 'stock');
+    const unit     = isCrypto ? '顆' : (isP2P ? '份' : '股');
+    const minTrade = isCrypto ? (card.minUnits || 1) : (isP2P ? (card.minUnits || 100) : (card.minShares || 100));
+    const multiple = isCrypto ? 1 : (isP2P ? (card.unitMultiple || 100) : (card.shareMultiple || 100));
 
     pendingGroupFinance.set(groupId, {
         groupId,
@@ -233,6 +234,8 @@ function _finalizeGroupFinance(groupId, rooms, broadcastToRoom) {
         // Add holdings
         if (cardType === 'crypto') {
             _addCryptoHolding(buyer.gameState, card, units, currentPrice);
+        } else if (cardType === 'p2p') {
+            _addP2PHolding(buyer.gameState, card, units, currentPrice);
         } else {
             _addStockHolding(buyer.gameState, card, units, currentPrice);
         }
@@ -339,6 +342,38 @@ function _addStockHolding(state, card, shares, price) {
     holding.lastPrice      = price;
     holding.transactions.push({
         type: 'buy', shares, price, total: totalCost,
+        timestamp: new Date().toLocaleString(), source: '團購'
+    });
+
+    state.totalAssets = (state.totalAssets || 0) + totalCost;
+}
+
+function _addP2PHolding(state, card, units, price) {
+    state.p2pHoldings = state.p2pHoldings || {};
+    const key = card.id;
+
+    if (!state.p2pHoldings[key]) {
+        state.p2pHoldings[key] = {
+            id:            card.id,
+            code:          card.p2pCode || card.code,
+            name:          card.name,
+            units:         0,
+            totalCost:     0,
+            purchasePrice: price,
+            lastPrice:     price,
+            transactions:  []
+        };
+    }
+
+    const holding   = state.p2pHoldings[key];
+    const totalCost = units * price;
+
+    holding.units         += units;
+    holding.totalCost     += totalCost;
+    holding.purchasePrice  = holding.totalCost / holding.units;
+    holding.lastPrice      = price;
+    holding.transactions.push({
+        type: 'buy', units, price, total: totalCost,
         timestamp: new Date().toLocaleString(), source: '團購'
     });
 

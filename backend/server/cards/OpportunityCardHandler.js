@@ -593,24 +593,36 @@ function handleExecuteCard(ws, data, roomId, rooms, broadcastToRoom, CARD_TYPES,
             return;
         }
         // ✅ Trigger group finance for stock/crypto cards after buy
-        const isFinanceCard = !!(card.stockCode || card.cryptoCode || card.getCurrentPrice);
+        // ✅ Trigger group finance for stock/crypto/P2P cards after buy
+        const isFinanceCard = !!(card.stockCode || card.cryptoCode || card.p2pCode || card.getCurrentPrice);
 
         if (isFinanceCard) {
             const { startGroupFinance } = require('../systems/GroupFinanceSystem.js');
 
-            // Get locked price from player's holdings if they bought, otherwise use card's locked price
-            let lockedPrice = card._lockedPrice || card.currentPrice || 0;
+            // Get locked price
+            let lockedPrice = card._lockedPrice || card.currentPrice || card.pricePerUnit || 0;
 
-            // If player 1 did buy, use their actual purchase price
+            // Determine if initiator bought
+            let initiatorBought = false;
+
             if (data.stockAction === 'buy' && player.gameState.stockHoldings?.[card.id]) {
                 lockedPrice = player.gameState.stockHoldings[card.id].lastPrice ||
                     player.gameState.stockHoldings[card.id].purchasePrice;
+                initiatorBought = true;
             } else if (data.cryptoAction === 'buy' && player.gameState.cryptoHoldings?.[card.id]) {
                 lockedPrice = player.gameState.cryptoHoldings[card.id].lastPrice ||
                     player.gameState.cryptoHoldings[card.id].averagePrice;
+                initiatorBought = true;
+            } else if (card.p2pCode) {
+                // ✅ Check P2P — if units were purchased, initiator bought
+                if (data.units > 0 && player.gameState.p2pHoldings?.[card.id]) {
+                    lockedPrice = player.gameState.p2pHoldings[card.id].lastPrice ||
+                        player.gameState.p2pHoldings[card.id].purchasePrice;
+                    initiatorBought = true;
+                }
             }
 
-            const initiatorBought = (data.stockAction === 'buy' || data.cryptoAction === 'buy');
+            console.log(`📊 Group Finance Trigger: ${card.name}, initiatorBought=${initiatorBought}, lockedPrice=$${lockedPrice}`);
 
             setTimeout(() => {
                 startGroupFinance(ws, roomId, player, card, broadcastToRoom, rooms, lockedPrice, initiatorBought);
@@ -1089,7 +1101,7 @@ function _handleFund(card, data, player, ws) {
             cardId:        card.id,
             cardName:      card.name,
             pricePerUnit:  card.pricePerUnit,
-            monthlyReturn: card.monthlyReturn,
+            monthlyReturn: card.monthlyReturn || 0,
             minUnits:      card.minUnits || 1,
             maxUnits:      maxUnits,
             currentCash:   (state.cash || 0) + (state.loanCash || 0)
@@ -1119,7 +1131,7 @@ function _handleP2P(card, data, player, ws) {
     if (units === undefined || units === null) {
         const maxUnits = Math.min(
             1000,
-            Math.floor(((state.cash || 0) + (state.loanCash || 0)) / card.pricePerUnit)
+            Math.floor(((state.cash || 0) + (state.loanCash || 0)) / (card.pricePerUnit || 10))
         );
         const maxAllowed = Math.floor(maxUnits / 100) * 100;
 
@@ -1127,7 +1139,7 @@ function _handleP2P(card, data, player, ws) {
             type:          'fund_menu',
             cardId:        card.id,
             cardName:      card.name,
-            pricePerUnit:  card.pricePerUnit,
+            pricePerUnit:  card.pricePerUnit || 10,
             monthlyReturn: card.monthlyReturn || 0,
             minUnits:      100,
             maxUnits:      maxAllowed,
@@ -1139,7 +1151,6 @@ function _handleP2P(card, data, player, ws) {
 
     const p2pUnits = parseInt(units) || 100;
 
-    // ✅ Validate step size
     if (p2pUnits < 100 || p2pUnits > 1000 || p2pUnits % 100 !== 0) {
         ws.send(JSON.stringify({
             type: 'notification',
@@ -1148,7 +1159,8 @@ function _handleP2P(card, data, player, ws) {
         return '';
     }
 
-    const totalCost = p2pUnits * card.pricePerUnit;
+    const pricePerUnit = card.pricePerUnit || 10;
+    const totalCost = p2pUnits * pricePerUnit;
     if (totalCost > (state.cash || 0) + (state.loanCash || 0)) {
         ws.send(JSON.stringify({
             type: 'notification',
@@ -1157,7 +1169,9 @@ function _handleP2P(card, data, player, ws) {
         return '';
     }
 
-    return card.effect(state, p2pUnits);
+    // ✅ Pass 'buy' as 2nd parameter and p2pUnits as 3rd parameter!
+    const result = card.effect(state, 'buy', p2pUnits);
+    return typeof result === 'object' ? result.message : result;
 }
 
 function _getCardEffectPreview(card, state) {

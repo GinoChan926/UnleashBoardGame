@@ -555,7 +555,7 @@ const financeCards = [
                     monthlyReturn: 2500,
                     totalCost: totalCost
                 });
-                return `✅ 購買 ${units} 份基金投資，花费 ${totalCost.toLocaleString()} 元，被動收入 +${(units * 2500).toLocaleString()} 元/月`;
+                return `✅ 購買 ${units} 份基金投資，花費 ${totalCost.toLocaleString()} 元，被動收入 +${(units * 2500).toLocaleString()} 元/月`;
             } else {
                 return `❌ 現金不足 ${totalCost.toLocaleString()} 元，無法購買 ${units} 份基金`;
             }
@@ -796,7 +796,6 @@ const financeCards = [
             return `加密貨幣交易 | 價格波動 $0-∞/顆 | 最小交易 ${this.minUnits} 顆 | 可買入/賣出 | 高風險高回報`;
         }
     },
-
     // 加密貨幣交易 F04 (C01 - 價格 $5)
     {
         id: "F04",
@@ -1002,42 +1001,82 @@ const financeCards = [
             return `加密貨幣交易 | 價格波動 $0-∞/顆 | 最小交易 ${this.minUnits} 顆 | 高風險高回報`;
         }
     },
-
     // P2P投資網上借貸平台 F05
     {
         id: "F05",
         code: "N02",
         name: "P2P投資網上借貸平台",
-        description: "基金代碼 N02 | 今日價格:$10/股 | 價值($0-無限)/股 | 可買股數:100-1,000股",
+        description: "基金代碼 N02 | 今日價格:$10/股 | 可買股數:100-1,000股 | 所有玩家都可購買，其他玩家購買時給抽牌者1精力",
         image: "../cards/finance/F05.png",
-        cost: 500,
+        cost: 1000,
         type: "finance",
         category: "財務",
+        p2pCode: "N02", // ✅ Use p2pCode instead of stockCode
+        currentPrice: 10,
         pricePerUnit: 10,
         minUnits: 100,
         maxUnits: 1000,
-        monthlyReturn: 0,
-        effect: (state, units = 100) => {
-            const totalCost = units * 10;
-            if (state.cash >= totalCost) {
-                state.cash -= totalCost;
-                state.totalAssets += totalCost;
-                state.financeInvestments = state.financeInvestments || [];
-                state.financeInvestments.push({
-                    id: "N02",
-                    name: "P2P投資網上借貸平台",
-                    units: units,
-                    pricePerUnit: 10,
-                    totalCost: totalCost
-                });
-                return `✅ 購買 ${units} 股 P2P投資平台，花费 ${totalCost.toLocaleString()} 元`;
-            } else {
-                return `❌ 現金不足 ${totalCost.toLocaleString()} 元，無法購買`;
-            }
-        },
-        getEffectDescription: (units = 100) => `購買 ${units} 股，花費 ${(units * 10).toLocaleString()} 元`
-    },
+        unitMultiple: 100,
 
+        buy: function(state, units) {
+            const totalCost = units * this.currentPrice;
+
+            if (state.cash < totalCost) {
+                return {
+                    success: false,
+                    message: `❌ 現金不足 $${totalCost.toLocaleString()}`
+                };
+            }
+
+            state.cash -= totalCost;
+            state.totalAssets = (state.totalAssets || 0) + totalCost;
+
+            state.p2pHoldings = state.p2pHoldings || {};
+            if (!state.p2pHoldings[this.id]) {
+                state.p2pHoldings[this.id] = {
+                    id: this.id,
+                    code: this.p2pCode,
+                    name: this.name,
+                    units: 0,
+                    totalCost: 0,
+                    purchasePrice: this.currentPrice,
+                    lastPrice: this.currentPrice,
+                    transactions: []
+                };
+            }
+
+            const holding = state.p2pHoldings[this.id];
+            holding.units += units;
+            holding.totalCost += totalCost;
+            holding.purchasePrice = holding.totalCost / holding.units;
+            holding.transactions.push({
+                type: 'buy',
+                units: units,
+                price: this.currentPrice,
+                total: totalCost,
+                timestamp: new Date().toLocaleString()
+            });
+
+            return {
+                success: true,
+                message: `✅ 購買 ${units} 份 P2P平台，花費 $${totalCost.toLocaleString()}`,
+                units: units,
+                price: this.currentPrice,
+                totalCost: totalCost
+            };
+        },
+
+        effect: function(state, action = 'buy', units = 100) {
+            if (action === 'buy') {
+                return this.buy(state, units);
+            }
+            return `P2P投資平台`;
+        },
+
+        getEffectDescription: function(units = 100) {
+            return `購買 ${units} 份，花費 $${(units * this.currentPrice).toLocaleString()}`;
+        }
+    },
     // 股票交易 F06
     {
         id: "F06",
@@ -3203,7 +3242,6 @@ const financeCards = [
             return `股票交易 | 價格 $${this.priceRange.min}-$${this.priceRange.max}/股 | 最小交易 ${this.minShares} 股 | 可買入/賣出`;
         }
     },
-
 ];
 
 // ==================== 創業类机会卡 (Business) ====================

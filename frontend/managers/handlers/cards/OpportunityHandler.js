@@ -395,7 +395,7 @@ export class OpportunityHandler {
             cardId:               message.cardId,
             cardName:             message.cardName,
             cardImage:            '',
-            cardDescription:      `每份 $${message.pricePerUnit.toLocaleString()} | 月回報 +$${message.monthlyReturn.toLocaleString()}/份`,
+            cardDescription:      message.description,
             pricePerUnit:         message.pricePerUnit,
             monthlyReturnPerUnit: message.monthlyReturn,
             energyCostPerUnit:    0,
@@ -450,5 +450,19 @@ export class OpportunityHandler {
                 client.logManager.addLog(`❌ 已取消購買「${message.cardName}」`, 'warning');
             }
         );
+    }
+    handleGroupFinanceResult(message) {
+        const { client } = this;
+        client.logManager.addLog(message.message, 'event');
+        client.logManager.showNotification(
+            `📊 團購「${message.cardName}」完成！`,
+            'success'
+        );
+
+        // Update game state if provided
+        if (message.gameState && message.playerId === client.playerId) {
+            client.gameState = message.gameState;
+            client.updateUI();
+        }
     }
 }

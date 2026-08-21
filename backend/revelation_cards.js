@@ -719,13 +719,13 @@ const marketNewsCards = [
                         delete p.gameState.stockHoldings[stockId];
                     } else {
                         holding.shares = newShares;
-                        holding.purchasePrice = holding.purchasePrice * 2;
+                        // totalCost remains unchanged; purchasePrice doubles per share
+                        holding.purchasePrice = (holding.totalCost || (oldShares * holding.purchasePrice)) / newShares;
                     }
                     hasStock = true;
                 }
 
                 if (hasStock) {
-                    // p.gameState.luck = Math.max(0, p.gameState.luck - 1);
                     affected.push(p.playerName);
                     ctx.addTransactionRecord(
                         p.playerName,
@@ -739,7 +739,7 @@ const marketNewsCards = [
 
             if (affected.length === 0) return `📊 沒有玩家持有股票，無影響`;
 
-            return `🦢 股市黑天鵝！\n👥 受影響玩家：${affected.join(', ')}\n📊 所有股票股數減半\n🍀 幸運值 -1`;
+            return `🦢 股市黑天鵝！\n👥 受影響玩家：${affected.join(', ')}\n📊 所有股票股數減半（每2股合併為1股）`;
         },
         getEffectDescription: () => "市場消息：所有股票股數減半"
     },

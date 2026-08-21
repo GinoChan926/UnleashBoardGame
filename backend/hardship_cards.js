@@ -1,4 +1,31 @@
 // hardship_cards.js - 逆境自强卡数据
+function _applyTrust(pState, intendedLoss) {
+    if (!pState || intendedLoss <= 0) {
+        return { actualLoss: Math.max(0, intendedLoss), protected: false };
+    }
+
+    // 檢查玩家是否有資產信託保護
+    if (pState.assetTrustProtection && pState.assetTrustAmount > 0) {
+        const trustAmount = pState.assetTrustAmount || 0;
+        const actualLoss  = Math.max(0, intendedLoss - trustAmount);
+
+        pState.assetTrustAmount = Math.max(0, trustAmount - intendedLoss);
+        if (pState.assetTrustAmount === 0) {
+            pState.assetTrustProtection = false;
+        }
+
+        return {
+            actualLoss,
+            protected: true,
+            trustUsed: intendedLoss - actualLoss
+        };
+    }
+
+    return {
+        actualLoss: intendedLoss,
+        protected: false
+    };
+}
 
 const hardshipCards = [
     {

@@ -83,6 +83,14 @@ export class TurnHandler {
             client.gameState = message.gameState;
             console.log(`🎯 My turn: ${client.gameState.isMyTurn}, energy: ${client.gameState.energy}`);
             client.updateUI();
+
+            // ✅ Auto-refresh Portfolio Modal if open
+            const modal = document.getElementById('portfolioModal');
+            if (modal && modal.classList.contains('show')) {
+                if (typeof client.showPortfolio === 'function') {
+                    client.showPortfolio();
+                }
+            }
         } else if (message.playerId && message.gameState) {
             client.otherPlayers.set(message.playerId, message.gameState);
             console.log(`👤 Other player ${message.playerId} state updated`);

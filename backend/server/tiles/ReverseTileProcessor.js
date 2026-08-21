@@ -41,6 +41,13 @@ function processReverseTile(state, tile, ws, roomId, player, streamlineTiles, br
                 { name: "生意失敗", type: "hardship" }, "生意失敗", -loss,
                 `損失 ${loss.toLocaleString()} 元`, null, state);
 
+            // ✅ FIX: Broadcast state update so the frontend UI panel refreshes immediately!
+            broadcastToRoom(roomId, {
+                type: 'state_updated',
+                playerId: player.playerId,
+                gameState: state
+            });
+
             _sendReverseCardReveal(ws, player, broadcastToRoom, roomId, {
                 name:         '生意失敗',
                 effect:       `💼 生意失敗！損失 $${loss.toLocaleString()} 元（現金的一半）`,
@@ -74,19 +81,20 @@ function processReverseTile(state, tile, ws, roomId, player, streamlineTiles, br
         }
 
         case 'unemployment': {
-            const monthlyIncome    = state.salary + state.sideIncome;
-            const unemploymentLoss = Math.min(state.cash, monthlyIncome);
+            const totalExpenses = state.totalExpenses || 0;
+            const unemploymentLoss = Math.min(state.cash, totalExpenses);
+
             state.cash   = Math.max(0, state.cash - unemploymentLoss);
-            state.salary = 0;
             state.energy = Math.min(state.maxEnergy, state.energy + 6);
 
             addTransactionRecord(player.playerName,
                 { name: "失業", type: "hardship" }, "失業", -unemploymentLoss,
-                `失業！損失 ${unemploymentLoss.toLocaleString()} 元，月薪歸零，精力 +6`, null, state);
+                `失業！支付一個月支出 ${unemploymentLoss.toLocaleString()} 元，精力 +6`,
+                null, state);
 
             _sendReverseCardReveal(ws, player, broadcastToRoom, roomId, {
                 name:         '失業',
-                effect:       `⚠️ 失業！損失 $${unemploymentLoss.toLocaleString()} 元（一個月收入），月薪歸零，精力 +6`,
+                effect:       `⚠️ 失業！支付一個月支出 $${unemploymentLoss.toLocaleString()} 元，精力 +6`,
                 image:        '/cards/tiles/reverse/unemployment.png',
                 cardType:     'hardship',
                 cardTypeName: '失業',

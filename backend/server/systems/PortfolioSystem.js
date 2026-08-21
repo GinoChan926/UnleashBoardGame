@@ -73,6 +73,22 @@ function handleGetPortfolio(ws, data, roomId, rooms) {
             });
         });
     }
+    if (state.p2pHoldings) {
+        for (const [p2pId, holding] of Object.entries(state.p2pHoldings)) {
+            // Skip if already added from financeInvestments
+            if (funds.some(f => f.id === p2pId)) continue;
+
+            funds.push({
+                id: p2pId,
+                name: holding.name || p2pId,
+                units: holding.units || 0,
+                pricePerUnit: holding.purchasePrice || holding.lastPrice || 10,
+                monthlyReturnPerUnit: 0,
+                monthlyReturn: 0,
+                totalCost: holding.totalCost || 0
+            });
+        }
+    }
 
     // Collect business investments
     const businesses = [];
