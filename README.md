@@ -1,74 +1,171 @@
 # UnleashBoardGame
-A HK version monopoly but better, use for secondary school financial education
-Testing version ,How to run the game:
---Please install the GitHub boardgame document and install node.js in backend
---after finish set-up, open anew terminal
 
-type the following command in terminal(I only works it in Window,
-didn't try to run in Linux or Mac pls type other commend)
+一款香港版大富翁，但更好玩，主要用作中學生財務教育。
 
-cd ..\project\backend
+這是測試版本。
 
+---
+
+## 目錄
+
+1. [遊戲機制與特色](#遊戲機制與特色)
+2. [環境準備](#環境準備)
+3. [本地端執行方式](#本地端執行方式)
+4. [校內競賽用區域網路伺服器設定](#校內競賽用區域網路伺服器設定)
+
+---
+
+## 遊戲機制與特色
+
+- 👥 **職業系統**：👨‍⚕️ 醫生 | 👨‍🔧 工程師 | 👩‍🏫 教師 | 🎨 藝術家 | 🚀 創業者
+- 📅 **結算日機制**：
+  - 第 5、13、21 格 - 獲得月薪 + 副業收入
+  - 剛好踩中結算日 - 額外獲得一次擲骰機會
+- ⚡ **精力系統**：
+  - 擲骰消耗 1 點精力 | 結束回合恢復 1 點精力
+- 📚 **事件卡系統**：
+  - 💼 兼職類：13 張
+  - 📈 財務類：6 張
+  - 🚀 創業類：3 張
+  - 🏠 地產類：6 張
+
+---
+
+## 環境準備
+
+1. 請先下載 / 安裝 GitHub boardgame 專案檔案。
+2. 請在 `backend` 內安裝 [Node.js](https://nodejs.org/)。
+3. 完成設定後，請開啟一個新的終端機。
+
+---
+
+## 本地端執行方式
+
+> ⚠️ 目前僅在 macOS 上測試過，Linux 或其他系統尚未完整測試，請依照你的環境使用相應指令。
+
+在終端機輸入以下指令：
+
+```bash
+cd ../project/backend
 node server.js
+```
 
-then your termina should shows 
+伺服器成功啟動後，你的終端機應該會顯示：
 
+```text
 ════════════════════════════════════════════════════════════╗
-║   🎲 财富流沙盘 WebSocket 服务器                           ║
+║   🎲 財富流沙盤 WebSocket 伺服器                          ║
 ╠════════════════════════════════════════════════════════════╣
-║   端口: 8080                                               ║
-║   地址: http://localhost:8080                             ║
-║   状态: 运行中                                              ║
+║   連接埠: 8080                                             ║
+║   位址: http://localhost:8080                            ║
+║   狀態: 執行中                                              ║
 ╠════════════════════════════════════════════════════════════╣
-║   👥 职业系统:                                             ║
-║   👨‍⚕️ 医生 | 👨‍🔧 工程师 | 👩‍🏫 教师 | 🎨 艺术家 | 🚀 创业者      ║
+║   👥 職業系統:                                             ║
+║   👨‍⚕️ 醫生 | 👨‍🔧 工程師 | 👩‍🏫 教師 | 🎨 藝術家 | 🚀 創業者      ║
 ╠════════════════════════════════════════════════════════════╣
-║   📅 结算日机制:                                           ║
-║   第5、13、21格 - 获得月薪+副业收入                        ║
-║   正好踩中结算日 - 额外获得一次掷骰机会                    ║
+║   📅 結算日機制:                                           ║
+║   第 5、13、21 格 - 獲得月薪 + 副業收入                    ║
+║   剛好踩中結算日 - 額外獲得一次擲骰機會                    ║
 ╠════════════════════════════════════════════════════════════╣
-║   ⚡ 精力系统:                                             ║
-║   掷骰消耗1精力 | 结束回合恢复1精力                        ║
+║   ⚡ 精力系統:                                             ║
+║   擲骰消耗 1 點精力 | 結束回合恢復 1 點精力                ║
 ╠════════════════════════════════════════════════════════════╣
-║   📚 机会卡系统:                                            ║
-║   💼 兼职类: 13 张                        ║
-║   📈 财务类: 6 张                        ║
-║   🚀 创业类: 3 张                       ║
-║   🏠 地产类: 6 张                       ║
+║   📚 事件卡系統:                                           ║
+║   💼 兼職類: 13 張                                         ║
+║   📈 財務類: 6 張                                          ║
+║   🚀 創業類: 3 張                                          ║
+║   🏠 地產類: 6 張                                          ║
 ╠════════════════════════════════════════════════════════════╣
-║   🌐 访问地址: http://localhost:8080                      ║
+║   🌐 存取位址: http://localhost:8080                      ║
 ╚════════════════════════════════════════════════════════════╝
+```
 
-Please Ctrl+ left click the http://localhost:8080        
+### 開始遊戲
 
-Or open the browser：http://localhost:8080/frontend/index.html
+請按住 Command 再以滑鼠左鍵點擊：<http://localhost:8080>
 
-# LAN-server for school competition
-in the minPC server pls type following command below in terminal:
-1. cd ../project/backend
-2. node server.js
+或者直接在瀏覽器中開啟：<http://localhost:8080/frontend/index.html>
 
-Then you open the server, next pls find the server IP(IPV4 address):
-Window miniPC server:
-1. Open Powershell and type the following command
-2. ipconfig
-3. Look for the IPv4 Address line
+---
 
-macOS miniPC server:
-1.Open Terminal (found in Launchpad > Other).For internal IP:
-2.If on Wi-Fi: ipconfig getifaddr en0
-If on Ethernet: ipconfig getifaddr en1
-3.For public IP (external access): curl ifconfig.me
+## 校內競賽用區域網路伺服器設定
 
-Linux server:
-1.Open a terminal.
-2.ip addr show or ip a – lists all network interfaces with details.
-Look for an interface that is UP (e.g., eth0, ens33, wlan0). Find the inet field – that's your IPv4 address (e.g., 192.168.1.100/24).
+若要在 mini PC 伺服器上架設供多台裝置連線對戰，請依照以下步驟設定：
 
-In the player computer (your own laptop or PC)
-1.ping (the IPV4 address of the server)
-2.Open a browser , type http://XXX.XXX.X.XXX:8080 (where the XXX.XXX.X.XXX is the IPV4 adress of server)
-3.Finally connect the game , and enjoy
+### 1. 啟動伺服器
 
+在 mini PC 伺服器上，於終端機輸入以下指令啟動伺服器：
 
+```bash
+cd ../project/backend
+node server.js
+```
+
+### 2. 找出伺服器的 IP 位址（IPv4 位址）
+
+#### 🍎 macOS mini PC 伺服器
+
+開啟 Terminal（可在 Launchpad > 其他 中找到）。
+
+查詢內部 IP：
+
+如果使用 Wi‑Fi：
+
+```bash
+ipconfig getifaddr en0
+```
+
+如果使用 Ethernet（有線網路）：
+
+```bash
+ipconfig getifaddr en1
+```
+
+查詢公網 IP（外部存取）：
+
+```bash
+curl ifconfig.me
+```
+
+#### 🐧 Linux 伺服器
+
+開啟終端機。
+
+執行指令：
+
+```bash
+ip addr show
+```
+
+或：
+
+```bash
+ip a
+```
+
+列出所有網路介面與詳細資訊，找到一個處於 UP 狀態的介面（例如 eth0、ens33、wlan0）。
+
+查看 inet 欄位，那就是你的 IPv4 位址（例如：192.168.1.100/24 中的 192.168.1.100）。
+
+### 3. 玩家電腦連線步驟（玩家自己的筆電或桌機）
+
+確認連線：確保玩家的裝置與伺服器主機連接在同一個 Wi‑Fi 或區域網絡下。
+
+測試連線（選用）：可在玩家電腦的終端機輸入以下指令確保網路相通：
+
+```bash
+ping XXX.XXX.X.XXX
+```
+
+（請將 `XXX.XXX.X.XXX` 替換為伺服器的 IPv4 位址）
+
+加入遊戲：開啟瀏覽器，在網址列輸入：
+
+```text
+http://XXX.XXX.X.XXX:8080/frontend/index.html
+```
+
+或：<http://XXX.XXX.X.XXX:8080>
+
+最後連接遊戲，盡情享受！🎲🚀
 
