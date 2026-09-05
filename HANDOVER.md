@@ -74,7 +74,8 @@ BoardGame/
 
 ```bash
 cd backend
-node server.js
+npm install
+npm start
 ```
 
 Then open `http://localhost:8080/frontend/index.html` for the game, or `/record.html` for the records page. The server prints a banner and listens on port **8080**.
@@ -83,7 +84,7 @@ If `ws` is not installed on a fresh clone, run `cd backend && npm install ws`. B
 
 ### Classroom or LAN competition
 
-1. On the teacher's mini-PC, run `cd backend && node server.js`.
+1. On the teacher's mini-PC, run `cd backend && npm install && npm start`.
 2. Find the server's IPv4 address (`ipconfig` on Windows, `ipconfig getifaddr en0` on macOS, `ip a` on Linux).
 3. Students open `http://<SERVER_IP>:8080`, enter a room name and a player name, and join.
 
@@ -135,42 +136,24 @@ Charts are drawn as inline SVG, without a charting library, so the page works en
 
 A consistent workflow rule applies: `main` is never committed to or pushed directly. All contributed work is placed on a separate branch, and the owner reviews and merges it.
 
----
-
-## 8. Summary of recent work
-
-**Bug fixes**
-
-- **Inflation expense defect** (`RollHandler.js`): a player affected by the inflation hardship card skipped all expenses when passing over, rather than landing on, a settlement tile. The behaviour now mirrors the landing path: income is skipped, but expenses are still charged.
-- **Records page:** an unreachable duplicate branch was removed, and the search filter was hardened against records with no card name.
-
-**Features**
-
-- The **per-player analysis** tab was added, and that page was converted to Traditional Chinese.
-- The net-cash bar chart now displays each player's **full name** rather than truncating it.
-- A **per-room analysis** tab and a **room-comparison ranking** chart were added.
-- Transaction records are now **tagged with their room** on the backend. This change is additive and does not alter the 79 record call sites or any game logic.
-
-All changes were syntax-checked, unit-tested (for record tagging), and validated end-to-end against a running server with no crashes.
 
 ---
 
-## 9. Known issues and technical debt
+## 8. Known issues and technical debt
 
 The following are ranked approximately by impact.
 
-1. **No `package.json`.** The only dependency, `ws`, is installed ad hoc, so a fresh clone cannot run `npm install`. Adding a manifest with `ws` pinned and a `start` script is the highest-value, lowest-effort improvement.
-2. **No automated tests.** The card economy is complex and has already produced at least one money-calculation defect. Unit tests for the handlers and systems, particularly the money and energy calculations, are needed.
-3. **The port is hardcoded** (`const PORT = 8080` in `server.js`). It should read `process.env.PORT || 8080`.
-4. **Records persistence is fragile.** The system uses in-memory storage plus a single capped `transactions.json` (200 to 500 records, with all rooms mixed together). A server restart, or a long multi-room session, loses history. SQLite or per-session files would be more robust.
-5. **`transactions.json` is both git-tracked and git-ignored**, which is inconsistent and causes it to appear repeatedly as modified. Running `git rm --cached transactions.json` resolves this.
-6. **Mixed Simplified and Traditional Chinese.** The records page is now Traditional, but the server banner and other UI text still contain Simplified characters. The conversion should be completed across the project.
-7. **The `server.js` message switchboard is monolithic.** It is manageable, but a handler registry or map would scale better than a large `switch` statement.
-8. **There is no error boundary around message handling.** An unhandled exception in one handler could bring down an entire classroom's server. Dispatch should be wrapped in try/catch with structured logging.
+1. **No automated tests.** The card economy is complex and has already produced at least one money-calculation defect. Unit tests for the handlers and systems, particularly the money and energy calculations, are needed.
+2. **The port is hardcoded** (`const PORT = 8080` in `server.js`). It should read `process.env.PORT || 8080`.
+3. **Records persistence is fragile.** The system uses in-memory storage plus a single capped `transactions.json` (200 to 500 records, with all rooms mixed together). A server restart, or a long multi-room session, loses history. SQLite or per-session files would be more robust.
+4. **`transactions.json` is both git-tracked and git-ignored**, which is inconsistent and causes it to appear repeatedly as modified. Running `git rm --cached transactions.json` resolves this.
+5. **Mixed Simplified and Traditional Chinese.** The records page is now Traditional, but the server banner and other UI text still contain Simplified characters. The conversion should be completed across the project.
+6. **The `server.js` message switchboard is monolithic.** It is manageable, but a handler registry or map would scale better than a large `switch` statement.
+7. **There is no error boundary around message handling.** An unhandled exception in one handler could bring down an entire classroom's server. Dispatch should be wrapped in try/catch with structured logging.
 
 ---
 
-## 10. Recommendations for future development
+## 9. Recommendations for future development
 
 ### A. Foundation and reliability (priority)
 
@@ -215,7 +198,7 @@ The effort is small and mostly frontend, though export may benefit from a small 
 
 ---
 
-## 11. Working conventions
+## 10. Working conventions
 
 - **Never commit to or push `main` directly.** Branch from the latest `main`, commit to that branch, push it, and let the owner review and merge.
 - **Prefer additive changes.** Avoid refactoring core game logic solely to add a feature.
@@ -225,10 +208,10 @@ The effort is small and mostly frontend, though export may benefit from a small 
 
 ---
 
-## 12. Quick-start checklist for the next developer
+## 11. Quick-start checklist for the next developer
 
 1. Clone the repository, then run `cd backend && npm install ws` (until a `package.json` exists).
 2. Run `node server.js`, open `http://localhost:8080/frontend/index.html`, and play a turn.
 3. Open `/record.html`, play a game, and watch the records and analysis populate.
-4. Read [`game_logic.md`](game_logic.md) for the rules, and review `server.js` for the message switchboard.
+4. Read [`game_logic.md`](game_logic.md) and [`GAME_FLOWCHART.md`](GAME_FLOWCHART.md)for the rules, and review `server.js` for the message switchboard.
 5. Select a starter task: add a `package.json` (Section 10A) or complete a card from [`bugs_to_fix.txt`](bugs_to_fix.txt).

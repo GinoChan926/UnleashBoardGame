@@ -34,7 +34,7 @@
 ## 環境準備
 
 1. 請先下載 / 安裝 GitHub boardgame 專案檔案。
-2. 請在 `backend` 內安裝 [Node.js](https://nodejs.org/)。
+2. 請在 `backend` 內安裝 [Node.js](https://nodejs.org/)與 npm。
 3. 完成設定後，請開啟一個新的終端機。
 
 ---
@@ -47,7 +47,8 @@
 
 ```bash
 cd ../project/backend
-node server.js
+npm install
+npm start
 ```
 
 伺服器成功啟動後，你的終端機應該會顯示：
