@@ -1,0 +1,14 @@
+{
+  "name": "boardgame-backend",
+  "version": "1.0.0",
+  "description": "WebSocket backend for the BoardGame classroom app",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "ws": "8.18.3"
+  }
+}
